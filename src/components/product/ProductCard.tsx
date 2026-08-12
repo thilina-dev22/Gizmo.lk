@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, ShoppingBag, Star, Zap, Check } from "lucide-react";
@@ -11,11 +11,23 @@ interface ProductCardProps {
   product: Product;
 }
 
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
+
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem, setQuickViewProduct } = useCartStore();
+  const [added, setAdded] = useState(false);
 
   const images = JSON.parse(product.images || "[]");
-  const mainImage = images[0] || "/placeholder.jpg";
+  const initialImage = images[0] || FALLBACK_IMAGE;
+  const [imgSrc, setImgSrc] = useState(initialImage);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
 
   return (
     <div className="group relative bg-slate-900/90 rounded-2xl border border-slate-800/90 hover:border-cyan-500/50 transition-all duration-300 flex flex-col overflow-hidden shadow-xl hover:shadow-cyan-950/40">
@@ -44,10 +56,11 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="relative h-52 w-full bg-slate-950 overflow-hidden">
         <Link href={`/products/${product.id}`} className="block w-full h-full">
           <Image
-            src={mainImage}
+            src={imgSrc}
             alt={product.title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={() => setImgSrc(FALLBACK_IMAGE)}
           />
         </Link>
 
@@ -55,7 +68,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4 pointer-events-none group-hover:pointer-events-auto">
           <button
             onClick={() => setQuickViewProduct(product)}
-            className="bg-slate-900/90 hover:bg-slate-900 text-slate-200 hover:text-cyan-400 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 backdrop-blur-md transition-all"
+            className="bg-slate-900/90 hover:bg-slate-900 text-slate-200 hover:text-cyan-400 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 backdrop-blur-md transition-all shadow-lg"
           >
             <Eye className="w-4 h-4" />
             <span>Quick View</span>
@@ -96,15 +109,29 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <button
-            onClick={() => addItem(product)}
-            className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold p-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs"
+            onClick={handleAddToCart}
+            className={`font-bold p-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs ${
+              added
+                ? "bg-emerald-500 text-slate-950"
+                : "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950"
+            }`}
             title="Add to Cart"
           >
-            <ShoppingBag className="w-4 h-4" />
-            <span className="hidden sm:inline">Add</span>
+            {added ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span className="hidden sm:inline">Added!</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="w-4 h-4" />
+                <span className="hidden sm:inline">Add</span>
+              </>
+            )}
           </button>
         </div>
       </div>
     </div>
   );
 }
+

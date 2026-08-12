@@ -29,7 +29,10 @@ export function ProductDetailClient({ product, images, specs }: ClientProps) {
   const router = useRouter();
   const { addItem, openCart } = useCartStore();
 
-  const [activeImage, setActiveImage] = useState(images[0] || "/placeholder.jpg");
+  const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
+
+  const initialImage = images[0] || FALLBACK_IMAGE;
+  const [activeImage, setActiveImage] = useState(initialImage);
   const [quantity, setQuantity] = useState(1);
 
   const handleAddToCart = () => {
@@ -42,9 +45,13 @@ export function ProductDetailClient({ product, images, specs }: ClientProps) {
     router.push("/checkout");
   };
 
+  const whatsappMessage = encodeURIComponent(
+    `Hi Gizmo.lk! I want to order:\n*Product*: ${product.title}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmo-lk.vercel.app/products/${product.id}`
+  );
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-      {/* Left: Gallery (5 cols) */}
+      {/* Left: Gallery (6 cols) */}
       <div className="lg:col-span-6 space-y-4">
         <div className="relative h-96 sm:h-[450px] w-full rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl">
           <Image
@@ -53,6 +60,7 @@ export function ProductDetailClient({ product, images, specs }: ClientProps) {
             fill
             className="object-cover"
             priority
+            onError={() => setActiveImage(FALLBACK_IMAGE)}
           />
           <div className="absolute top-4 left-4 z-10 flex gap-2">
             {product.isBestSeller && (
@@ -73,11 +81,20 @@ export function ProductDetailClient({ product, images, specs }: ClientProps) {
               <button
                 key={i}
                 onClick={() => setActiveImage(imgUrl)}
-                className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
+                className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
                   activeImage === imgUrl ? "border-cyan-400 scale-105" : "border-slate-800 opacity-60 hover:opacity-100"
                 }`}
               >
-                <Image src={imgUrl} alt={`${product.title} thumb ${i}`} fill className="object-cover" />
+                <Image
+                  src={imgUrl}
+                  alt={`${product.title} thumb ${i}`}
+                  fill
+                  className="object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = FALLBACK_IMAGE;
+                  }}
+                />
               </button>
             ))}
           </div>
@@ -185,6 +202,17 @@ export function ProductDetailClient({ product, images, specs }: ClientProps) {
               <span>Buy Now Quick Checkout</span>
             </button>
           </div>
+
+          {/* WhatsApp Direct Order Button */}
+          <a
+            href={`https://wa.me/94771234567?text=${whatsappMessage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-md transition-all text-xs"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span>Order via WhatsApp Direct (+94 77 123 4567)</span>
+          </a>
 
           {/* Sri Lanka Delivery Guarantee */}
           <div className="grid grid-cols-3 gap-2 pt-2 text-[11px] text-slate-400">

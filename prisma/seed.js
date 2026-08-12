@@ -39,8 +39,8 @@ const mockProducts = [
     sku: "AUD-TRN-002",
     stock: 60,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1572536147248-ac59a8abfa4b?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1590658006821-04f4008d5717?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Latency": "45ms Ultra-Low Gaming Mode",
@@ -64,6 +64,7 @@ const mockProducts = [
     stock: 22,
     images: JSON.stringify([
       "https://images.unsplash.com/photo-1546435770-a3e426bf472b?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Technology": "9th Gen Bone Conduction Transducer",
@@ -86,7 +87,8 @@ const mockProducts = [
     sku: "AUD-MIC-004",
     stock: 40,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1598550476439-6847785fcea6?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Frequency": "2.4GHz Digital Wireless",
@@ -110,6 +112,7 @@ const mockProducts = [
     stock: 15,
     images: JSON.stringify([
       "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Drivers": "40mm Silk-Diaphragm Dynamic",
@@ -132,6 +135,7 @@ const mockProducts = [
     stock: 20,
     images: JSON.stringify([
       "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Power Output": "10W Peak Audio Power",
@@ -153,7 +157,8 @@ const mockProducts = [
     sku: "AUD-SPK-007",
     stock: 35,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1589003077984-894e133dabab?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Audio Power": "20W RMS Dual Drivers",
@@ -202,7 +207,8 @@ const mockProducts = [
     sku: "SW-BND-009",
     stock: 30,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1510017803434-a899398421b3?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Display": "1.47-inch AMOLED Color Screen",
@@ -225,6 +231,7 @@ const mockProducts = [
     stock: 18,
     images: JSON.stringify([
       "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Strap": "Solid Stainless Steel + Extra Silicone Sport Strap",
@@ -246,7 +253,8 @@ const mockProducts = [
     sku: "SW-KID-011",
     stock: 25,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Location": "4G LBS + GPS + WiFi Triple Positioning",
@@ -319,7 +327,8 @@ const mockProducts = [
     sku: "CAR-PUMP-014",
     stock: 35,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1508974239320-0a029497e820?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Max Pressure": "150 PSI (10.3 Bar)",
@@ -342,7 +351,8 @@ const mockProducts = [
     sku: "CAR-FM-015",
     stock: 60,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1586105251261-72a756497a11?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1563720223185-11003d516935?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Charging": "20W Type-C PD + 18W USB QC3.0",
@@ -364,7 +374,8 @@ const mockProducts = [
     sku: "CAR-VAC-016",
     stock: 40,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1586105251261-72a756497a11?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1558317374-067fb5f30001?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Suction Power": "12000Pa High-Speed Brushless Motor",
@@ -386,7 +397,8 @@ const mockProducts = [
     sku: "CAR-TPMS-017",
     stock: 25,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Power Source": "Monocrystalline Solar Panel + Micro USB Backup",
@@ -435,6 +447,7 @@ const mockProducts = [
     stock: 30,
     images: JSON.stringify([
       "https://images.unsplash.com/photo-1544652478-6653e09f18a2?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1625842268584-8f3296236761?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Ports": "HDMI 4K, 100W PD, Gigabit LAN, SD, MicroSD, 3x USB 3.0, 3.5mm Audio",
@@ -457,6 +470,7 @@ const mockProducts = [
     stock: 25,
     images: JSON.stringify([
       "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "DPI Modes": "800 / 1200 / 1600 / 2400 DPI",
@@ -478,7 +492,8 @@ const mockProducts = [
     sku: "ACC-CAM-021",
     stock: 20,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1587829741301-dc798b83add3?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1585060544812-6b45742d762f?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Resolution": "1080P Full HD @ 60 FPS Autofocus",
@@ -500,7 +515,8 @@ const mockProducts = [
     sku: "ACC-PAD-022",
     stock: 35,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1616588589676-62b3bd4ff6d2?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Dimensions": "900mm x 400mm x 4mm Thick",
@@ -549,7 +565,8 @@ const mockProducts = [
     sku: "MOB-RUG-024",
     stock: 8,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1574944985070-8f30c4397e30?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Battery": "10600mAh with 33W Fast Charging",
@@ -571,7 +588,8 @@ const mockProducts = [
     sku: "MOB-PW-025",
     stock: 50,
     images: JSON.stringify([
-      "https://images.unsplash.com/photo-1616440342232-1594ad5ec62e?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1609592424109-dd9892f1b177?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1622445268465-843d3128919d?q=80&w=800&auto=format&fit=crop",
     ]),
     specs: JSON.stringify({
       "Capacity": "10000mAh (3.7V / 37Wh)",
