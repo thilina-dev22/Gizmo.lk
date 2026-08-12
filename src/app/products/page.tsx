@@ -21,7 +21,7 @@ function ProductsContent() {
   const [category, setCategory] = useState(initialCategory);
   const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState(initialSort);
-  const [maxPrice, setMaxPrice] = useState<number>(50000);
+  const [maxPrice, setMaxPrice] = useState<number>(500000);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => {
@@ -123,12 +123,12 @@ function ProductsContent() {
                 <Filter className="w-4 h-4 text-cyan-400" />
                 <span>Filter Inventory</span>
               </h3>
-              {(category !== "all" || search || maxPrice < 50000) && (
+              {(category !== "all" || search || maxPrice < 500000) && (
                 <button
                   onClick={() => {
                     setCategory("all");
                     setSearch("");
-                    setMaxPrice(50000);
+                    setMaxPrice(500000);
                     router.push("/products");
                   }}
                   className="text-[11px] font-semibold text-cyan-400 hover:underline flex items-center gap-1"
@@ -172,15 +172,15 @@ function ProductsContent() {
               <input
                 type="range"
                 min={2000}
-                max={50000}
-                step={500}
+                max={500000}
+                step={5000}
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
                 className="w-full accent-cyan-400 bg-slate-800 rounded-lg cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-slate-500 font-mono">
                 <span>Rs. 2,000</span>
-                <span>Rs. 50,000+</span>
+                <span>Rs. 500,000+</span>
               </div>
             </div>
           </div>

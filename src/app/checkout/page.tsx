@@ -49,6 +49,7 @@ export default function CheckoutPage() {
 
   const shippingFee = calculateShippingFee(district, subtotal);
   const totalAmount = subtotal + shippingFee;
+  const isPayHereLimitExceeded = totalAmount > 50000;
 
   // Handle Bank Slip file selection
   const handleSlipChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,23 +381,52 @@ export default function CheckoutPage() {
 
               <button
                 type="button"
-                onClick={() => setPaymentMethod("PAYHERE")}
-                className={`p-4 rounded-2xl border text-left transition-all space-y-2 ${
-                  paymentMethod === "PAYHERE"
+                disabled={isPayHereLimitExceeded}
+                onClick={() => {
+                  if (!isPayHereLimitExceeded) setPaymentMethod("PAYHERE");
+                }}
+                className={`p-4 rounded-2xl border text-left transition-all space-y-2 relative ${
+                  isPayHereLimitExceeded
+                    ? "bg-slate-950/40 border-slate-800/60 opacity-60 cursor-not-allowed"
+                    : paymentMethod === "PAYHERE"
                     ? "bg-cyan-950/40 border-cyan-400 shadow-neon"
                     : "bg-slate-950 border-slate-800 hover:border-slate-700"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <CreditCard className={`w-5 h-5 ${paymentMethod === "PAYHERE" ? "text-cyan-400" : "text-slate-400"}`} />
-                  {paymentMethod === "PAYHERE" && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                  {paymentMethod === "PAYHERE" && !isPayHereLimitExceeded && (
+                    <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                  )}
+                  {isPayHereLimitExceeded && (
+                    <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30 font-semibold">
+                      Over 50k Limit
+                    </span>
+                  )}
                 </div>
                 <div>
                   <div className="font-bold text-slate-100 text-xs">PayHere Gateway</div>
-                  <div className="text-[10px] text-slate-400">Visa, Master, eZCash, KOKO</div>
+                  <div className="text-[10px] text-slate-400">
+                    {isPayHereLimitExceeded ? "Disabled (> Rs. 50,000)" : "Visa, Master, eZCash, KOKO"}
+                  </div>
                 </div>
               </button>
             </div>
+
+            {/* PayHere 50,000 LKR Limit Notice */}
+            {isPayHereLimitExceeded && (
+              <div className="p-3.5 rounded-2xl bg-amber-950/50 border border-amber-500/40 text-amber-300 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-amber-200 block">
+                    Online Card Payment Unavailable for Orders Over Rs. 50,000
+                  </span>
+                  <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                    Online payment gateway (PayHere Free Tier) supports payments up to <strong>LKR 50,000</strong> per transaction. Because your order total is <strong>{formatLKR(totalAmount)}</strong>, card payment is disabled. Please complete your order using <strong>Cash on Delivery (COD)</strong> or <strong>Direct Bank Transfer</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* TAB CONTENT 1: COD */}
             {paymentMethod === "COD" && (
