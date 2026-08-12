@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { formatLKR } from "@/lib/utils";
+import { formatLKR, safeParseImages, safeParseSpecs } from "@/lib/utils";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { Truck, ShieldCheck, Banknote, Building2, ChevronRight, Star } from "lucide-react";
 
@@ -24,8 +24,8 @@ export default async function ProductDetailPage({ params }: PDPProps) {
     notFound();
   }
 
-  const images: string[] = JSON.parse(product.images || "[]");
-  const specs: Record<string, string> = product.specs ? JSON.parse(product.specs) : {};
+  const images: string[] = safeParseImages(product.images);
+  const specs: Record<string, string> = safeParseSpecs(product.specs);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12">

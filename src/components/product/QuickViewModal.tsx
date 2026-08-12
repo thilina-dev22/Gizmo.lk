@@ -6,16 +6,16 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingBag, Truck, ShieldCheck, Check, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
-import { formatLKR } from "@/lib/utils";
+import { formatLKR, safeParseImages, safeParseSpecs } from "@/lib/utils";
 
 export function QuickViewModal() {
   const { quickViewProduct, setQuickViewProduct, addItem } = useCartStore();
 
   if (!quickViewProduct) return null;
 
-  const images = JSON.parse(quickViewProduct.images || "[]");
+  const images = safeParseImages(quickViewProduct.images);
   const mainImage = images[0] || "/placeholder.jpg";
-  const specs = quickViewProduct.specs ? JSON.parse(quickViewProduct.specs) : {};
+  const specs = safeParseSpecs(quickViewProduct.specs);
 
   return (
     <AnimatePresence>

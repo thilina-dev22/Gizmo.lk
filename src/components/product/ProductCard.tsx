@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Eye, ShoppingBag, Star, Zap, Check } from "lucide-react";
 import { Product, useCartStore } from "@/store/useCartStore";
-import { formatLKR } from "@/lib/utils";
+import { formatLKR, safeParseImages } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
@@ -17,7 +17,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem, setQuickViewProduct } = useCartStore();
   const [added, setAdded] = useState(false);
 
-  const images = JSON.parse(product.images || "[]");
+  const images = safeParseImages(product.images);
   const initialImage = images[0] || FALLBACK_IMAGE;
   const [imgSrc, setImgSrc] = useState(initialImage);
 
