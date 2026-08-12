@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, ensureTablesExist } from "@/lib/db";
 
 // GET /api/reviews?productId=xxx -> Get approved reviews for product
 export async function GET(request: Request) {
   try {
+    await ensureTablesExist();
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
 
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
 // POST /api/reviews -> Submit customer review for admin approval
 export async function POST(request: Request) {
   try {
+    await ensureTablesExist();
     const { productId, authorName, rating, comment } = await request.json();
 
     if (!productId || !authorName || !comment) {

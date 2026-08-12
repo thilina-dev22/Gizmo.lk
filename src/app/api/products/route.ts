@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
-import { MOCK_PRODUCTS } from "@/lib/mockData";
+import { db, ensureTablesExist } from "@/lib/db";
 
 export async function GET(request: Request) {
   try {
+    await ensureTablesExist();
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     if (category && category !== "all") {
       const decodedCat = decodeURIComponent(category).toLowerCase();
 
-      // Normalize category query parameter
+      // Normalize category query parameter to match stored category strings
       let catKeyword = decodedCat;
       if (decodedCat.includes("smartphone") || decodedCat.includes("mobile")) catKeyword = "smartphone";
       else if (decodedCat.includes("audio") || decodedCat.includes("earbud")) catKeyword = "audio";
@@ -51,55 +52,16 @@ export async function GET(request: Request) {
       orderBy = { isBestSeller: "desc" };
     }
 
-    let products: any[] = [];
-    try {
-      products = await db.product.findMany({
-        where,
-        orderBy,
-      });
-    } catch (dbErr) {
-      console.warn("Prisma DB query fallback to mock products:", dbErr);
-    }
-
-    // High availability fallback: If database is empty or connection fails, filter mock data
-    if (!products || products.length === 0) {
-      let filtered = [...MOCK_PRODUCTS];
-
-      if (category && category !== "all") {
-        const decodedCat = decodeURIComponent(category).toLowerCase();
-        filtered = filtered.filter((p) => {
-          const c = p.category.toLowerCase();
-          if (decodedCat.includes("smartphone") || decodedCat.includes("mobile")) return c.includes("smartphone") || c.includes("mobile");
-          if (decodedCat.includes("audio") || decodedCat.includes("earbud")) return c.includes("audio");
-          if (decodedCat.includes("smartwatch") || decodedCat.includes("band")) return c.includes("smartwatch");
-          if (decodedCat.includes("computer") || decodedCat.includes("pc")) return c.includes("computer") || c.includes("accessories");
-          if (decodedCat.includes("car")) return c.includes("car");
-          return c.includes(decodedCat);
-        });
-      }
-
-      if (search) {
-        const q = search.toLowerCase();
-        filtered = filtered.filter(
-          (p) =>
-            p.title.toLowerCase().includes(q) ||
-            p.description.toLowerCase().includes(q) ||
-            p.category.toLowerCase().includes(q)
-        );
-      }
-
-      if (featured === "true") {
-        filtered = filtered.filter((p) => p.isFeatured);
-      }
-
-      products = filtered;
-    }
+    const products = await db.product.findMany({
+      where,
+      orderBy,
+    });
 
     return NextResponse.json(
       { products },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
+          "Cache-Control": "public, s-maxage=5, stale-while-revalidate=30",
         },
       }
     );

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
+import { db, ensureTablesExist } from "@/lib/db";
 
 // GET /api/admin/reviews -> List all reviews (Pending & Approved) for Admin
 export async function GET() {
   try {
+    await ensureTablesExist();
     const reviews = await db.review.findMany({
       include: {
         product: {

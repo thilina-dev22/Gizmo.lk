@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
+import { db, ensureTablesExist } from "@/lib/db";
 import { formatLKR, safeParseImages, safeParseSpecs } from "@/lib/utils";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { Truck, ShieldCheck, Banknote, Building2, ChevronRight, Star } from "lucide-react";
@@ -13,25 +13,14 @@ interface PDPProps {
   };
 }
 
-import { MOCK_PRODUCTS } from "@/lib/mockData";
-
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function ProductDetailPage({ params }: PDPProps) {
-  let product: any = null;
-  try {
-    product = await db.product.findUnique({
-      where: { id: params.id },
-    });
-  } catch (err) {
-    console.warn("Prisma findUnique fallback to MOCK_PRODUCTS:", err);
-  }
+  await ensureTablesExist();
 
-  if (!product) {
-    product =
-      MOCK_PRODUCTS.find((p) => p.id === params.id || p.slug === params.id) ||
-      MOCK_PRODUCTS[0];
-  }
+  const product = await db.product.findUnique({
+    where: { id: params.id },
+  });
 
   if (!product) {
     notFound();
