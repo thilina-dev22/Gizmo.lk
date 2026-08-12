@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Search,
   ShoppingBag,
@@ -29,8 +29,10 @@ interface NavbarProps {
 
 function NavbarInner({ onOpenMobileNav }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeCategory = searchParams?.get("category") || "all";
+  const isCatalogPage = pathname === "/products";
+  const categoryParam = searchParams?.get("category");
 
   const { getTotalCount, openCart } = useCartStore();
   const cartCount = getTotalCount();
@@ -353,7 +355,11 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-slate-300">
           <div className="flex items-center space-x-1 py-2 overflow-x-auto no-scrollbar">
             {CATEGORIES.map((cat) => {
-              const isActive = activeCategory === cat.id;
+              const isActive =
+                isCatalogPage &&
+                (cat.id === "all"
+                  ? !categoryParam || categoryParam === "all"
+                  : categoryParam === cat.id);
               return (
                 <Link
                   key={cat.id}

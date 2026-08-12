@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, Smartphone, Headphones, Watch, Laptop, Car, ShieldCheck, Phone, ChevronRight } from "lucide-react";
 import { GizmoLogo } from "../logo/GizmoLogo";
@@ -18,8 +18,10 @@ interface MobileNavDrawerProps {
 
 function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeCategory = searchParams?.get("category") || "all";
+  const isCatalogPage = pathname === "/products";
+  const categoryParam = searchParams?.get("category");
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -203,7 +205,11 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
               </div>
               <div className="space-y-1">
                 {CATEGORIES.map((cat) => {
-                  const isActive = activeCategory === cat.id;
+                  const isActive =
+                    isCatalogPage &&
+                    (cat.id === "all"
+                      ? !categoryParam || categoryParam === "all"
+                      : categoryParam === cat.id);
                   return (
                     <Link
                       key={cat.id}
