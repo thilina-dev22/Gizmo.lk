@@ -5,6 +5,7 @@ import { formatLKR } from "@/lib/utils";
 import { DollarSign, ShoppingBag, Banknote, Building2, Package, TrendingUp, ArrowRight, Download, CheckCircle2 } from "lucide-react";
 
 export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
   const orders = await db.order.findMany({
