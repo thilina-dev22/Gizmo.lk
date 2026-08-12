@@ -25,8 +25,30 @@ function ProductsContent() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => {
+    const rawCat = searchParams.get("category");
+    const cat = rawCat ? decodeURIComponent(rawCat) : "all";
+    const q = searchParams.get("search") || "";
+    const s = searchParams.get("sort") || "newest";
+    setCategory(cat);
+    setSearch(q);
+    setSort(s);
+  }, [searchParams]);
+
+  useEffect(() => {
     fetchProducts();
   }, [category, sort, search]);
+
+  const handleCategorySelect = (catId: string) => {
+    setCategory(catId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (catId === "all") {
+      params.delete("category");
+    } else {
+      params.set("category", catId);
+    }
+    const query = params.toString();
+    router.push(query ? `/products?${query}` : "/products");
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -125,7 +147,7 @@ function ProductsContent() {
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setCategory(cat.id)}
+                    onClick={() => handleCategorySelect(cat.id)}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center justify-between ${
                       category === cat.id
                         ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
