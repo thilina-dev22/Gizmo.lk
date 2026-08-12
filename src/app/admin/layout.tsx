@@ -2,9 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { GizmoLogo } from "@/components/logo/GizmoLogo";
-import { LayoutDashboard, Package, ShoppingCart, ArrowLeft, Download } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, ArrowLeft, Download, LogOut } from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -12,10 +12,26 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Hide topbar and sub-nav on admin login page
+  if (pathname === "/admin/login") {
+    return <div className="min-h-screen bg-slate-950 text-slate-100">{children}</div>;
+  }
 
   const isOverviewActive = pathname === "/admin";
   const isProductsActive = pathname === "/admin/products";
   const isOrdersActive = pathname === "/admin/orders";
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+      router.push("/admin/login");
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -29,11 +45,11 @@ export default function AdminLayout({
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <a
               href="/api/admin/export-orders"
               download
-              className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition-colors shadow-md"
+              className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-md"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Courier CSV</span>
@@ -44,8 +60,16 @@ export default function AdminLayout({
               className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-cyan-400 transition-colors bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 font-semibold"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Storefront</span>
+              <span>Storefront</span>
             </Link>
+
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors bg-red-950/40 hover:bg-red-950/80 px-3 py-1.5 rounded-lg border border-red-500/30 font-semibold"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
 
