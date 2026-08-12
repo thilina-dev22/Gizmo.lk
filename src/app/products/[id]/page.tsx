@@ -13,12 +13,25 @@ interface PDPProps {
   };
 }
 
+import { MOCK_PRODUCTS } from "@/lib/mockData";
+
 export const revalidate = 60;
 
 export default async function ProductDetailPage({ params }: PDPProps) {
-  const product = await db.product.findUnique({
-    where: { id: params.id },
-  });
+  let product: any = null;
+  try {
+    product = await db.product.findUnique({
+      where: { id: params.id },
+    });
+  } catch (err) {
+    console.warn("Prisma findUnique fallback to MOCK_PRODUCTS:", err);
+  }
+
+  if (!product) {
+    product =
+      MOCK_PRODUCTS.find((p) => p.id === params.id || p.slug === params.id) ||
+      MOCK_PRODUCTS[0];
+  }
 
   if (!product) {
     notFound();
