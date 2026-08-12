@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 
 export async function GET(request: Request) {
@@ -41,7 +42,14 @@ export async function GET(request: Request) {
       orderBy,
     });
 
-    return NextResponse.json({ products });
+    return NextResponse.json(
+      { products },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("GET /api/products error:", error);
     return NextResponse.json(
@@ -100,6 +108,10 @@ export async function POST(request: Request) {
         isBestSeller: Boolean(isBestSeller),
       },
     });
+
+    revalidatePath("/");
+    revalidatePath("/products");
+    revalidatePath(`/products/${newProduct.id}`);
 
     return NextResponse.json({ product: newProduct }, { status: 201 });
   } catch (error: any) {

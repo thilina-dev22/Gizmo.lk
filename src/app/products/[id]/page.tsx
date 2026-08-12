@@ -13,7 +13,7 @@ interface PDPProps {
   };
 }
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function ProductDetailPage({ params }: PDPProps) {
   const product = await db.product.findUnique({
