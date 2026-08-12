@@ -71,10 +71,8 @@ export function GizmoLogo({ className = "", size = "md", showSubtitle = true }: 
           GIZMO<span className="text-cyan-400 font-bold">.LK</span>
         </div>
         {showSubtitle && (
-          <div className={`text-slate-400 font-medium tracking-wider uppercase ${dimensions.sub} flex items-center gap-1 mt-0.5`}>
-            <span>ONLINE STORE</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span className="text-[9px] text-cyan-400/80 font-normal">SRI LANKA</span>
+          <div className={`text-slate-400 font-semibold tracking-widest uppercase ${dimensions.sub} mt-0.5`}>
+            ONLINE STORE
           </div>
         )}
       </div>
