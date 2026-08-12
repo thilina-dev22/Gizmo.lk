@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./prisma/dev.db'],
+      '/**/*': ['./prisma/dev.db'],
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -19,3 +25,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+

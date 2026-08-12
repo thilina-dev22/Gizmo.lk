@@ -42,10 +42,10 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({ products });
-  } catch (error) {
+  } catch (error: any) {
     console.error("GET /api/products error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch products" },
+      { error: error?.message || "Failed to fetch products" },
       { status: 500 }
     );
   }
