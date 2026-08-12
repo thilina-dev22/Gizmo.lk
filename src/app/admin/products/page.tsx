@@ -21,7 +21,9 @@ export default function AdminProductsPage() {
   const [sku, setSku] = useState("");
   const [stock, setStock] = useState("20");
   const [imageUrl, setImageUrl] = useState("");
+  const [additionalImages, setAdditionalImages] = useState("");
   const [description, setDescription] = useState("");
+  const [specsText, setSpecsText] = useState("");
   const [supplierLink, setSupplierLink] = useState("");
   const [supplierNotes, setSupplierNotes] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
@@ -59,7 +61,15 @@ export default function AdminProductsPage() {
       setStock(String(product.stock));
       const imgs = JSON.parse(product.images || "[]");
       setImageUrl(imgs[0] || "");
+      setAdditionalImages(imgs.slice(1).join("\n"));
       setDescription(product.description || "");
+      setSpecsText(
+        product.specs
+          ? typeof product.specs === "string"
+            ? product.specs
+            : JSON.stringify(product.specs, null, 2)
+          : ""
+      );
       setSupplierLink(product.supplierLink || "");
       setSupplierNotes(product.supplierNotes || "");
       setIsFeatured(product.isFeatured);
@@ -73,7 +83,9 @@ export default function AdminProductsPage() {
       setSku(`GZ-${Math.floor(1000 + Math.random() * 9000)}`);
       setStock("10");
       setImageUrl("");
+      setAdditionalImages("");
       setDescription("");
+      setSpecsText("");
       setSupplierLink("");
       setSupplierNotes("");
       setIsFeatured(false);
@@ -87,15 +99,22 @@ export default function AdminProductsPage() {
     setSaving(true);
 
     try {
+      const extraImgs = additionalImages
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const allImages = imageUrl ? [imageUrl, ...extraImgs] : extraImgs;
+
       const payload = {
         title,
         category,
-        sellingPriceLkr,
-        costPriceLkr,
+        sellingPriceLkr: Number(sellingPriceLkr),
+        costPriceLkr: Number(costPriceLkr || 0),
         sku,
-        stock,
-        images: [imageUrl],
+        stock: Number(stock),
+        images: allImages,
         description,
+        specs: specsText,
         supplierLink,
         supplierNotes,
         isFeatured,
@@ -322,51 +341,128 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-300">Main Image URL</label>
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="font-semibold text-slate-300">
-                    Supplier / Import Source URL <span className="text-slate-500 font-normal">(Optional)</span>
-                  </label>
-                  {supplierLink ? (
-                    <button
-                      type="button"
-                      onClick={() => setSupplierLink("")}
-                      className="text-[10px] text-cyan-400 hover:underline font-medium"
-                    >
-                      Clear URL (Direct Local Stock)
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-emerald-400 font-medium">Direct / Local Wholesale Stock</span>
-                  )}
+              {/* Storefront Customer Content Section */}
+              <div className="pt-2 border-t border-slate-800 space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+                  Storefront Content & Product Page Details
                 </div>
-                <input
-                  type="url"
-                  value={supplierLink}
-                  onChange={(e) => setSupplierLink(e.target.value)}
-                  placeholder="Leave blank for local stock, or enter e.g. https://aliexpress.com/item/123"
-                  className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none text-xs placeholder:text-slate-600"
-                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Main Product Image URL</label>
+                    <input
+                      type="url"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">
+                      Additional Gallery Image URLs <span className="text-slate-500 font-normal">(One per line)</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={additionalImages}
+                      onChange={(e) => setAdditionalImages(e.target.value)}
+                      placeholder="https://image2.jpg&#10;https://image3.jpg"
+                      className="w-full bg-slate-950 text-slate-100 p-2 rounded-xl border border-slate-800 outline-none resize-none text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Full Product Description (Storefront View) *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Enter full product overview, features, package contents, and customer info..."
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none resize-none text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">
+                    Key Tech Specs & Features <span className="text-slate-500 font-normal">(e.g. Battery: 24h, Bluetooth: 5.3)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={specsText}
+                    onChange={(e) => setSpecsText(e.target.value)}
+                    placeholder="Bluetooth 5.3, Active Noise Cancellation, 24h Playtime, IPX5 Waterproof"
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none resize-none text-xs"
+                  />
+                </div>
+
+                <div className="flex items-center gap-6 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs font-medium">
+                    <input
+                      type="checkbox"
+                      checked={isFeatured}
+                      onChange={(e) => setIsFeatured(e.target.checked)}
+                      className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0"
+                    />
+                    <span>Featured Product Drop</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs font-medium">
+                    <input
+                      type="checkbox"
+                      checked={isBestSeller}
+                      onChange={(e) => setIsBestSeller(e.target.checked)}
+                      className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0"
+                    />
+                    <span>Best Seller Badge</span>
+                  </label>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-300">Supplier Notes</label>
-                <textarea
-                  rows={2}
-                  value={supplierNotes}
-                  onChange={(e) => setSupplierNotes(e.target.value)}
-                  placeholder="Notes about supplier shipping times or packaging"
-                  className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none resize-none"
-                />
+              {/* Supplier & Import Section (Optional) */}
+              <div className="pt-2 border-t border-slate-800 space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Supplier & Import Source (Optional Internal Info)
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-slate-300">
+                      Supplier / Import Source URL <span className="text-slate-500 font-normal">(Optional)</span>
+                    </label>
+                    {supplierLink ? (
+                      <button
+                        type="button"
+                        onClick={() => setSupplierLink("")}
+                        className="text-[10px] text-cyan-400 hover:underline font-medium"
+                      >
+                        Clear URL (Direct Local Stock)
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400 font-medium">Direct / Local Wholesale Stock</span>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={supplierLink}
+                    onChange={(e) => setSupplierLink(e.target.value)}
+                    placeholder="Leave blank for local stock, or enter e.g. https://aliexpress.com/item/123"
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none text-xs placeholder:text-slate-600"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Internal Supplier Notes</label>
+                  <textarea
+                    rows={2}
+                    value={supplierNotes}
+                    onChange={(e) => setSupplierNotes(e.target.value)}
+                    placeholder="Internal notes about supplier shipping times or local distributor contacts"
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none resize-none text-xs"
+                  />
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-800 flex justify-end gap-3">
