@@ -37,7 +37,7 @@ export default async function AdminOverviewPage() {
             Gizmo.lk Admin Store Analytics
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Real-time dropshipping revenue, order status, and courier dispatch controls.
+            Real-time store revenue, order status, and courier dispatch controls.
           </p>
         </div>
 
@@ -155,7 +155,7 @@ export default async function AdminOverviewPage() {
           </div>
         </div>
 
-        {/* Top Dropshipping Products (4 cols) */}
+        {/* Top Performing Tech Inventory (4 cols) */}
         <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <h3 className="font-bold text-white text-sm">Top Tech Inventory</h3>

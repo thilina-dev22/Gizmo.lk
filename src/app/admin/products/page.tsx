@@ -74,7 +74,7 @@ export default function AdminProductsPage() {
       setStock("25");
       setImageUrl("https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop");
       setDescription("High-converting gadget for Sri Lankan market.");
-      setSupplierLink("https://cjdropshipping.com");
+      setSupplierLink("https://supplier.com");
       setSupplierNotes("CJ Packet express dispatch.");
       setIsFeatured(true);
       setIsBestSeller(false);
@@ -125,7 +125,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white">
-            Product Management & Dropshipping Inventory
+            Product Catalog & Stock Management
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Manage cost price vs selling price, supplier links, and stock levels in LKR.
@@ -153,7 +153,7 @@ export default function AdminProductsPage() {
                 <th className="p-4">Selling Price (LKR)</th>
                 <th className="p-4">Est. Profit</th>
                 <th className="p-4">Stock</th>
-                <th className="p-4">Dropshipping Link</th>
+                <th className="p-4">Supplier / Import Link</th>
                 <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
@@ -230,7 +230,7 @@ export default function AdminProductsPage() {
           <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="font-bold text-slate-100 text-base">
-                {editingProduct ? "Edit Product" : "Add New Dropshipping Product"}
+                {editingProduct ? "Edit Product" : "Add New Inventory Product"}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -321,7 +321,7 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-300">Supplier Link (CJ Dropshipping / AliExpress)</label>
+                <label className="font-semibold text-slate-300">Supplier / Import Source URL</label>
                 <input
                   type="url"
                   value={supplierLink}

@@ -21,7 +21,7 @@ function ProductsContent() {
   const [category, setCategory] = useState(initialCategory);
   const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState(initialSort);
-  const [maxPrice, setMaxPrice] = useState<number>(30000);
+  const [maxPrice, setMaxPrice] = useState<number>(50000);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ function ProductsContent() {
             {category === "all" ? "All Electronics & Gadgets" : category}
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Showing {filteredProducts.length} high-converting dropshipping products with Islandwide Sri Lanka delivery.
+            Showing {filteredProducts.length} premium tech products with Islandwide Sri Lanka delivery.
           </p>
         </div>
 
@@ -101,12 +101,12 @@ function ProductsContent() {
                 <Filter className="w-4 h-4 text-cyan-400" />
                 <span>Filter Inventory</span>
               </h3>
-              {(category !== "all" || search || maxPrice < 30000) && (
+              {(category !== "all" || search || maxPrice < 50000) && (
                 <button
                   onClick={() => {
                     setCategory("all");
                     setSearch("");
-                    setMaxPrice(30000);
+                    setMaxPrice(50000);
                     router.push("/products");
                   }}
                   className="text-[11px] font-semibold text-cyan-400 hover:underline flex items-center gap-1"
@@ -150,7 +150,7 @@ function ProductsContent() {
               <input
                 type="range"
                 min={2000}
-                max={30000}
+                max={50000}
                 step={500}
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
@@ -158,7 +158,7 @@ function ProductsContent() {
               />
               <div className="flex justify-between text-[10px] text-slate-500 font-mono">
                 <span>Rs. 2,000</span>
-                <span>Rs. 30,000+</span>
+                <span>Rs. 50,000+</span>
               </div>
             </div>
           </div>

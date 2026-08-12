@@ -55,7 +55,7 @@ export default function AdminLayout({
               className="py-3 hover:text-white transition-colors flex items-center gap-2"
             >
               <Package className="w-4 h-4" />
-              <span>Products & Dropshipping</span>
+              <span>Products & Inventory</span>
             </Link>
             <Link
               href="/admin/orders"

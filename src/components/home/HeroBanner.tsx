@@ -20,7 +20,7 @@ export function HeroBanner() {
             {/* Hot Badge */}
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-950 to-slate-900 border border-cyan-500/30 px-3.5 py-1.5 rounded-full text-xs font-semibold text-cyan-400 shadow-neon">
               <Flame className="w-4 h-4 text-amber-400 animate-bounce" />
-              <span>Sri Lanka&apos;s #1 Tech Dropshipping Store</span>
+              <span>Sri Lanka&apos;s #1 Tech & Electronics Store</span>
               <span className="bg-cyan-500/20 text-[10px] px-2 py-0.5 rounded-full text-cyan-300">
                 24H Dispatch
               </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,27 @@ export function CartDrawer() {
   const subtotal = getSubtotal();
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD_LKR - subtotal);
   const freeShippingProgress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD_LKR) * 100);
+
+  // Lock body scroll when cart is open & listen for Escape key
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && isOpen) {
+        closeCart();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, closeCart]);
 
   return (
     <AnimatePresence>
@@ -85,7 +106,7 @@ export function CartDrawer() {
                   <div>
                     <h4 className="font-bold text-slate-200 text-sm">Your cart is currently empty</h4>
                     <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                      Explore our hot trending dropshipping tech gadgets with islandwide cash on delivery in Sri Lanka.
+                      Explore our hot trending premium tech gadgets with islandwide cash on delivery in Sri Lanka.
                     </p>
                   </div>
                   <button
@@ -199,3 +220,4 @@ export function CartDrawer() {
     </AnimatePresence>
   );
 }
+

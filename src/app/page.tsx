@@ -13,7 +13,7 @@ export default async function HomePage() {
   let featuredProducts: any[] = [];
   try {
     featuredProducts = await db.product.findMany({
-      take: 8,
+      take: 12,
       orderBy: { createdAt: "desc" },
     });
   } catch (err) {
@@ -34,7 +34,7 @@ export default async function HomePage() {
           <div>
             <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs uppercase tracking-wider">
               <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>Hot Dropshipping Inventory</span>
+              <span>Featured Tech Inventory</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">
               Trending Tech Gadgets in Sri Lanka

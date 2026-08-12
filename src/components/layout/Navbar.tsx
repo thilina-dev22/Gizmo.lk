@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
   ShoppingBag,
@@ -27,8 +27,11 @@ interface NavbarProps {
   onOpenMobileNav: () => void;
 }
 
-export function Navbar({ onOpenMobileNav }: NavbarProps) {
+function NavbarInner({ onOpenMobileNav }: NavbarProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeCategory = searchParams?.get("category") || "all";
+
   const { getTotalCount, openCart } = useCartStore();
   const cartCount = getTotalCount();
 
@@ -36,9 +39,10 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
 
   // Debounced search query handler
   useEffect(() => {
@@ -67,80 +71,63 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Close search dropdown on click outside
+  // Close search dropdown on click outside & ESC key handler
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node) &&
+        mobileSearchRef.current &&
+        !mobileSearchRef.current.contains(event.target as Node)
+      ) {
         setShowSearchDropdown(false);
       }
     }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setShowSearchDropdown(false);
+        setIsMobileSearchOpen(false);
+      }
+    }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       setShowSearchDropdown(false);
+      setIsMobileSearchOpen(false);
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-slate-950/90 border-b border-slate-800/80 shadow-2xl">
-      {/* Top Announcement Bar */}
-      <div className="bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 text-slate-300 text-xs py-1.5 px-4 border-b border-cyan-500/20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 font-medium text-cyan-400">
-              <Truck className="w-3.5 h-3.5" />
-              Islandwide Delivery Across Sri Lanka (2-4 Days)
-            </span>
-            <span className="hidden sm:inline-block text-slate-600">|</span>
-            <span className="hidden sm:flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Cash On Delivery & Direct Bank Slip Verification
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 text-[11px]">
-            <a
-              href="https://wa.me/94771234567"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-cyan-400 transition-colors flex items-center gap-1"
-            >
-              <Phone className="w-3 h-3 text-emerald-400" />
-              <span>WhatsApp: +94 77 123 4567</span>
-            </a>
-            <Link
-              href="/admin"
-              className="text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60"
-            >
-              <span>Admin Portal</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 py-3 flex items-center justify-between gap-3 sm:gap-4">
         {/* Left: Mobile Menu Trigger & Logo */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onOpenMobileNav}
-            className="lg:hidden p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-900 rounded-lg transition-colors"
-            aria-label="Open menu"
+            className="lg:hidden p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-900 rounded-xl transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            aria-label="Open navigation menu"
           >
             <Menu className="w-6 h-6" />
           </button>
 
-          <Link href="/">
+          <Link href="/" className="shrink-0">
             <GizmoLogo size="md" />
           </Link>
         </div>
 
-        {/* Center: Search Bar with Autocomplete */}
+        {/* Center: Desktop Search Bar with Autocomplete */}
         <div ref={searchRef} className="hidden md:block flex-1 max-w-xl relative">
           <form onSubmit={handleSearchSubmit} className="relative flex items-center">
             <input
@@ -155,14 +142,14 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
 
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-semibold px-3.5 py-1.5 rounded-lg text-xs transition-all shadow-md flex items-center gap-1"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all shadow-md flex items-center gap-1"
             >
               <span>Search</span>
             </button>
           </form>
 
-          {/* Search Autocomplete Dropdown */}
-          {showSearchDropdown && (
+          {/* Desktop Search Autocomplete Dropdown */}
+          {showSearchDropdown && !isMobileSearchOpen && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl overflow-hidden z-50 divide-y divide-slate-800">
               {isSearching ? (
                 <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
@@ -171,8 +158,9 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
                 </div>
               ) : searchResults.length > 0 ? (
                 <div>
-                  <div className="px-4 py-2 bg-slate-950/60 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Found {searchResults.length} Products
+                  <div className="px-4 py-2 bg-slate-950/60 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                    <span>Found {searchResults.length} Products</span>
+                    <span className="text-[10px] text-cyan-400">Live Match</span>
                   </div>
                   {searchResults.slice(0, 5).map((product) => {
                     const imgs = JSON.parse(product.images || "[]");
@@ -225,8 +213,25 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
           )}
         </div>
 
-        {/* Right: Quick Category Nav & Shopping Cart */}
-        <div className="flex items-center gap-4">
+        {/* Right: Actions (Mobile Search Toggle, Catalog Link & Cart) */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Mobile Search Button */}
+          <button
+            onClick={() => {
+              setIsMobileSearchOpen(!isMobileSearchOpen);
+              setShowSearchDropdown(true);
+            }}
+            className="md:hidden p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-900 rounded-xl transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            aria-label="Toggle Search Bar"
+          >
+            {isMobileSearchOpen ? (
+              <X className="w-5 h-5 text-cyan-400" />
+            ) : (
+              <Search className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Desktop Browse Catalog Button */}
           <Link
             href="/products"
             className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"
@@ -238,7 +243,7 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
           {/* Cart Trigger */}
           <button
             onClick={openCart}
-            className="relative flex items-center gap-2.5 bg-gradient-to-r from-slate-900 to-slate-850 hover:from-slate-850 hover:to-slate-800 text-slate-200 px-3.5 py-2 rounded-xl border border-slate-700/80 shadow-md hover:border-cyan-500/50 transition-all group"
+            className="relative flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-850 hover:from-slate-850 hover:to-slate-800 text-slate-200 px-3 sm:px-3.5 py-2 rounded-xl border border-slate-700/80 shadow-md hover:border-cyan-500/50 transition-all group"
             aria-label="Open Shopping Cart"
           >
             <div className="relative">
@@ -259,24 +264,116 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
         </div>
       </div>
 
-      {/* Category Navigation Strip */}
+      {/* Expandable Mobile Search Bar with Autocomplete */}
+      {isMobileSearchOpen && (
+        <div ref={mobileSearchRef} className="md:hidden px-4 pb-3 pt-1 border-t border-slate-800/80 bg-slate-950/95 animate-in slide-in-from-top-2 duration-200">
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+            <input
+              type="text"
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search earbuds, watches, dashcams..."
+              className="w-full bg-slate-900 text-slate-100 placeholder-slate-400 pl-10 pr-20 py-2 rounded-xl border border-cyan-500/50 text-xs outline-none focus:ring-2 focus:ring-cyan-500/30"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400" />
+            <button
+              type="submit"
+              className="absolute right-1 top-1/2 -translate-y-1/2 bg-cyan-500 text-slate-950 font-bold px-3 py-1 rounded-lg text-[11px]"
+            >
+              Search
+            </button>
+          </form>
+
+          {/* Mobile Live Search Results Dropdown */}
+          {showSearchDropdown && searchQuery.trim() && (
+            <div className="mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-slate-800">
+              {isSearching ? (
+                <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                  <div className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                  Searching...
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div>
+                  {searchResults.slice(0, 4).map((product) => {
+                    const imgs = JSON.parse(product.images || "[]");
+                    const thumbUrl = imgs[0] || "/placeholder.jpg";
+                    return (
+                      <Link
+                        key={product.id}
+                        href={`/products/${product.id}`}
+                        onClick={() => {
+                          setShowSearchDropdown(false);
+                          setIsMobileSearchOpen(false);
+                        }}
+                        className="flex items-center gap-3 p-2.5 hover:bg-slate-800 transition-colors"
+                      >
+                        <div className="w-9 h-9 relative rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
+                          <Image src={thumbUrl} alt={product.title} fill className="object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-semibold text-slate-200 truncate">
+                            {product.title}
+                          </h4>
+                          <span className="text-[10px] text-cyan-400/80">
+                            {product.category}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-cyan-400">
+                            {formatLKR(product.sellingPriceLkr)}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                  <Link
+                    href={`/products?search=${encodeURIComponent(searchQuery)}`}
+                    onClick={() => {
+                      setShowSearchDropdown(false);
+                      setIsMobileSearchOpen(false);
+                    }}
+                    className="block text-center py-2 bg-slate-950 text-[11px] font-semibold text-cyan-400"
+                  >
+                    See all results ({searchResults.length}) &rarr;
+                  </Link>
+                </div>
+              ) : (
+                <div className="p-3 text-center text-xs text-slate-400">
+                  No gadgets found matching &quot;{searchQuery}&quot;
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Category Navigation Strip (Desktop) */}
       <div className="hidden lg:block border-t border-slate-800/60 bg-slate-950/60">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-slate-300">
           <div className="flex items-center space-x-1 py-2 overflow-x-auto no-scrollbar">
-            {CATEGORIES.map((cat) => (
-              <Link
-                key={cat.id}
-                href={cat.id === "all" ? "/products" : `/products?category=${encodeURIComponent(cat.id)}`}
-                className="px-3 py-1.5 rounded-lg hover:bg-slate-900 hover:text-cyan-400 transition-colors whitespace-nowrap"
-              >
-                {cat.name}
-              </Link>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const isActive = activeCategory === cat.id;
+              return (
+                <Link
+                  key={cat.id}
+                  href={cat.id === "all" ? "/products" : `/products?category=${encodeURIComponent(cat.id)}`}
+                  className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/30"
+                      : "hover:bg-slate-900 hover:text-cyan-400"
+                  }`}
+                >
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
+                  <span>{cat.name}</span>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-3 py-2 text-slate-400 font-normal">
             <span className="flex items-center gap-1 text-cyan-400 font-semibold">
-              <Sparkles className="w-3.5 h-3.5" /> Hot Dropshipping Deals
+              <Sparkles className="w-3.5 h-3.5" /> Exclusive Tech Deals Sri Lanka
             </span>
           </div>
         </div>
@@ -284,3 +381,19 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
     </header>
   );
 }
+
+export function Navbar(props: NavbarProps) {
+  return (
+    <Suspense
+      fallback={
+        <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-slate-950/90 border-b border-slate-800/80 shadow-2xl h-16 flex items-center px-6">
+          <GizmoLogo size="md" />
+        </header>
+      }
+    >
+      <NavbarInner {...props} />
+    </Suspense>
+  );
+}
+
+
