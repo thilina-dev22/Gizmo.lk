@@ -444,6 +444,34 @@ export function ProductDetailClient({ product, images, specs }: ClientProps) {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Bottom Action Bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-3 shadow-2xl flex items-center justify-between gap-2">
+        <div className="flex flex-col">
+          <span className="text-[10px] text-slate-400 font-semibold uppercase">Total Price</span>
+          <span className="text-base font-extrabold text-cyan-400">
+            {formatLKR(product.sellingPriceLkr * quantity)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleAddToCart}
+            className="bg-slate-900 hover:bg-slate-850 text-slate-100 p-3 rounded-xl border border-slate-700 font-bold text-xs"
+            title="Add to Cart"
+          >
+            <ShoppingBag className="w-4 h-4 text-cyan-400" />
+          </button>
+
+          <button
+            onClick={handleBuyNow}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 font-extrabold py-3 px-4 rounded-xl text-xs shadow-neon"
+          >
+            <Zap className="w-4 h-4" />
+            <span>Buy Now</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

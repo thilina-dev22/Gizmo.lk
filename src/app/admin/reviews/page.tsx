@@ -97,9 +97,94 @@ export default function AdminReviewsPage() {
         </div>
       </div>
 
-      {/* Reviews Table */}
+      {/* Reviews Table (Desktop) & Cards (Mobile) */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
+        {/* Mobile View (< sm) */}
+        <div className="sm:hidden divide-y divide-slate-800">
+          {loading ? (
+            <div className="p-6 text-center text-slate-500 text-xs">Loading moderation queue...</div>
+          ) : reviews.length === 0 ? (
+            <div className="p-6 text-center text-slate-500 text-xs">No customer reviews submitted yet.</div>
+          ) : (
+            reviews.map((rev) => {
+              const imgs = JSON.parse(rev.product?.images || "[]");
+              return (
+                <div key={rev.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
+                        <Image
+                          src={imgs[0] || "/placeholder.jpg"}
+                          alt={rev.product?.title || "Product"}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <span className="font-bold text-slate-200 text-xs line-clamp-1">
+                        {rev.product?.title}
+                      </span>
+                    </div>
+
+                    {rev.isApproved ? (
+                      <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[9px] font-bold">
+                        Approved
+                      </span>
+                    ) : (
+                      <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[9px] font-bold">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-300 flex items-center gap-1">
+                      <UserCheck className="w-3.5 h-3.5 text-cyan-400" /> {rev.authorName}
+                    </span>
+                    <div className="flex text-amber-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-3.5 h-3.5 ${
+                            i < rev.rating ? "fill-amber-400 text-amber-400" : "text-slate-800"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-slate-300 italic text-xs bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
+                    "{rev.comment}"
+                  </p>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    {!rev.isApproved && (
+                      <button
+                        onClick={() => handleAction(rev.id, "approve")}
+                        disabled={actioningId === rev.id}
+                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 shadow transition-colors"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Approve</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleAction(rev.id, "decline")}
+                      disabled={actioningId === rev.id}
+                      className="flex-1 py-2 bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-500/30 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>Decline</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View (>= sm) */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950">
               <tr>
