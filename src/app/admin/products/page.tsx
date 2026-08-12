@@ -68,15 +68,15 @@ export default function AdminProductsPage() {
       setEditingProduct(null);
       setTitle("");
       setCategory("Audio");
-      setSellingPriceLkr("5000");
-      setCostPriceLkr("2500");
+      setSellingPriceLkr("");
+      setCostPriceLkr("");
       setSku(`GZ-${Math.floor(1000 + Math.random() * 9000)}`);
-      setStock("25");
-      setImageUrl("https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop");
-      setDescription("High-converting gadget for Sri Lankan market.");
-      setSupplierLink("https://supplier.com");
-      setSupplierNotes("CJ Packet express dispatch.");
-      setIsFeatured(true);
+      setStock("10");
+      setImageUrl("");
+      setDescription("");
+      setSupplierLink("");
+      setSupplierNotes("");
+      setIsFeatured(false);
       setIsBestSeller(false);
     }
     setIsModalOpen(true);
@@ -333,12 +333,28 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-300">Supplier / Import Source URL</label>
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-300">
+                    Supplier / Import Source URL <span className="text-slate-500 font-normal">(Optional)</span>
+                  </label>
+                  {supplierLink ? (
+                    <button
+                      type="button"
+                      onClick={() => setSupplierLink("")}
+                      className="text-[10px] text-cyan-400 hover:underline font-medium"
+                    >
+                      Clear URL (Direct Local Stock)
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-emerald-400 font-medium">Direct / Local Wholesale Stock</span>
+                  )}
+                </div>
                 <input
                   type="url"
                   value={supplierLink}
                   onChange={(e) => setSupplierLink(e.target.value)}
-                  className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none"
+                  placeholder="Leave blank for local stock, or enter e.g. https://aliexpress.com/item/123"
+                  className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none text-xs placeholder:text-slate-600"
                 />
               </div>
 
