@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { usePathname } from "next/navigation";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -14,6 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith("/admin");
 
   return (
     <html lang="en" className="dark">
@@ -27,18 +30,23 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className="bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950 min-h-screen flex flex-col">
-        <Navbar onOpenMobileNav={() => setIsMobileNavOpen(true)} />
-        <MobileNavDrawer
-          isOpen={isMobileNavOpen}
-          onClose={() => setIsMobileNavOpen(false)}
-        />
-        <CartDrawer />
-        <QuickViewModal />
+        {!isAdminRoute && (
+          <>
+            <Navbar onOpenMobileNav={() => setIsMobileNavOpen(true)} />
+            <MobileNavDrawer
+              isOpen={isMobileNavOpen}
+              onClose={() => setIsMobileNavOpen(false)}
+            />
+            <CartDrawer />
+            <QuickViewModal />
+          </>
+        )}
 
         <main className="flex-1">{children}</main>
 
-        <Footer />
+        {!isAdminRoute && <Footer />}
       </body>
     </html>
   );
 }
+
