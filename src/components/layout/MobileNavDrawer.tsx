@@ -21,7 +21,8 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isCatalogPage = pathname === "/products";
-  const categoryParam = searchParams?.get("category");
+  const rawCategory = searchParams?.get("category");
+  const categoryParam = rawCategory ? decodeURIComponent(rawCategory) : null;
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);

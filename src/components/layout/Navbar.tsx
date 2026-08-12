@@ -32,7 +32,8 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isCatalogPage = pathname === "/products";
-  const categoryParam = searchParams?.get("category");
+  const rawCategory = searchParams?.get("category");
+  const categoryParam = rawCategory ? decodeURIComponent(rawCategory) : null;
 
   const { getTotalCount, openCart } = useCartStore();
   const cartCount = getTotalCount();

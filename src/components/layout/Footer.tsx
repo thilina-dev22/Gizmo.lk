@@ -169,7 +169,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="text-cyan-400 font-medium hover:underline hover:text-cyan-300 transition-colors"
             >
-              paradise crew - tech and hospitality
+              Paradise Crew - Tech and Hospitality
             </a>
           </div>
         </div>
