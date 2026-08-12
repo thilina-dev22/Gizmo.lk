@@ -36,18 +36,13 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Payment Method State: "COD" | "BANK_TRANSFER" | "CARD"
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "BANK_TRANSFER" | "CARD">("COD");
+  // Payment Method State: "COD" | "BANK_TRANSFER" | "PAYHERE"
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "BANK_TRANSFER" | "PAYHERE">("COD");
 
   // Bank Slip Upload State
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [slipPreviewUrl, setSlipPreviewUrl] = useState<string | null>(null);
   const [isUploadingSlip, setIsUploadingSlip] = useState(false);
-
-  // Card Test Details
-  const [cardNumber, setCardNumber] = useState("4242 •••• •••• 4242");
-  const [cardExpiry, setCardExpiry] = useState("12/28");
-  const [cardCvc, setCardCvc] = useState("123");
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -127,8 +122,55 @@ export default function CheckoutPage() {
 
       if (res.ok) {
         const data = await res.json();
+        const createdOrder = data.order;
+
+        if (paymentMethod === "PAYHERE") {
+          // Request signed PayHere payload
+          const hashRes = await fetch("/api/payhere/hash", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: createdOrder.id,
+              orderNumber: createdOrder.orderNumber,
+              totalLkr: createdOrder.totalLkr,
+              customerName,
+              customerPhone,
+              customerEmail,
+              address,
+              city,
+              itemsSummary: items.map((i) => i.product.title).join(", "),
+            }),
+          });
+
+          if (hashRes.ok) {
+            const { payload } = await hashRes.json();
+            clearCart();
+
+            // Submit form automatically to PayHere Gateway
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = payload.actionUrl;
+
+            Object.keys(payload).forEach((key) => {
+              if (key !== "actionUrl") {
+                const hiddenInput = document.createElement("input");
+                hiddenInput.type = "hidden";
+                hiddenInput.name = key;
+                hiddenInput.value = payload[key];
+                form.appendChild(hiddenInput);
+              }
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            return;
+          } else {
+            setErrorMsg("PayHere initialization failed. Order saved for manual review.");
+          }
+        }
+
         clearCart();
-        router.push(`/checkout/success?orderNumber=${data.order.orderNumber}&id=${data.order.id}`);
+        router.push(`/checkout/success?orderNumber=${createdOrder.orderNumber}&id=${createdOrder.id}`);
       } else {
         const errorData = await res.json();
         setErrorMsg(errorData.error || "Order submission failed");
@@ -338,20 +380,20 @@ export default function CheckoutPage() {
 
               <button
                 type="button"
-                onClick={() => setPaymentMethod("CARD")}
+                onClick={() => setPaymentMethod("PAYHERE")}
                 className={`p-4 rounded-2xl border text-left transition-all space-y-2 ${
-                  paymentMethod === "CARD"
+                  paymentMethod === "PAYHERE"
                     ? "bg-cyan-950/40 border-cyan-400 shadow-neon"
                     : "bg-slate-950 border-slate-800 hover:border-slate-700"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <CreditCard className={`w-5 h-5 ${paymentMethod === "CARD" ? "text-cyan-400" : "text-slate-400"}`} />
-                  {paymentMethod === "CARD" && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                  <CreditCard className={`w-5 h-5 ${paymentMethod === "PAYHERE" ? "text-cyan-400" : "text-slate-400"}`} />
+                  {paymentMethod === "PAYHERE" && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
                 </div>
                 <div>
-                  <div className="font-bold text-slate-100 text-xs">Online Card</div>
-                  <div className="text-[10px] text-slate-400">Stripe Sandbox / PayHere</div>
+                  <div className="font-bold text-slate-100 text-xs">PayHere Gateway</div>
+                  <div className="text-[10px] text-slate-400">Visa, Master, eZCash, KOKO</div>
                 </div>
               </button>
             </div>
@@ -431,46 +473,30 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* TAB CONTENT 3: STRIPE ONLINE CARD */}
-            {paymentMethod === "CARD" && (
+            {/* TAB CONTENT 3: PAYHERE GATEWAY */}
+            {paymentMethod === "PAYHERE" && (
               <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-200">Stripe Sandbox Card Integration</span>
-                  <span className="text-[10px] bg-slate-900 border border-slate-800 text-cyan-400 px-2 py-0.5 rounded font-mono">
-                    Test Mode (PayHere Ready)
+                  <span className="font-bold text-slate-200 text-xs flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-cyan-400" />
+                    <span>PayHere Sri Lanka Online Payment</span>
+                  </span>
+                  <span className="text-[10px] bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 px-2.5 py-0.5 rounded-full font-mono">
+                    Instant Instant Webhook Sync
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-slate-400 font-medium">Card Number (Use Test Card)</label>
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="w-full bg-slate-900 text-slate-100 p-3 rounded-xl border border-slate-800 font-mono focus:border-cyan-500 outline-none"
-                    />
-                  </div>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  You will be securely redirected to **PayHere Payment Gateway** to pay <strong className="text-cyan-400 font-bold">{formatLKR(totalAmount)}</strong> using Visa, MasterCard, KOKO PayLater, eZ Cash, mCash, Frimi, or Genie.
+                </p>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-slate-400 font-medium">Expiry</label>
-                      <input
-                        type="text"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        className="w-full bg-slate-900 text-slate-100 p-3 rounded-xl border border-slate-800 font-mono focus:border-cyan-500 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-slate-400 font-medium">CVC</label>
-                      <input
-                        type="text"
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value)}
-                        className="w-full bg-slate-900 text-slate-100 p-3 rounded-xl border border-slate-800 font-mono focus:border-cyan-500 outline-none"
-                      />
-                    </div>
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <span className="text-slate-300 font-semibold">Accepted Sri Lanka Payment Options:</span>
+                  <div className="flex items-center gap-2 font-mono text-[10px] text-cyan-400">
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Visa / Master</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">KOKO PayLater</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">eZ Cash / mCash</span>
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Frimi / Genie</span>
                   </div>
                 </div>
               </div>
