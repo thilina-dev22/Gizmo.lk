@@ -17,6 +17,8 @@ export interface Product {
   supplierNotes?: string | null;
   isFeatured: boolean;
   isBestSeller: boolean;
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface CartItem {

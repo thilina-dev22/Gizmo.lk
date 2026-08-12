@@ -28,6 +28,8 @@ export default function AdminProductsPage() {
   const [supplierNotes, setSupplierNotes] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBestSeller, setIsBestSeller] = useState(false);
+  const [rating, setRating] = useState("0");
+  const [reviewCount, setReviewCount] = useState("0");
 
   const [saving, setSaving] = useState(false);
 
@@ -74,6 +76,8 @@ export default function AdminProductsPage() {
       setSupplierNotes(product.supplierNotes || "");
       setIsFeatured(product.isFeatured);
       setIsBestSeller(product.isBestSeller);
+      setRating(String(product.rating || 0));
+      setReviewCount(String(product.reviewCount || 0));
     } else {
       setEditingProduct(null);
       setTitle("");
@@ -90,6 +94,8 @@ export default function AdminProductsPage() {
       setSupplierNotes("");
       setIsFeatured(false);
       setIsBestSeller(false);
+      setRating("0");
+      setReviewCount("0");
     }
     setIsModalOpen(true);
   };
@@ -119,6 +125,8 @@ export default function AdminProductsPage() {
         supplierNotes,
         isFeatured,
         isBestSeller,
+        rating: Number(rating || 0),
+        reviewCount: Number(reviewCount || 0),
       };
 
       const res = await fetch("/api/products", {
@@ -396,6 +404,38 @@ export default function AdminProductsPage() {
                     placeholder="Bluetooth 5.3, Active Noise Cancellation, 24h Playtime, IPX5 Waterproof"
                     className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none resize-none text-xs"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">
+                      Initial Rating Score <span className="text-slate-500 font-normal">(0.0 to 5.0)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      value={rating}
+                      onChange={(e) => setRating(e.target.value)}
+                      placeholder="0.0"
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">
+                      Initial Review Count <span className="text-slate-500 font-normal">(Default 0)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={reviewCount}
+                      onChange={(e) => setReviewCount(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs font-mono"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-6 pt-1">

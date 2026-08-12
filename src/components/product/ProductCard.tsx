@@ -89,14 +89,23 @@ export function ProductCard({ product }: ProductCardProps) {
           </Link>
         </div>
 
-        {/* Rating Stars Mock */}
+        {/* Rating Stars */}
         <div className="flex items-center gap-1 text-amber-400 text-xs">
           <div className="flex">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+              <Star
+                key={i}
+                className={`w-3 h-3 ${
+                  i < Math.round(product.rating || 0)
+                    ? "fill-amber-400 text-amber-400"
+                    : "text-slate-700"
+                }`}
+              />
             ))}
           </div>
-          <span className="text-[10px] text-slate-400 font-medium ml-1">5.0 (48 reviews)</span>
+          <span className="text-[10px] text-slate-400 font-medium ml-1">
+            {(product.rating || 0).toFixed(1)} ({(product.reviewCount || 0)} reviews)
+          </span>
         </div>
 
         {/* Price & Action */}

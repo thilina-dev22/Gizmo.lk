@@ -23,9 +23,23 @@ model Product {
   supplierNotes   String?
   isFeatured      Boolean     @default(false)
   isBestSeller    Boolean     @default(false)
+  rating          Float       @default(0)
+  reviewCount     Int         @default(0)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   orderItems      OrderItem[]
+  reviews         Review[]
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  authorName  String
+  rating      Int      @default(5)
+  comment     String
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
 
 model Order {

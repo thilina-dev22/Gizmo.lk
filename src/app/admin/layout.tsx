@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { GizmoLogo } from "@/components/logo/GizmoLogo";
-import { LayoutDashboard, Package, ShoppingCart, ArrowLeft, Download, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, ArrowLeft, Download, LogOut, MessageSquare } from "lucide-react";
 
 export default function AdminLayout({
   children,
@@ -22,6 +22,7 @@ export default function AdminLayout({
   const isOverviewActive = pathname === "/admin";
   const isProductsActive = pathname === "/admin/products";
   const isOrdersActive = pathname === "/admin/orders";
+  const isReviewsActive = pathname === "/admin/reviews";
 
   const handleLogout = async () => {
     try {
@@ -108,6 +109,17 @@ export default function AdminLayout({
             >
               <ShoppingCart className="w-4 h-4" />
               <span>Orders & Courier Labels</span>
+            </Link>
+            <Link
+              href="/admin/reviews"
+              className={`py-3 flex items-center gap-2 transition-colors whitespace-nowrap ${
+                isReviewsActive
+                  ? "text-cyan-400 border-b-2 border-cyan-400 font-bold"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Reviews Moderation</span>
             </Link>
           </div>
         </div>

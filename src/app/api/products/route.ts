@@ -76,6 +76,8 @@ export async function POST(request: Request) {
       supplierNotes,
       isFeatured,
       isBestSeller,
+      rating,
+      reviewCount,
     } = body;
 
     if (!title || !category || !sellingPriceLkr || !sku) {
@@ -106,6 +108,8 @@ export async function POST(request: Request) {
         supplierNotes,
         isFeatured: Boolean(isFeatured),
         isBestSeller: Boolean(isBestSeller),
+        rating: parseFloat(rating || "0"),
+        reviewCount: parseInt(reviewCount || "0", 10),
       },
     });
 
