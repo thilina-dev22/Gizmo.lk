@@ -446,7 +446,7 @@ export default function CheckoutPage() {
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 text-xs">
                   <div className="font-bold text-slate-200 uppercase tracking-wider">
-                    Bank Account Details for Gizmo LK
+                    Bank Account Details for GizmoTek LK
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {BANK_ACCOUNTS.map((bank, i) => (

@@ -72,7 +72,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>orders@gizmo.lk | support@gizmo.lk</span>
+              <span>orders@gizmotek.lk | support@gizmotek.lk</span>
             </div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export function Footer() {
       <div className="border-t border-slate-800/60 py-4 px-4 sm:px-6 bg-slate-950">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400 text-center sm:text-left">
           <div>
-            &copy; {new Date().getFullYear()} <span className="text-slate-200 font-semibold">gizmo.lk online store</span>. All rights reserved.
+            &copy; {new Date().getFullYear()} <span className="text-slate-200 font-semibold">gizmotek.lk online store</span>. All rights reserved.
           </div>
           <div className="flex items-center gap-1.5 text-slate-400">
             <span>Developed with ❤️ by</span>

@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        <title>gizmo.lk online store | Electronics, Gadgets & Tech Accessories Sri Lanka</title>
+        <title>gizmotek.lk online store | Electronics, Gadgets & Tech Accessories Sri Lanka</title>
         <meta
           name="description"
           content="Buy trending wireless earbuds, smartwatches, 4K car dashcams, and PC accessories online in Sri Lanka. Islandwide Cash on Delivery & Direct Bank Slip Verification."

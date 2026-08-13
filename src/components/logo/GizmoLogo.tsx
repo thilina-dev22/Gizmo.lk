@@ -68,7 +68,7 @@ export function GizmoLogo({ className = "", size = "md", showSubtitle = true }: 
       {/* Brand Text */}
       <div className="flex flex-col leading-none">
         <div className={`font-extrabold tracking-tight text-white ${dimensions.title}`}>
-          GIZMO<span className="text-cyan-400 font-bold">.LK</span>
+          GIZMOTEK<span className="text-cyan-400 font-bold">.LK</span>
         </div>
         {showSubtitle && (
           <div className={`text-slate-400 font-semibold tracking-widest uppercase ${dimensions.sub} mt-0.5`}>

@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
             </span>
             <h1 className="text-xl font-bold text-white mt-2">Store Management Login</h1>
             <p className="text-xs text-slate-400 mt-1">
-              Authorized Gizmo.lk store administrators only.
+              Authorized GizmoTek.lk store administrators only.
             </p>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function AdminLoginPage() {
             <span>256-Bit SSL Encrypted Session</span>
           </div>
           <p className="text-[10px] text-slate-500">
-            Default test login: Username: <strong className="text-cyan-400">admin</strong> | Password: <strong className="text-cyan-400">gizmo2026admin</strong>
+            Default test login: Username: <strong className="text-cyan-400">admin</strong> | Password: <strong className="text-cyan-400">gizmotek2026admin</strong>
           </p>
         </div>
       </div>

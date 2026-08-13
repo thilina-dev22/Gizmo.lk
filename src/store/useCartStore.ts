@@ -105,7 +105,7 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: "gizmo-cart-storage",
+      name: "gizmotek-cart-storage",
       partialize: (state) => ({ items: state.items }),
     }
   )

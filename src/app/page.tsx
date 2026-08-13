@@ -67,7 +67,7 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
             <span className="text-cyan-400 font-bold text-xs uppercase tracking-wider">
-              Why Sri Lanka Chooses Gizmo.lk
+              Why Sri Lanka Chooses GizmoTek.lk
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
               Fast, Reliable & Transparent Shopping

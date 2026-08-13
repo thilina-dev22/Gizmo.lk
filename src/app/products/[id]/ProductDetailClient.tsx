@@ -105,7 +105,7 @@ export function ProductDetailClient({ product, images, specs }: ClientProps) {
   };
 
   const whatsappMessage = encodeURIComponent(
-    `Hi Gizmo.lk! I want to order:\n*Product*: ${product.title}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmo-lk.vercel.app/products/${product.id}`
+    `Hi GizmoTek.lk! I want to order:\n*Product*: ${product.title}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmotek.lk/products/${product.id}`
   );
 
   const displayRating = product.rating || 0;

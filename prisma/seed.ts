@@ -199,7 +199,7 @@ const mockProducts = [
 ];
 
 async function main() {
-  console.log("Seeding Gizmo.lk database...");
+  console.log("Seeding GizmoTek.lk database...");
 
   // Clear existing products and orders
   await prisma.orderItem.deleteMany({});

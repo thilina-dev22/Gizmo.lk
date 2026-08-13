@@ -605,7 +605,7 @@ const mockProducts = [
 ];
 
 async function main() {
-  console.log("Seeding Gizmo.lk database with expanded mock tech catalog...");
+  console.log("Seeding GizmoTek.lk database with expanded mock tech catalog...");
 
   await prisma.orderItem.deleteMany({});
   await prisma.order.deleteMany({});

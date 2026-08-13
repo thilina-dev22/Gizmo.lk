@@ -35,7 +35,7 @@ export default async function AdminOverviewPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 p-6 rounded-3xl border border-slate-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white">
-            Gizmo.lk Admin Store Analytics
+            GizmoTek.lk Admin Store Analytics
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Real-time store revenue, order status, and courier dispatch controls.

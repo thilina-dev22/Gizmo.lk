@@ -5,9 +5,9 @@ export async function POST(req: Request) {
     const { username, password } = await req.json();
 
     const expectedUser = process.env.ADMIN_USERNAME || "admin";
-    const expectedPass = process.env.ADMIN_PASSWORD || "gizmo2026admin";
+    const expectedPass = process.env.ADMIN_PASSWORD || "gizmotek2026admin";
     const expectedToken =
-      process.env.ADMIN_SESSION_TOKEN || "gizmo_authenticated_admin_session_token_2026";
+      process.env.ADMIN_SESSION_TOKEN || "gizmotek_authenticated_admin_session_token_2026";
 
     if (
       username.trim().toLowerCase() === expectedUser.trim().toLowerCase() &&
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       const response = NextResponse.json({ success: true });
 
       response.cookies.set({
-        name: "gizmo_admin_session",
+        name: "gizmotek_admin_session",
         value: expectedToken,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

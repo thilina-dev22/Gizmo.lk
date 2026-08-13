@@ -45,7 +45,7 @@ export default async function OrderSuccessPage({ searchParams }: SuccessPageProp
           Order Successfully Placed
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
-          Thank You For Shopping at Gizmo.lk!
+          Thank You For Shopping at GizmoTek.lk!
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
           Your order <strong className="text-cyan-400 font-mono">{order?.orderNumber || searchParams.orderNumber || "GZ-STORE"}</strong> has been confirmed and queued for islandwide dispatch.

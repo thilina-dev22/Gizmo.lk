@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     return new NextResponse(csvContent, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="gizmo_lk_courier_dispatch_${new Date().toISOString().split("T")[0]}.csv"`,
+        "Content-Disposition": `attachment; filename="gizmotek_lk_courier_dispatch_${new Date().toISOString().split("T")[0]}.csv"`,
       },
     });
   } catch (error) {

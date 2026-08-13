@@ -42,7 +42,7 @@ export const FREE_SHIPPING_THRESHOLD_LKR = 15000;
 export const BANK_ACCOUNTS = [
   {
     bankName: "Commercial Bank of Ceylon",
-    accountName: "Gizmo LK (Pvt) Ltd",
+    accountName: "GizmoTek LK (Pvt) Ltd",
     accountNumber: "8009-1234-5678",
     branch: "Kollupitiya Branch (005)",
     swiftCode: "CCEYLKX",
@@ -50,7 +50,7 @@ export const BANK_ACCOUNTS = [
   },
   {
     bankName: "Sampath Bank",
-    accountName: "Gizmo LK (Pvt) Ltd",
+    accountName: "GizmoTek LK (Pvt) Ltd",
     accountNumber: "1004-5566-7788",
     branch: "City Office Branch (001)",
     swiftCode: "SAMPLKX",
@@ -58,7 +58,7 @@ export const BANK_ACCOUNTS = [
   },
   {
     bankName: "Bank of Ceylon (BOC)",
-    accountName: "Gizmo LK (Pvt) Ltd",
+    accountName: "GizmoTek LK (Pvt) Ltd",
     accountNumber: "0007-7123-9840",
     branch: "Corporate Branch (002)",
     swiftCode: "BCEYLKX",
