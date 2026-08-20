@@ -4,28 +4,39 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function createPrismaClient(): PrismaClient {
+function createPrismaClient(): PrismaClient | null {
+  if (!process.env.DATABASE_URL) {
+    return null;
+  }
   try {
-    return (
+    const client =
       globalForPrisma.prisma ??
       new PrismaClient({
         log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-      })
-    );
+      });
+    return client;
   } catch (e) {
-    console.error("PrismaClient creation fallback:", e);
-    return {} as PrismaClient;
+    console.error("PrismaClient initialization warning:", e);
+    return null;
   }
 }
 
-export const db: PrismaClient = createPrismaClient();
+export const db: PrismaClient | null = createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+if (process.env.NODE_ENV !== "production" && db) globalForPrisma.prisma = db;
 
 let isTablesChecked = false;
 
 export async function ensureTablesExist() {
-  if (isTablesChecked || !db || typeof db.$executeRawUnsafe !== "function") return;
+  if (
+    isTablesChecked ||
+    !db ||
+    !process.env.DATABASE_URL ||
+    typeof db.$executeRawUnsafe !== "function"
+  ) {
+    return;
+  }
+
   try {
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Review" (
@@ -49,6 +60,6 @@ export async function ensureTablesExist() {
 
     isTablesChecked = true;
   } catch (err) {
-    // Silently ignore if DB is offline or table already checked
+    // Silently ignore if DB is unreachable
   }
 }

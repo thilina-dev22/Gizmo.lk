@@ -1187,21 +1187,21 @@ apiRouter.post('/upload-slip', upload.single('file'), (req, res) => {
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
-// ==========================================
-// 7. PRODUCTION STATIC ASSETS & SPA ROUTING (Local/Standalone Node ONLY)
-// ==========================================
-if (!process.env.VERCEL) {
-  const distPath = path.resolve(process.cwd(), 'dist');
-  if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
-    app.use((req, res, next) => {
-      if (req.method === 'GET' && !req.path.startsWith('/api')) {
-        return res.sendFile(path.resolve(distPath, 'index.html'));
-      }
-      next();
-    });
-  }
+// Fallback for API 404
+app.use((req, res) => {
+  res.status(404).json({ error: `Not found: ${req.method} ${req.originalUrl || req.url}` });
+});
 
+// Global error handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Global express error:", err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: err?.message || "Internal Server Error" });
+  }
+});
+
+// Start local dev server if not in Vercel Serverless environment
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🚀 GizmoTek API Backend running on http://localhost:${PORT}`);
   });
