@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '../types';
 import { getDb } from '../../src/lib/db';
 import { inMemoryOrders } from '../../src/data/mockData';
 

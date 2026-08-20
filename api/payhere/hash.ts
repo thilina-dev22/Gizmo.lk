@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '../types';
 import {
   PAYHERE_MERCHANT_ID,
   PAYHERE_CHECKOUT_URL,
