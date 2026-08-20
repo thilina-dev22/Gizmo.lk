@@ -1,11 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "@vercel/node@3"
-    }
-  },
   "rewrites": [
     { "source": "/api/products/:id", "destination": "/api/products?id=:id" },
     { "source": "/api/admin/:action", "destination": "/api/admin?action=:action" },
