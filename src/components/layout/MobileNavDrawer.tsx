@@ -5,7 +5,7 @@ import { X, Search, Smartphone, Headphones, Watch, Laptop, Car, ShieldCheck, Pho
 import { GizmoLogo } from "../logo/GizmoLogo";
 import { CATEGORIES } from "@/lib/constants";
 import { Product } from "@/store/useCartStore";
-import { formatLKR } from "@/lib/utils";
+import { formatLKR, safeParseImages } from "@/lib/utils";
 import { OptimizedImage } from "../common/OptimizedImage";
 
 interface MobileNavDrawerProps {
@@ -157,7 +157,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                   ) : searchResults.length > 0 ? (
                     <div>
                       {searchResults.slice(0, 4).map((product) => {
-                        const imgs = JSON.parse(product.images || "[]");
+                        const imgs = safeParseImages(product.images);
                         const thumbUrl = imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
                         return (
                           <Link
@@ -290,7 +290,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
             </div>
 
             {/* Bottom Actions */}
-            <div className="p-4 border-t border-slate-800 space-y-2 text-xs">
+            <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-800 space-y-2 text-xs">
               <a
                 href="https://wa.me/94771234567"
                 target="_blank"
