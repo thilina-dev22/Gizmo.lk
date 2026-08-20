@@ -2,10 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import dotenv from 'dotenv';
-import { getDb, ensureTablesExist, reportDbError } from './src/lib/db';
+import { prisma } from './src/lib/db';
 import {
   PAYHERE_MERCHANT_ID,
   PAYHERE_CHECKOUT_URL,
@@ -19,12 +17,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-import { inMemoryProducts, inMemoryOrders, inMemoryReviews } from './src/data/mockData';
-
 // Global Express Middleware
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Multer memory storage for bank slip uploads
@@ -56,14 +52,13 @@ apiRouter.get('/products', async (req, res) => {
   const { search = '', category = '', sort = 'newest', featured } = req.query;
 
   try {
-    await ensureTablesExist();
     const where: any = {};
 
-    if (search && typeof search === 'string') {
+    if (search && typeof search === 'string' && search.trim()) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { category: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search.trim(), mode: 'insensitive' } },
+        { description: { contains: search.trim(), mode: 'insensitive' } },
+        { category: { contains: search.trim(), mode: 'insensitive' } },
       ];
     }
 
@@ -95,52 +90,16 @@ apiRouter.get('/products', async (req, res) => {
       orderBy = { isBestSeller: 'desc' };
     }
 
-    const db = await getDb();
-    if (db && typeof db.product?.findMany === 'function') {
-      const products = await db.product.findMany({
-        where,
-        orderBy,
-      });
+    const products = await prisma.product.findMany({
+      where,
+      orderBy,
+    });
 
-      if (products.length > 0) {
-        res.set('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=30');
-        return res.json({ products });
-      }
-    }
+    return res.json({ products: products || [] });
   } catch (error: any) {
-    // Graceful fallback to in-memory catalog
+    console.error('Error fetching products:', error);
+    return res.status(500).json({ error: 'Failed to fetch products from database', detail: error?.message });
   }
-
-  // In-memory filter fallback
-  let filtered = [...inMemoryProducts];
-  if (search && typeof search === 'string') {
-    const q = search.toLowerCase();
-    filtered = filtered.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-    );
-  }
-
-  if (category && typeof category === 'string' && category !== 'all') {
-    const cat = decodeURIComponent(category).toLowerCase();
-    filtered = filtered.filter((p) => p.category.toLowerCase().includes(cat));
-  }
-
-  if (featured === 'true') {
-    filtered = filtered.filter((p) => p.isFeatured);
-  }
-
-  if (sort === 'price-low') {
-    filtered.sort((a, b) => a.sellingPriceLkr - b.sellingPriceLkr);
-  } else if (sort === 'price-high') {
-    filtered.sort((a, b) => b.sellingPriceLkr - a.sellingPriceLkr);
-  } else if (sort === 'bestsellers') {
-    filtered.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0));
-  }
-
-  return res.json({ products: filtered });
 });
 
 // GET /products/:id
@@ -148,27 +107,25 @@ apiRouter.get('/products/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const db = await getDb();
-    if (db && typeof db.product?.findUnique === 'function') {
-      const product = await db.product.findUnique({
-        where: { id },
-      });
-      if (product) {
-        return res.json({ product });
-      }
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
     }
-  } catch (error: any) {}
 
-  const fallbackProd = inMemoryProducts.find((p) => p.id === id || p.slug === id);
-  if (fallbackProd) {
-    return res.json({ product: fallbackProd });
+    return res.json({ product });
+  } catch (error: any) {
+    console.error('Error fetching product by ID:', error);
+    return res.status(500).json({ error: 'Failed to fetch product details', detail: error?.message });
   }
-
-  return res.status(404).json({ error: 'Product not found' });
 });
 
 // POST /products (Admin create/edit)
-apiRouter.post('/products', async (req, res) => {
+apiRouter.post('/products', adminAuthMiddleware, async (req, res) => {
   try {
     const {
       title,
@@ -189,7 +146,7 @@ apiRouter.post('/products', async (req, res) => {
     } = req.body;
 
     if (!title || !category || !sellingPriceLkr || !sku) {
-      return res.status(400).json({ error: 'Missing required product fields' });
+      return res.status(400).json({ error: 'Missing required product fields (title, category, sellingPriceLkr, sku)' });
     }
 
     const slug = title
@@ -206,81 +163,53 @@ apiRouter.post('/products', async (req, res) => {
     const specsJson =
       typeof specs === 'string'
         ? specs
-        : typeof specs === 'object'
+        : typeof specs === 'object' && specs !== null
         ? JSON.stringify(specs)
         : '{}';
 
-    try {
-      const db = await getDb();
-      if (db && typeof db.product?.upsert === 'function') {
-        const product = await db.product.upsert({
-          where: { sku },
-          update: {
-            title,
-            slug,
-            category,
-            sellingPriceLkr: Number(sellingPriceLkr),
-            costPriceLkr: Number(costPriceLkr || 0),
-            stock: Number(stock || 0),
-            images: imagesJson,
-            description: description || '',
-            specs: specsJson,
-            supplierLink: supplierLink || '',
-            supplierNotes: supplierNotes || '',
-            isFeatured: Boolean(isFeatured),
-            isBestSeller: Boolean(isBestSeller),
-            rating: Number(rating || 0),
-            reviewCount: Number(reviewCount || 0),
-          },
-          create: {
-            title,
-            slug,
-            category,
-            sellingPriceLkr: Number(sellingPriceLkr),
-            costPriceLkr: Number(costPriceLkr || 0),
-            sku,
-            stock: Number(stock || 0),
-            images: imagesJson,
-            description: description || '',
-            specs: specsJson,
-            supplierLink: supplierLink || '',
-            supplierNotes: supplierNotes || '',
-            isFeatured: Boolean(isFeatured),
-            isBestSeller: Boolean(isBestSeller),
-            rating: Number(rating || 0),
-            reviewCount: Number(reviewCount || 0),
-          },
-        });
+    const product = await prisma.product.upsert({
+      where: { sku },
+      update: {
+        title,
+        slug,
+        category,
+        sellingPriceLkr: Number(sellingPriceLkr),
+        costPriceLkr: Number(costPriceLkr || 0),
+        stock: Number(stock || 0),
+        images: imagesJson,
+        description: description || '',
+        specs: specsJson,
+        supplierLink: supplierLink || '',
+        supplierNotes: supplierNotes || '',
+        isFeatured: Boolean(isFeatured),
+        isBestSeller: Boolean(isBestSeller),
+        rating: Number(rating || 0),
+        reviewCount: Number(reviewCount || 0),
+      },
+      create: {
+        title,
+        slug,
+        category,
+        sellingPriceLkr: Number(sellingPriceLkr),
+        costPriceLkr: Number(costPriceLkr || 0),
+        sku,
+        stock: Number(stock || 0),
+        images: imagesJson,
+        description: description || '',
+        specs: specsJson,
+        supplierLink: supplierLink || '',
+        supplierNotes: supplierNotes || '',
+        isFeatured: Boolean(isFeatured),
+        isBestSeller: Boolean(isBestSeller),
+        rating: Number(rating || 0),
+        reviewCount: Number(reviewCount || 0),
+      },
+    });
 
-        return res.json({ success: true, product });
-      }
-    } catch (dbErr) {}
-
-    const newProduct = {
-      id: `prod-${Date.now()}`,
-      title,
-      slug,
-      category,
-      sellingPriceLkr: Number(sellingPriceLkr),
-      costPriceLkr: Number(costPriceLkr || 0),
-      sku,
-      stock: Number(stock || 0),
-      images: imagesJson,
-      description: description || '',
-      specs: specsJson,
-      supplierLink: supplierLink || '',
-      supplierNotes: supplierNotes || '',
-      isFeatured: Boolean(isFeatured),
-      isBestSeller: Boolean(isBestSeller),
-      rating: Number(rating || 0),
-      reviewCount: Number(reviewCount || 0),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    inMemoryProducts.unshift(newProduct);
-    return res.json({ success: true, product: newProduct });
+    return res.json({ success: true, product });
   } catch (error: any) {
-    return res.status(500).json({ error: error?.message || 'Failed to save product' });
+    console.error('Error saving product:', error);
+    return res.status(500).json({ error: 'Failed to save product in database', detail: error?.message });
   }
 });
 
@@ -288,69 +217,68 @@ apiRouter.post('/products', async (req, res) => {
 // 2. ORDERS API
 // ==========================================
 
-// GET /orders
-apiRouter.get('/orders', async (req, res) => {
+// GET /orders (Admin order list)
+apiRouter.get('/orders', adminAuthMiddleware, async (req, res) => {
+  const { status } = req.query;
+
   try {
-    const { status, id, orderNumber } = req.query;
-
-    if (id || orderNumber) {
-      try {
-        const db = await getDb();
-        if (db && typeof db.order?.findFirst === 'function') {
-          const order = await db.order.findFirst({
-            where: {
-              OR: [
-                { id: typeof id === 'string' ? id : undefined },
-                { orderNumber: typeof orderNumber === 'string' ? orderNumber : undefined },
-              ],
-            },
-            include: {
-              items: {
-                include: { product: true },
-              },
-            },
-          });
-          if (order) return res.json({ order });
-        }
-      } catch (e) {}
-
-      const found = inMemoryOrders.find((o) => o.id === id || o.orderNumber === (orderNumber || id));
-      return res.json({ order: found || inMemoryOrders[0] });
+    const where: any = {};
+    if (status && status !== 'ALL' && typeof status === 'string') {
+      where.orderStatus = status;
     }
 
-    try {
-      const where: any = {};
-      if (status && status !== 'ALL' && typeof status === 'string') {
-        where.orderStatus = status;
-      }
-
-      const db = await getDb();
-      if (db && typeof db.order?.findMany === 'function') {
-        const orders = await db.order.findMany({
-          where,
+    const orders = await prisma.order.findMany({
+      where,
+      include: {
+        items: {
           include: {
-            items: {
-              include: { product: true },
-            },
+            product: true,
           },
-          orderBy: { createdAt: 'desc' },
-        });
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-        if (orders.length > 0) return res.json({ orders });
-      }
-    } catch (e) {}
-
-    let filtered = [...inMemoryOrders];
-    if (status && status !== 'ALL') {
-      filtered = filtered.filter((o) => o.orderStatus === status);
-    }
-    return res.json({ orders: filtered });
-  } catch (error) {
-    return res.status(500).json({ error: 'Failed to fetch orders' });
+    return res.json({ orders: orders || [] });
+  } catch (error: any) {
+    console.error('Error fetching orders:', error);
+    return res.status(500).json({ error: 'Failed to fetch orders from database', detail: error?.message });
   }
 });
 
-// POST /orders
+// GET /orders/:id (Customer single order lookup)
+apiRouter.get('/orders/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [
+          { id },
+          { orderNumber: id },
+        ],
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    return res.json({ order });
+  } catch (error: any) {
+    console.error('Error fetching order by ID:', error);
+    return res.status(500).json({ error: 'Failed to fetch order details', detail: error?.message });
+  }
+});
+
+// POST /orders (Checkout create order)
 apiRouter.post('/orders', async (req, res) => {
   try {
     const {
@@ -367,29 +295,24 @@ apiRouter.post('/orders', async (req, res) => {
     } = req.body;
 
     if (!customerName || !customerPhone || !address || !district || !items || items.length === 0) {
-      return res.status(400).json({ error: 'Missing required order information' });
+      return res.status(400).json({ error: 'Missing required order details' });
     }
 
     let subtotalLkr = 0;
     const itemsData: any[] = [];
-    const db = await getDb();
 
     for (const item of items) {
-      let product = inMemoryProducts.find((p) => p.id === item.productId);
-      try {
-        if (db && typeof db.product?.findUnique === 'function') {
-          const dbProd = await db.product.findUnique({ where: { id: item.productId } });
-          if (dbProd) product = dbProd as any;
-        }
-      } catch (e) {}
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+      });
 
-      const unitPrice = product ? product.sellingPriceLkr : 5000;
+      const unitPrice = product ? product.sellingPriceLkr : 0;
       subtotalLkr += unitPrice * item.quantity;
+
       itemsData.push({
         productId: item.productId,
         quantity: item.quantity,
         unitPrice,
-        product,
       });
     }
 
@@ -400,74 +323,49 @@ apiRouter.post('/orders', async (req, res) => {
 
     const orderNumber = `GZ-${Math.floor(10000 + Math.random() * 90000)}`;
 
-    const newOrder = {
-      id: `ord-${Date.now()}`,
-      orderNumber,
-      customerName,
-      customerPhone,
-      customerEmail: customerEmail || '',
-      address,
-      district,
-      city,
-      paymentMethod,
-      paymentStatus: paymentMethod === 'PAYHERE' ? 'PENDING' : 'UNPAID',
-      orderStatus: 'PENDING',
-      bankSlipUrl: bankSlipUrl || null,
-      subtotalLkr,
-      shippingFeeLkr,
-      totalLkr,
-      notes: notes || '',
-      createdAt: new Date().toISOString(),
-      items: itemsData,
-    };
-
-    try {
-      if (db && typeof db.order?.create === 'function') {
-        const createdOrder = await db.order.create({
-          data: {
-            orderNumber,
-            customerName,
-            customerPhone,
-            customerEmail: customerEmail || null,
-            address,
-            district,
-            city,
-            paymentMethod,
-            paymentStatus: newOrder.paymentStatus,
-            orderStatus: newOrder.orderStatus,
-            bankSlipUrl: bankSlipUrl || null,
-            subtotalLkr,
-            shippingFeeLkr,
-            totalLkr,
-            notes: notes || null,
-            items: {
-              create: itemsData.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-              })),
-            },
-          },
+    const createdOrder = await prisma.order.create({
+      data: {
+        orderNumber,
+        customerName,
+        customerPhone,
+        customerEmail: customerEmail || null,
+        address,
+        district,
+        city,
+        paymentMethod,
+        paymentStatus: paymentMethod === 'PAYHERE' ? 'PENDING' : 'UNPAID',
+        orderStatus: 'PENDING',
+        bankSlipUrl: bankSlipUrl || null,
+        subtotalLkr,
+        shippingFeeLkr,
+        totalLkr,
+        notes: notes || null,
+        items: {
+          create: itemsData.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          })),
+        },
+      },
+      include: {
+        items: {
           include: {
-            items: {
-              include: { product: true },
-            },
+            product: true,
           },
-        });
-        inMemoryOrders.unshift(createdOrder);
-        return res.json({ success: true, order: createdOrder });
-      }
-    } catch (e) {}
+        },
+      },
+    });
 
-    inMemoryOrders.unshift(newOrder);
-    return res.json({ success: true, order: newOrder });
+    return res.status(201).json({ success: true, order: createdOrder });
   } catch (error: any) {
-    return res.status(500).json({ error: error?.message || 'Failed to submit order' });
+    console.error('Error creating order:', error);
+    return res.status(500).json({ error: 'Failed to create order in database', detail: error?.message });
   }
 });
 
-// PATCH /orders
-apiRouter.patch('/orders', async (req, res) => {
+// PATCH /orders (Admin update status)
+apiRouter.patch('/orders', adminAuthMiddleware, async (req, res) => {
   try {
     const { orderId, orderStatus, paymentStatus } = req.body;
 
@@ -479,25 +377,15 @@ apiRouter.patch('/orders', async (req, res) => {
     if (orderStatus) dataToUpdate.orderStatus = orderStatus;
     if (paymentStatus) dataToUpdate.paymentStatus = paymentStatus;
 
-    try {
-      const db = await getDb();
-      if (db && typeof db.order?.update === 'function') {
-        const updatedOrder = await db.order.update({
-          where: { id: orderId },
-          data: dataToUpdate,
-        });
-        return res.json({ success: true, order: updatedOrder });
-      }
-    } catch (e) {}
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: dataToUpdate,
+    });
 
-    const order = inMemoryOrders.find((o) => o.id === orderId);
-    if (order) {
-      if (orderStatus) order.orderStatus = orderStatus;
-      if (paymentStatus) order.paymentStatus = paymentStatus;
-    }
-    return res.json({ success: true, order });
+    return res.json({ success: true, order: updatedOrder });
   } catch (error: any) {
-    return res.status(500).json({ error: error?.message || 'Failed to update order status' });
+    console.error('Error updating order:', error);
+    return res.status(500).json({ error: 'Failed to update order in database', detail: error?.message });
   }
 });
 
@@ -505,37 +393,31 @@ apiRouter.patch('/orders', async (req, res) => {
 // 3. REVIEWS API
 // ==========================================
 
-// GET /reviews
+// GET /reviews (Approved reviews for product)
 apiRouter.get('/reviews', async (req, res) => {
+  const { productId } = req.query;
+
+  if (!productId || typeof productId !== 'string') {
+    return res.status(400).json({ error: 'Missing productId parameter' });
+  }
+
   try {
-    const { productId } = req.query;
+    const reviews = await prisma.review.findMany({
+      where: {
+        productId,
+        isApproved: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    if (!productId || typeof productId !== 'string') {
-      return res.status(400).json({ error: 'Missing productId parameter' });
-    }
-
-    try {
-      const db = await getDb();
-      if (db && typeof db.review?.findMany === 'function') {
-        const reviews = await db.review.findMany({
-          where: {
-            productId,
-            isApproved: true,
-          },
-          orderBy: { createdAt: 'desc' },
-        });
-        if (reviews.length > 0) return res.json({ reviews });
-      }
-    } catch (e) {}
-
-    const reviews = inMemoryReviews.filter((r) => r.productId === productId && r.isApproved);
-    return res.json({ reviews });
+    return res.json({ reviews: reviews || [] });
   } catch (error: any) {
-    return res.status(500).json({ error: error?.message || 'Failed to fetch reviews' });
+    console.error('Error fetching reviews:', error);
+    return res.status(500).json({ error: 'Failed to fetch reviews', detail: error?.message });
   }
 });
 
-// POST /reviews
+// POST /reviews (Submit new review)
 apiRouter.post('/reviews', async (req, res) => {
   try {
     const { productId, authorName, rating, comment } = req.body;
@@ -549,158 +431,124 @@ apiRouter.post('/reviews', async (req, res) => {
       return res.status(400).json({ error: 'Rating must be between 1 and 5' });
     }
 
-    try {
-      const db = await getDb();
-      if (db && typeof db.review?.create === 'function') {
-        const review = await db.review.create({
-          data: {
-            productId,
-            authorName: authorName.trim(),
-            rating: numRating,
-            comment: comment.trim(),
-            isApproved: false,
-          },
-        });
-        return res.json({ success: true, review });
-      }
-    } catch (e) {}
+    const review = await prisma.review.create({
+      data: {
+        productId,
+        authorName: authorName.trim(),
+        rating: numRating,
+        comment: comment.trim(),
+        isApproved: false,
+      },
+    });
 
-    const review = {
-      id: `rev-${Date.now()}`,
-      productId,
-      authorName: authorName.trim(),
-      rating: numRating,
-      comment: comment.trim(),
-      isApproved: false,
-      createdAt: new Date().toISOString(),
-      product: inMemoryProducts.find((p) => p.id === productId),
-    };
-    inMemoryReviews.unshift(review);
-    return res.json({ success: true, review });
+    return res.status(201).json({ success: true, review });
   } catch (error: any) {
-    return res.status(500).json({ error: error?.message || 'Failed to submit review' });
+    console.error('Error creating review:', error);
+    return res.status(500).json({ error: 'Failed to submit review', detail: error?.message });
   }
 });
 
 // ==========================================
-// 4. ADMIN AUTH & REVIEWS MODERATION
+// 4. ADMIN SPECIFIC ROUTES
 // ==========================================
 
 // POST /admin/login
 apiRouter.post('/admin/login', (req, res) => {
-  try {
-    const { username, password } = req.body;
+  const { username, password } = req.body;
 
-    const validUsername = process.env.ADMIN_USERNAME || 'admin';
-    const validPassword = process.env.ADMIN_PASSWORD || 'gizmotek2026admin';
-    const token = process.env.ADMIN_SESSION_TOKEN || 'gizmotek_authenticated_admin_session_token_2026';
+  const validUsername = process.env.ADMIN_USERNAME || 'admin';
+  const validPassword = process.env.ADMIN_PASSWORD || 'gizmotek2026admin';
+  const token = process.env.ADMIN_SESSION_TOKEN || 'gizmotek_authenticated_admin_session_token_2026';
 
-    if (username === validUsername && password === validPassword) {
-      res.cookie('gizmotek_admin_session', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: '/',
-      });
+  if (username === validUsername && password === validPassword) {
+    res.cookie('gizmotek_admin_session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
-      return res.json({ success: true, message: 'Authentication successful' });
-    }
-
-    return res.status(401).json({ error: 'Invalid admin credentials' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Internal login error' });
+    return res.json({
+      success: true,
+      token,
+      message: 'Admin authenticated successfully',
+    });
   }
+
+  return res.status(401).json({ error: 'Invalid admin credentials' });
 });
 
 // POST /admin/logout
 apiRouter.post('/admin/logout', (req, res) => {
-  res.clearCookie('gizmotek_admin_session', { path: '/' });
+  res.clearCookie('gizmotek_admin_session');
   return res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // GET /admin/reviews
-apiRouter.get('/admin/reviews', async (req, res) => {
+apiRouter.get('/admin/reviews', adminAuthMiddleware, async (req, res) => {
   try {
-    try {
-      const db = await getDb();
-      if (db && typeof db.review?.findMany === 'function') {
-        const reviews = await db.review.findMany({
-          include: {
-            product: {
-              select: { id: true, title: true, images: true },
-            },
+    const reviews = await prisma.review.findMany({
+      include: {
+        product: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
           },
-          orderBy: { createdAt: 'desc' },
-        });
-        if (reviews.length > 0) return res.json({ reviews });
-      }
-    } catch (e) {}
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    return res.json({ reviews: inMemoryReviews });
+    return res.json({ reviews: reviews || [] });
   } catch (error: any) {
-    return res.status(500).json({ error: error?.message || 'Failed to fetch admin reviews' });
+    console.error('Error fetching admin reviews:', error);
+    return res.status(500).json({ error: 'Failed to fetch reviews', detail: error?.message });
   }
 });
 
 // PATCH /admin/reviews
-apiRouter.patch('/admin/reviews', async (req, res) => {
+apiRouter.patch('/admin/reviews', adminAuthMiddleware, async (req, res) => {
   try {
     const { reviewId, action } = req.body;
 
     if (!reviewId || !action) {
-      return res.status(400).json({ error: 'Missing reviewId or action parameter' });
+      return res.status(400).json({ error: 'Missing reviewId or action' });
     }
 
-    const review = inMemoryReviews.find((r) => r.id === reviewId);
-    if (review) {
-      if (action === 'approve') {
-        review.isApproved = true;
-      } else if (action === 'decline') {
-        inMemoryReviews = inMemoryReviews.filter((r) => r.id !== reviewId);
-      }
+    if (action === 'approve') {
+      const updated = await prisma.review.update({
+        where: { id: reviewId },
+        data: { isApproved: true },
+      });
+      return res.json({ success: true, review: updated });
+    } else if (action === 'decline') {
+      await prisma.review.delete({
+        where: { id: reviewId },
+      });
+      return res.json({ success: true, message: 'Review deleted' });
     }
 
-    try {
-      const db = await getDb();
-      if (db && typeof db.review?.update === 'function') {
-        if (action === 'approve') {
-          await db.review.update({
-            where: { id: reviewId },
-            data: { isApproved: true },
-          });
-        } else if (action === 'decline') {
-          await db.review.delete({
-            where: { id: reviewId },
-          });
-        }
-      }
-    } catch (e) {}
-
-    return res.json({ success: true, status: action.toUpperCase() });
+    return res.status(400).json({ error: 'Invalid action. Use "approve" or "decline"' });
   } catch (error: any) {
-    return res.status(500).json({ error: error?.message || 'Failed to process review action' });
+    console.error('Error moderating review:', error);
+    return res.status(500).json({ error: 'Failed to moderate review', detail: error?.message });
   }
 });
 
-// GET /admin/export-orders (CSV Download)
-apiRouter.get('/admin/export-orders', async (req, res) => {
+// GET /admin/export-orders (CSV Export for Courier)
+apiRouter.get('/admin/export-orders', adminAuthMiddleware, async (req, res) => {
   try {
-    let ordersList = inMemoryOrders;
-    try {
-      const db = await getDb();
-      if (db && typeof db.order?.findMany === 'function') {
-        const dbOrders = await db.order.findMany({
+    const orders = await prisma.order.findMany({
+      include: {
+        items: {
           include: {
-            items: {
-              include: { product: true },
-            },
+            product: true,
           },
-          orderBy: { createdAt: 'desc' },
-        });
-        if (dbOrders.length > 0) ordersList = dbOrders as any;
-      }
-    } catch (e) {}
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     const csvRows: string[] = [];
     csvRows.push(
@@ -721,16 +569,15 @@ apiRouter.get('/admin/export-orders', async (req, res) => {
       ].join(',')
     );
 
-    for (const o of ordersList) {
+    for (const o of orders) {
       const codAmount = o.paymentMethod === 'COD' ? o.totalLkr : 0;
       const itemsDesc = o.items
         ? o.items.map((i: any) => `${i.product?.title || 'Gadget'} (x${i.quantity})`).join(' | ')
         : 'Tech Gadgets';
 
-      const escapeCsv = (val: string | number | null | undefined) => {
+      const escapeCsv = (val: any) => {
         if (val === null || val === undefined) return '""';
-        const str = String(val).replace(/"/g, '""');
-        return `"${str}"`;
+        return `"${String(val).replace(/"/g, '""')}"`;
       };
 
       csvRows.push(
@@ -755,14 +602,15 @@ apiRouter.get('/admin/export-orders', async (req, res) => {
     const csvData = csvRows.join('\r\n');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=GizmoTek_Orders_${Date.now()}.csv`);
-    return res.send(csvData);
-  } catch (error) {
+    return res.status(200).send(csvData);
+  } catch (error: any) {
+    console.error('Error exporting orders CSV:', error);
     return res.status(500).json({ error: 'Failed to export orders CSV' });
   }
 });
 
 // ==========================================
-// 5. PAYHERE PAYMENT GATEWAY API
+// 5. PAYHERE PAYMENT GATEWAY
 // ==========================================
 
 // POST /payhere/hash
@@ -795,7 +643,7 @@ apiRouter.post('/payhere/hash', (req, res) => {
       'LKR'
     );
 
-    const origin = req.headers.origin || 'http://localhost:5173';
+    const origin = req.headers.origin || 'https://www.gizmotek.lk';
 
     const payherePayload = {
       actionUrl: PAYHERE_CHECKOUT_URL,
@@ -819,6 +667,7 @@ apiRouter.post('/payhere/hash', (req, res) => {
 
     return res.json({ success: true, payload: payherePayload });
   } catch (error: any) {
+    console.error('PayHere hash error:', error);
     return res.status(500).json({ error: 'Failed to generate PayHere payment hash' });
   }
 });
@@ -849,34 +698,27 @@ apiRouter.post('/payhere/notify', async (req, res) => {
       return res.status(400).json({ error: 'Invalid signature' });
     }
 
-    const order = inMemoryOrders.find((o) => o.id === order_id);
-    if (order) {
-      if (status_code === '2') {
-        order.paymentStatus = 'PAID';
-        order.orderStatus = 'PROCESSING';
-      } else if (status_code === '-1' || status_code === '-2') {
-        order.paymentStatus = 'FAILED';
-      }
+    if (status_code === '2') {
+      await prisma.order.update({
+        where: { id: order_id },
+        data: {
+          paymentStatus: 'PAID',
+          orderStatus: 'PROCESSING',
+          notes: `Paid via PayHere Gateway (Payment ID: ${payment_id})`,
+        },
+      });
+    } else if (status_code === '-1' || status_code === '-2') {
+      await prisma.order.update({
+        where: { id: order_id },
+        data: {
+          paymentStatus: 'FAILED',
+        },
+      });
     }
-
-    try {
-      const db = await getDb();
-      if (db && typeof db.order?.update === 'function') {
-        if (status_code === '2') {
-          await db.order.update({
-            where: { id: order_id },
-            data: {
-              paymentStatus: 'PAID',
-              orderStatus: 'PROCESSING',
-              notes: `Paid via PayHere Gateway (Payment ID: ${payment_id})`,
-            },
-          });
-        }
-      }
-    } catch (e) {}
 
     return res.json({ success: true });
   } catch (error: any) {
+    console.error('PayHere webhook error:', error);
     return res.status(500).json({ error: 'Internal webhook processing error' });
   }
 });

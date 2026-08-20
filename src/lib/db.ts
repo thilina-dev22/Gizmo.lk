@@ -4,68 +4,25 @@ declare global {
   var prismaGlobal: PrismaClient | undefined;
 }
 
-let isDbDisabled = false;
-let lastDbErrorTime = 0;
-let isTablesChecked = false;
+export const prisma =
+  globalThis.prismaGlobal ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+  });
 
-export function reportDbError(error: any) {
-  isDbDisabled = true;
-  lastDbErrorTime = Date.now();
-  console.warn(
-    "⚠️ Database unavailable/circuit breaker active, using in-memory catalog fallback:",
-    error?.message || error
-  );
+if (process.env.NODE_ENV !== "production") {
+  globalThis.prismaGlobal = prisma;
 }
 
-export async function getDb(): Promise<PrismaClient | null> {
-  if (!process.env.DATABASE_URL) return null;
-
-  // If a fatal DB connection failure occurred in the last 60 seconds, gracefully bypass
-  if (isDbDisabled && Date.now() - lastDbErrorTime < 60000) {
-    return null;
-  }
-
-  try {
-    if (global.prismaGlobal) return global.prismaGlobal;
-    global.prismaGlobal = new PrismaClient({
-      log: ["error"],
-    });
-    return global.prismaGlobal;
-  } catch (e) {
-    reportDbError(e);
-    return null;
-  }
+export async function getDb(): Promise<PrismaClient> {
+  return prisma;
 }
 
 export async function ensureTablesExist() {
-  if (isTablesChecked || !process.env.DATABASE_URL || isDbDisabled) return;
-
-  try {
-    const db = await getDb();
-    if (!db || typeof db.$executeRawUnsafe !== "function") return;
-
-    await db.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Review" (
-        "id" TEXT NOT NULL PRIMARY KEY,
-        "productId" TEXT NOT NULL,
-        "authorName" TEXT NOT NULL,
-        "rating" INTEGER NOT NULL DEFAULT 5,
-        "comment" TEXT NOT NULL,
-        "isApproved" BOOLEAN NOT NULL DEFAULT false,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    await db.$executeRawUnsafe(`
-      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "rating" DOUBLE PRECISION NOT NULL DEFAULT 0;
-    `);
-
-    await db.$executeRawUnsafe(`
-      ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "reviewCount" INTEGER NOT NULL DEFAULT 0;
-    `);
-
-    isTablesChecked = true;
-  } catch (err) {
-    reportDbError(err);
-  }
+  // Database tables are managed and synced via Prisma Schema
 }
+
+export function reportDbError(error: any) {
+  console.error("Prisma Database Error:", error?.message || error);
+}
+
