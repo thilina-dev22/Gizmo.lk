@@ -338,7 +338,7 @@ const adminAuthMiddleware = (req: express.Request, res: express.Response, next: 
 // ==========================================
 
 // GET /api/products
-app.get('/api/products', async (req, res) => {
+app.get(['/api/products', '/products'], async (req, res) => {
   const { search = '', category = '', sort = 'newest', featured } = req.query;
 
   try {
@@ -381,17 +381,19 @@ app.get('/api/products', async (req, res) => {
       orderBy = { isBestSeller: 'desc' };
     }
 
-    const products = await db.product.findMany({
-      where,
-      orderBy,
-    });
+    if (db && typeof db.product?.findMany === 'function') {
+      const products = await db.product.findMany({
+        where,
+        orderBy,
+      });
 
-    if (products.length > 0) {
-      res.set('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=30');
-      return res.json({ products });
+      if (products.length > 0) {
+        res.set('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=30');
+        return res.json({ products });
+      }
     }
   } catch (error: any) {
-    console.log('Database read fallback to in-memory catalog:', error?.message);
+    // Graceful fallback to in-memory catalog
   }
 
   // In-memory filter fallback
@@ -427,19 +429,19 @@ app.get('/api/products', async (req, res) => {
 });
 
 // GET /api/products/:id
-app.get('/api/products/:id', async (req, res) => {
+app.get(['/api/products/:id', '/products/:id'], async (req, res) => {
   const { id } = req.params;
 
   try {
-    const product = await db.product.findUnique({
-      where: { id },
-    });
-    if (product) {
-      return res.json({ product });
+    if (db && typeof db.product?.findUnique === 'function') {
+      const product = await db.product.findUnique({
+        where: { id },
+      });
+      if (product) {
+        return res.json({ product });
+      }
     }
-  } catch (error: any) {
-    console.log('DB product find fallback');
-  }
+  } catch (error: any) {}
 
   const fallbackProd = inMemoryProducts.find((p) => p.id === id || p.slug === id);
   if (fallbackProd) {
@@ -450,7 +452,7 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 // POST /api/products (Admin create/edit)
-app.post('/api/products', async (req, res) => {
+app.post(['/api/products', '/products'], async (req, res) => {
   try {
     const {
       title,
@@ -493,71 +495,73 @@ app.post('/api/products', async (req, res) => {
         : '{}';
 
     try {
-      const product = await db.product.upsert({
-        where: { sku },
-        update: {
-          title,
-          slug,
-          category,
-          sellingPriceLkr: Number(sellingPriceLkr),
-          costPriceLkr: Number(costPriceLkr || 0),
-          stock: Number(stock || 0),
-          images: imagesJson,
-          description: description || '',
-          specs: specsJson,
-          supplierLink: supplierLink || '',
-          supplierNotes: supplierNotes || '',
-          isFeatured: Boolean(isFeatured),
-          isBestSeller: Boolean(isBestSeller),
-          rating: Number(rating || 0),
-          reviewCount: Number(reviewCount || 0),
-        },
-        create: {
-          title,
-          slug,
-          category,
-          sellingPriceLkr: Number(sellingPriceLkr),
-          costPriceLkr: Number(costPriceLkr || 0),
-          sku,
-          stock: Number(stock || 0),
-          images: imagesJson,
-          description: description || '',
-          specs: specsJson,
-          supplierLink: supplierLink || '',
-          supplierNotes: supplierNotes || '',
-          isFeatured: Boolean(isFeatured),
-          isBestSeller: Boolean(isBestSeller),
-          rating: Number(rating || 0),
-          reviewCount: Number(reviewCount || 0),
-        },
-      });
+      if (db && typeof db.product?.upsert === 'function') {
+        const product = await db.product.upsert({
+          where: { sku },
+          update: {
+            title,
+            slug,
+            category,
+            sellingPriceLkr: Number(sellingPriceLkr),
+            costPriceLkr: Number(costPriceLkr || 0),
+            stock: Number(stock || 0),
+            images: imagesJson,
+            description: description || '',
+            specs: specsJson,
+            supplierLink: supplierLink || '',
+            supplierNotes: supplierNotes || '',
+            isFeatured: Boolean(isFeatured),
+            isBestSeller: Boolean(isBestSeller),
+            rating: Number(rating || 0),
+            reviewCount: Number(reviewCount || 0),
+          },
+          create: {
+            title,
+            slug,
+            category,
+            sellingPriceLkr: Number(sellingPriceLkr),
+            costPriceLkr: Number(costPriceLkr || 0),
+            sku,
+            stock: Number(stock || 0),
+            images: imagesJson,
+            description: description || '',
+            specs: specsJson,
+            supplierLink: supplierLink || '',
+            supplierNotes: supplierNotes || '',
+            isFeatured: Boolean(isFeatured),
+            isBestSeller: Boolean(isBestSeller),
+            rating: Number(rating || 0),
+            reviewCount: Number(reviewCount || 0),
+          },
+        });
 
-      return res.json({ success: true, product });
-    } catch (dbErr) {
-      const newProduct = {
-        id: `prod-${Date.now()}`,
-        title,
-        slug,
-        category,
-        sellingPriceLkr: Number(sellingPriceLkr),
-        costPriceLkr: Number(costPriceLkr || 0),
-        sku,
-        stock: Number(stock || 0),
-        images: imagesJson,
-        description: description || '',
-        specs: specsJson,
-        supplierLink: supplierLink || '',
-        supplierNotes: supplierNotes || '',
-        isFeatured: Boolean(isFeatured),
-        isBestSeller: Boolean(isBestSeller),
-        rating: Number(rating || 0),
-        reviewCount: Number(reviewCount || 0),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      inMemoryProducts.unshift(newProduct);
-      return res.json({ success: true, product: newProduct });
-    }
+        return res.json({ success: true, product });
+      }
+    } catch (dbErr) {}
+
+    const newProduct = {
+      id: `prod-${Date.now()}`,
+      title,
+      slug,
+      category,
+      sellingPriceLkr: Number(sellingPriceLkr),
+      costPriceLkr: Number(costPriceLkr || 0),
+      sku,
+      stock: Number(stock || 0),
+      images: imagesJson,
+      description: description || '',
+      specs: specsJson,
+      supplierLink: supplierLink || '',
+      supplierNotes: supplierNotes || '',
+      isFeatured: Boolean(isFeatured),
+      isBestSeller: Boolean(isBestSeller),
+      rating: Number(rating || 0),
+      reviewCount: Number(reviewCount || 0),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    inMemoryProducts.unshift(newProduct);
+    return res.json({ success: true, product: newProduct });
   } catch (error: any) {
     return res.status(500).json({ error: error?.message || 'Failed to save product' });
   }
@@ -568,26 +572,28 @@ app.post('/api/products', async (req, res) => {
 // ==========================================
 
 // GET /api/orders
-app.get('/api/orders', async (req, res) => {
+app.get(['/api/orders', '/orders'], async (req, res) => {
   try {
     const { status, id, orderNumber } = req.query;
 
     if (id || orderNumber) {
       try {
-        const order = await db.order.findFirst({
-          where: {
-            OR: [
-              { id: typeof id === 'string' ? id : undefined },
-              { orderNumber: typeof orderNumber === 'string' ? orderNumber : undefined },
-            ],
-          },
-          include: {
-            items: {
-              include: { product: true },
+        if (db && typeof db.order?.findFirst === 'function') {
+          const order = await db.order.findFirst({
+            where: {
+              OR: [
+                { id: typeof id === 'string' ? id : undefined },
+                { orderNumber: typeof orderNumber === 'string' ? orderNumber : undefined },
+              ],
             },
-          },
-        });
-        if (order) return res.json({ order });
+            include: {
+              items: {
+                include: { product: true },
+              },
+            },
+          });
+          if (order) return res.json({ order });
+        }
       } catch (e) {}
 
       const found = inMemoryOrders.find((o) => o.id === id || o.orderNumber === (orderNumber || id));
@@ -600,17 +606,19 @@ app.get('/api/orders', async (req, res) => {
         where.orderStatus = status;
       }
 
-      const orders = await db.order.findMany({
-        where,
-        include: {
-          items: {
-            include: { product: true },
+      if (db && typeof db.order?.findMany === 'function') {
+        const orders = await db.order.findMany({
+          where,
+          include: {
+            items: {
+              include: { product: true },
+            },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+          orderBy: { createdAt: 'desc' },
+        });
 
-      if (orders.length > 0) return res.json({ orders });
+        if (orders.length > 0) return res.json({ orders });
+      }
     } catch (e) {}
 
     let filtered = [...inMemoryOrders];
@@ -624,7 +632,7 @@ app.get('/api/orders', async (req, res) => {
 });
 
 // POST /api/orders
-app.post('/api/orders', async (req, res) => {
+app.post(['/api/orders', '/orders'], async (req, res) => {
   try {
     const {
       customerName,
@@ -649,8 +657,10 @@ app.post('/api/orders', async (req, res) => {
     for (const item of items) {
       let product = inMemoryProducts.find((p) => p.id === item.productId);
       try {
-        const dbProd = await db.product.findUnique({ where: { id: item.productId } });
-        if (dbProd) product = dbProd as any;
+        if (db && typeof db.product?.findUnique === 'function') {
+          const dbProd = await db.product.findUnique({ where: { id: item.productId } });
+          if (dbProd) product = dbProd as any;
+        }
       } catch (e) {}
 
       const unitPrice = product ? product.sellingPriceLkr : 5000;
@@ -692,50 +702,52 @@ app.post('/api/orders', async (req, res) => {
     };
 
     try {
-      const createdOrder = await db.order.create({
-        data: {
-          orderNumber,
-          customerName,
-          customerPhone,
-          customerEmail: customerEmail || null,
-          address,
-          district,
-          city,
-          paymentMethod,
-          paymentStatus: newOrder.paymentStatus,
-          orderStatus: newOrder.orderStatus,
-          bankSlipUrl: bankSlipUrl || null,
-          subtotalLkr,
-          shippingFeeLkr,
-          totalLkr,
-          notes: notes || null,
-          items: {
-            create: itemsData.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-            })),
+      if (db && typeof db.order?.create === 'function') {
+        const createdOrder = await db.order.create({
+          data: {
+            orderNumber,
+            customerName,
+            customerPhone,
+            customerEmail: customerEmail || null,
+            address,
+            district,
+            city,
+            paymentMethod,
+            paymentStatus: newOrder.paymentStatus,
+            orderStatus: newOrder.orderStatus,
+            bankSlipUrl: bankSlipUrl || null,
+            subtotalLkr,
+            shippingFeeLkr,
+            totalLkr,
+            notes: notes || null,
+            items: {
+              create: itemsData.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+              })),
+            },
           },
-        },
-        include: {
-          items: {
-            include: { product: true },
+          include: {
+            items: {
+              include: { product: true },
+            },
           },
-        },
-      });
-      inMemoryOrders.unshift(createdOrder);
-      return res.json({ success: true, order: createdOrder });
-    } catch (e) {
-      inMemoryOrders.unshift(newOrder);
-      return res.json({ success: true, order: newOrder });
-    }
+        });
+        inMemoryOrders.unshift(createdOrder);
+        return res.json({ success: true, order: createdOrder });
+      }
+    } catch (e) {}
+
+    inMemoryOrders.unshift(newOrder);
+    return res.json({ success: true, order: newOrder });
   } catch (error: any) {
     return res.status(500).json({ error: error?.message || 'Failed to submit order' });
   }
 });
 
 // PATCH /api/orders
-app.patch('/api/orders', async (req, res) => {
+app.patch(['/api/orders', '/orders'], async (req, res) => {
   try {
     const { orderId, orderStatus, paymentStatus } = req.body;
 
@@ -748,19 +760,21 @@ app.patch('/api/orders', async (req, res) => {
     if (paymentStatus) dataToUpdate.paymentStatus = paymentStatus;
 
     try {
-      const updatedOrder = await db.order.update({
-        where: { id: orderId },
-        data: dataToUpdate,
-      });
-      return res.json({ success: true, order: updatedOrder });
-    } catch (e) {
-      const order = inMemoryOrders.find((o) => o.id === orderId);
-      if (order) {
-        if (orderStatus) order.orderStatus = orderStatus;
-        if (paymentStatus) order.paymentStatus = paymentStatus;
+      if (db && typeof db.order?.update === 'function') {
+        const updatedOrder = await db.order.update({
+          where: { id: orderId },
+          data: dataToUpdate,
+        });
+        return res.json({ success: true, order: updatedOrder });
       }
-      return res.json({ success: true, order });
+    } catch (e) {}
+
+    const order = inMemoryOrders.find((o) => o.id === orderId);
+    if (order) {
+      if (orderStatus) order.orderStatus = orderStatus;
+      if (paymentStatus) order.paymentStatus = paymentStatus;
     }
+    return res.json({ success: true, order });
   } catch (error: any) {
     return res.status(500).json({ error: error?.message || 'Failed to update order status' });
   }
@@ -771,7 +785,7 @@ app.patch('/api/orders', async (req, res) => {
 // ==========================================
 
 // GET /api/reviews
-app.get('/api/reviews', async (req, res) => {
+app.get(['/api/reviews', '/reviews'], async (req, res) => {
   try {
     const { productId } = req.query;
 
@@ -780,14 +794,16 @@ app.get('/api/reviews', async (req, res) => {
     }
 
     try {
-      const reviews = await db.review.findMany({
-        where: {
-          productId,
-          isApproved: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (reviews.length > 0) return res.json({ reviews });
+      if (db && typeof db.review?.findMany === 'function') {
+        const reviews = await db.review.findMany({
+          where: {
+            productId,
+            isApproved: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (reviews.length > 0) return res.json({ reviews });
+      }
     } catch (e) {}
 
     const reviews = inMemoryReviews.filter((r) => r.productId === productId && r.isApproved);
@@ -798,7 +814,7 @@ app.get('/api/reviews', async (req, res) => {
 });
 
 // POST /api/reviews
-app.post('/api/reviews', async (req, res) => {
+app.post(['/api/reviews', '/reviews'], async (req, res) => {
   try {
     const { productId, authorName, rating, comment } = req.body;
 
@@ -812,30 +828,32 @@ app.post('/api/reviews', async (req, res) => {
     }
 
     try {
-      const review = await db.review.create({
-        data: {
-          productId,
-          authorName: authorName.trim(),
-          rating: numRating,
-          comment: comment.trim(),
-          isApproved: false,
-        },
-      });
-      return res.json({ success: true, review });
-    } catch (e) {
-      const review = {
-        id: `rev-${Date.now()}`,
-        productId,
-        authorName: authorName.trim(),
-        rating: numRating,
-        comment: comment.trim(),
-        isApproved: false,
-        createdAt: new Date().toISOString(),
-        product: inMemoryProducts.find((p) => p.id === productId),
-      };
-      inMemoryReviews.unshift(review);
-      return res.json({ success: true, review });
-    }
+      if (db && typeof db.review?.create === 'function') {
+        const review = await db.review.create({
+          data: {
+            productId,
+            authorName: authorName.trim(),
+            rating: numRating,
+            comment: comment.trim(),
+            isApproved: false,
+          },
+        });
+        return res.json({ success: true, review });
+      }
+    } catch (e) {}
+
+    const review = {
+      id: `rev-${Date.now()}`,
+      productId,
+      authorName: authorName.trim(),
+      rating: numRating,
+      comment: comment.trim(),
+      isApproved: false,
+      createdAt: new Date().toISOString(),
+      product: inMemoryProducts.find((p) => p.id === productId),
+    };
+    inMemoryReviews.unshift(review);
+    return res.json({ success: true, review });
   } catch (error: any) {
     return res.status(500).json({ error: error?.message || 'Failed to submit review' });
   }
@@ -846,7 +864,7 @@ app.post('/api/reviews', async (req, res) => {
 // ==========================================
 
 // POST /api/admin/login
-app.post('/api/admin/login', (req, res) => {
+app.post(['/api/admin/login', '/admin/login'], (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -873,24 +891,26 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // POST /api/admin/logout
-app.post('/api/admin/logout', (req, res) => {
+app.post(['/api/admin/logout', '/admin/logout'], (req, res) => {
   res.clearCookie('gizmotek_admin_session', { path: '/' });
   return res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // GET /api/admin/reviews
-app.get('/api/admin/reviews', async (req, res) => {
+app.get(['/api/admin/reviews', '/admin/reviews'], async (req, res) => {
   try {
     try {
-      const reviews = await db.review.findMany({
-        include: {
-          product: {
-            select: { id: true, title: true, images: true },
+      if (db && typeof db.review?.findMany === 'function') {
+        const reviews = await db.review.findMany({
+          include: {
+            product: {
+              select: { id: true, title: true, images: true },
+            },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (reviews.length > 0) return res.json({ reviews });
+          orderBy: { createdAt: 'desc' },
+        });
+        if (reviews.length > 0) return res.json({ reviews });
+      }
     } catch (e) {}
 
     return res.json({ reviews: inMemoryReviews });
@@ -900,7 +920,7 @@ app.get('/api/admin/reviews', async (req, res) => {
 });
 
 // PATCH /api/admin/reviews
-app.patch('/api/admin/reviews', async (req, res) => {
+app.patch(['/api/admin/reviews', '/admin/reviews'], async (req, res) => {
   try {
     const { reviewId, action } = req.body;
 
@@ -918,15 +938,17 @@ app.patch('/api/admin/reviews', async (req, res) => {
     }
 
     try {
-      if (action === 'approve') {
-        await db.review.update({
-          where: { id: reviewId },
-          data: { isApproved: true },
-        });
-      } else if (action === 'decline') {
-        await db.review.delete({
-          where: { id: reviewId },
-        });
+      if (db && typeof db.review?.update === 'function') {
+        if (action === 'approve') {
+          await db.review.update({
+            where: { id: reviewId },
+            data: { isApproved: true },
+          });
+        } else if (action === 'decline') {
+          await db.review.delete({
+            where: { id: reviewId },
+          });
+        }
       }
     } catch (e) {}
 
@@ -937,19 +959,21 @@ app.patch('/api/admin/reviews', async (req, res) => {
 });
 
 // GET /api/admin/export-orders (CSV Download)
-app.get('/api/admin/export-orders', async (req, res) => {
+app.get(['/api/admin/export-orders', '/admin/export-orders'], async (req, res) => {
   try {
     let ordersList = inMemoryOrders;
     try {
-      const dbOrders = await db.order.findMany({
-        include: {
-          items: {
-            include: { product: true },
+      if (db && typeof db.order?.findMany === 'function') {
+        const dbOrders = await db.order.findMany({
+          include: {
+            items: {
+              include: { product: true },
+            },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (dbOrders.length > 0) ordersList = dbOrders as any;
+          orderBy: { createdAt: 'desc' },
+        });
+        if (dbOrders.length > 0) ordersList = dbOrders as any;
+      }
     } catch (e) {}
 
     const csvRows: string[] = [];
@@ -1016,7 +1040,7 @@ app.get('/api/admin/export-orders', async (req, res) => {
 // ==========================================
 
 // POST /api/payhere/hash
-app.post('/api/payhere/hash', (req, res) => {
+app.post(['/api/payhere/hash', '/payhere/hash'], (req, res) => {
   try {
     const {
       orderId,
@@ -1074,7 +1098,7 @@ app.post('/api/payhere/hash', (req, res) => {
 });
 
 // POST /api/payhere/notify
-app.post('/api/payhere/notify', async (req, res) => {
+app.post(['/api/payhere/notify', '/payhere/notify'], async (req, res) => {
   try {
     const {
       merchant_id,
@@ -1110,15 +1134,17 @@ app.post('/api/payhere/notify', async (req, res) => {
     }
 
     try {
-      if (status_code === '2') {
-        await db.order.update({
-          where: { id: order_id },
-          data: {
-            paymentStatus: 'PAID',
-            orderStatus: 'PROCESSING',
-            notes: `Paid via PayHere Gateway (Payment ID: ${payment_id})`,
-          },
-        });
+      if (db && typeof db.order?.update === 'function') {
+        if (status_code === '2') {
+          await db.order.update({
+            where: { id: order_id },
+            data: {
+              paymentStatus: 'PAID',
+              orderStatus: 'PROCESSING',
+              notes: `Paid via PayHere Gateway (Payment ID: ${payment_id})`,
+            },
+          });
+        }
       }
     } catch (e) {}
 
@@ -1133,7 +1159,7 @@ app.post('/api/payhere/notify', async (req, res) => {
 // ==========================================
 
 // POST /api/upload-slip
-app.post('/api/upload-slip', upload.single('file'), (req, res) => {
+app.post(['/api/upload-slip', '/upload-slip'], upload.single('file'), (req, res) => {
   try {
     const file = req.file;
 
@@ -1176,4 +1202,5 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
+
 

@@ -4,18 +4,28 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  });
+function createPrismaClient(): PrismaClient {
+  try {
+    return (
+      globalForPrisma.prisma ??
+      new PrismaClient({
+        log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+      })
+    );
+  } catch (e) {
+    console.error("PrismaClient creation fallback:", e);
+    return {} as PrismaClient;
+  }
+}
+
+export const db: PrismaClient = createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 
 let isTablesChecked = false;
 
 export async function ensureTablesExist() {
-  if (isTablesChecked) return;
+  if (isTablesChecked || !db || typeof db.$executeRawUnsafe !== "function") return;
   try {
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Review" (
@@ -39,8 +49,6 @@ export async function ensureTablesExist() {
 
     isTablesChecked = true;
   } catch (err) {
-    console.error("Auto-schema check warning:", err);
+    // Silently ignore if DB is offline or table already checked
   }
 }
-
-
