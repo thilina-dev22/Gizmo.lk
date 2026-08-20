@@ -3,6 +3,8 @@ import { formatLKR } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import { Download, Eye, FileCheck, X, Package, Printer, MapPin, Phone, User, Mail } from "lucide-react";
 
+import { inMemoryOrders } from "@/data/mockData";
+
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,15 +18,23 @@ export function AdminOrdersPage() {
 
   const fetchOrders = async () => {
     setLoading(true);
+    let loadedOrders = inMemoryOrders;
+    if (statusFilter !== "ALL") {
+      loadedOrders = loadedOrders.filter((o) => o.orderStatus === statusFilter);
+    }
+
     try {
       const res = await fetch(`/api/orders?status=${statusFilter}`);
       if (res.ok) {
         const data = await res.json();
-        setOrders(data.orders || []);
+        if (data.orders && data.orders.length > 0) {
+          loadedOrders = data.orders;
+        }
       }
     } catch (e) {
-      console.error(e);
+      console.warn("Orders fetch fallback:", e);
     } finally {
+      setOrders(loadedOrders);
       setLoading(false);
     }
   };

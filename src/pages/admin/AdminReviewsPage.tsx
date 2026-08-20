@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Star, CheckCircle, XCircle, RefreshCw, MessageSquare, UserCheck } from "lucide-react";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 
+import { inMemoryReviews } from "@/data/mockData";
+
 export function AdminReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,15 +15,19 @@ export function AdminReviewsPage() {
 
   const fetchReviews = async () => {
     setLoading(true);
+    let loaded = inMemoryReviews;
     try {
       const res = await fetch("/api/admin/reviews");
       if (res.ok) {
         const data = await res.json();
-        setReviews(data.reviews || []);
+        if (data.reviews && data.reviews.length > 0) {
+          loaded = data.reviews;
+        }
       }
     } catch (e) {
-      console.error(e);
+      console.warn("Admin reviews fallback:", e);
     } finally {
+      setReviews(loaded);
       setLoading(false);
     }
   };
