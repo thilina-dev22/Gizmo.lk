@@ -276,8 +276,46 @@ apiRouter.post('/products', adminAuthMiddleware, async (req, res) => {
 // 2. ORDERS
 // ==========================================
 
-apiRouter.get('/orders', adminAuthMiddleware, async (req, res) => {
-  const { status } = req.query;
+apiRouter.get('/orders', async (req, res) => {
+  const { status, id, orderNumber } = req.query;
+
+  // If querying a single order by id or orderNumber (for OrderSuccessPage), allow public access
+  if (id || orderNumber) {
+    try {
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [
+            { id: typeof id === 'string' ? id : undefined },
+            { orderNumber: typeof orderNumber === 'string' ? orderNumber : (typeof id === 'string' ? id : undefined) },
+          ],
+        },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      return res.json({ order });
+    } catch (error: any) {
+      console.error('Error fetching order by query:', error);
+      return res.status(500).json({ error: 'Failed to fetch order details', detail: error?.message });
+    }
+  }
+
+  // Full order list requires admin authentication
+  const expectedToken = process.env.ADMIN_SESSION_TOKEN || 'gizmotek_authenticated_admin_session_token_2026';
+  const adminSession = req.cookies?.gizmotek_admin_session || req.headers['x-admin-session'];
+
+  if (!adminSession || adminSession !== expectedToken) {
+    return res.status(401).json({ error: 'Unauthorized access. Admin authentication required.' });
+  }
 
   try {
     const where: any = {};
@@ -565,16 +603,53 @@ apiRouter.patch('/admin/reviews', adminAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Missing reviewId or action' });
     }
 
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) {
+      return res.status(404).json({ error: 'Review not found' });
+    }
+
     if (action === 'approve') {
       const updated = await prisma.review.update({
         where: { id: reviewId },
         data: { isApproved: true },
       });
+
+      // Recalculate average rating & review count for the product
+      const approvedReviews = await prisma.review.findMany({
+        where: { productId: review.productId, isApproved: true },
+      });
+
+      const count = approvedReviews.length;
+      const avgRating = count > 0
+        ? Number((approvedReviews.reduce((sum, r) => sum + r.rating, 0) / count).toFixed(1))
+        : 0;
+
+      await prisma.product.update({
+        where: { id: review.productId },
+        data: { rating: avgRating, reviewCount: count },
+      });
+
       return res.json({ success: true, review: updated });
     } else if (action === 'decline') {
       await prisma.review.delete({
         where: { id: reviewId },
       });
+
+      // Recalculate average rating & review count for the product
+      const approvedReviews = await prisma.review.findMany({
+        where: { productId: review.productId, isApproved: true },
+      });
+
+      const count = approvedReviews.length;
+      const avgRating = count > 0
+        ? Number((approvedReviews.reduce((sum, r) => sum + r.rating, 0) / count).toFixed(1))
+        : 0;
+
+      await prisma.product.update({
+        where: { id: review.productId },
+        data: { rating: avgRating, reviewCount: count },
+      });
+
       return res.json({ success: true, message: 'Review deleted' });
     }
 
@@ -776,19 +851,29 @@ apiRouter.post('/payhere/notify', async (req, res) => {
 apiRouter.post('/upload-slip', upload.single('file'), (req, res) => {
   try {
     const file = req.file;
+    const { imageBase64, fileName: customFileName, file: base64File } = req.body || {};
 
-    if (!file) {
-      return res.status(400).json({ error: 'No slip file attached' });
+    if (file) {
+      const mimeType = file.mimetype || 'image/jpeg';
+      const dataUrl = `data:${mimeType};base64,${file.buffer.toString('base64')}`;
+
+      return res.json({
+        url: dataUrl,
+        fileName: file.originalname,
+        message: 'Bank deposit slip uploaded successfully',
+      });
     }
 
-    const mimeType = file.mimetype || 'image/jpeg';
-    const dataUrl = `data:${mimeType};base64,${file.buffer.toString('base64')}`;
+    const base64Data = imageBase64 || base64File;
+    if (base64Data) {
+      return res.json({
+        url: base64Data,
+        fileName: customFileName || 'bank-slip.jpg',
+        message: 'Bank deposit slip uploaded successfully',
+      });
+    }
 
-    return res.json({
-      url: dataUrl,
-      fileName: file.originalname,
-      message: 'Bank deposit slip uploaded successfully',
-    });
+    return res.status(400).json({ error: 'No slip file or image data attached' });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to process bank slip image' });
   }

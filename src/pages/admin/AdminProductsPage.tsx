@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Product } from "@/store/useCartStore";
 import { CATEGORIES } from "@/lib/constants";
-import { formatLKR } from "@/lib/utils";
+import { formatLKR, safeParseImages } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import { Plus, Edit, ExternalLink, X, Search } from "lucide-react";
 
@@ -60,7 +60,7 @@ export function AdminProductsPage() {
       setCostPriceLkr(String(product.costPriceLkr));
       setSku(product.sku);
       setStock(String(product.stock));
-      const imgs = JSON.parse(product.images || "[]");
+      const imgs = safeParseImages(product.images);
       setImageUrl(imgs[0] || "");
       setAdditionalImages(imgs.slice(1).join("\n"));
       setDescription(product.description || "");
