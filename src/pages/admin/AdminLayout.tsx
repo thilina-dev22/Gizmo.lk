@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { GizmoLogo } from "@/components/logo/GizmoLogo";
 import { LayoutDashboard, Package, ShoppingCart, Download, LogOut, MessageSquare, Store } from "lucide-react";
+import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
 
 export function AdminLayout() {
   const location = useLocation();
@@ -40,7 +41,10 @@ export function AdminLayout() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Real-time Notification Bell */}
+            <AdminNotificationBell />
+
             <a
               href="/api/admin/export-orders"
               download

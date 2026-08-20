@@ -924,6 +924,144 @@ apiRouter.patch('/admin/reviews', adminAuthMiddleware, async (req, res) => {
   }
 });
 
+// ==========================================
+// ADMIN NOTIFICATIONS & STORE ALERTS
+// ==========================================
+apiRouter.get('/admin/notifications', adminAuthMiddleware, async (req, res) => {
+  try {
+    const [orders, products, reviews] = await Promise.all([
+      prisma.order.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      prisma.product.findMany({
+        where: { stock: { lte: 5 } },
+        orderBy: { stock: 'asc' },
+        take: 15,
+      }),
+      prisma.review.findMany({
+        where: { isApproved: false },
+        include: { product: { select: { title: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    const notifications: Array<{
+      id: string;
+      type: 'BANK_SLIP' | 'ORDER' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'REVIEW' | 'PAYMENT_FAILED';
+      category: 'orders' | 'inventory' | 'reviews';
+      severity: 'critical' | 'urgent' | 'warning' | 'action' | 'info';
+      title: string;
+      message: string;
+      timestamp: string;
+      link: string;
+      actionLabel: string;
+      orderNumber?: string;
+      sku?: string;
+    }> = [];
+
+    // 1. Bank Transfer Slips Awaiting Verification
+    const pendingSlips = orders.filter(
+      (o) => o.paymentMethod === 'BANK_TRANSFER' && o.paymentStatus === 'PENDING'
+    );
+    for (const order of pendingSlips) {
+      notifications.push({
+        id: `slip-${order.id}`,
+        type: 'BANK_SLIP',
+        category: 'orders',
+        severity: 'urgent',
+        title: 'Bank Deposit Slip Verification',
+        message: `Order #${order.orderNumber} (Rs. ${order.totalLkr.toLocaleString()}) by ${order.customerName}. Verify payment slip before shipping.`,
+        timestamp: order.createdAt.toISOString(),
+        link: `/admin/orders?status=PENDING`,
+        actionLabel: 'Verify Slip',
+        orderNumber: order.orderNumber,
+      });
+    }
+
+    // 2. New / Pending Orders for Dispatch
+    const pendingOrders = orders.filter((o) => o.orderStatus === 'PENDING');
+    for (const order of pendingOrders) {
+      if (!notifications.some((n) => n.id === `slip-${order.id}`)) {
+        const paymentLabel =
+          order.paymentMethod === 'COD'
+            ? 'Cash on Delivery'
+            : order.paymentMethod === 'PAYHERE'
+            ? 'PayHere Card'
+            : 'Bank Transfer';
+
+        notifications.push({
+          id: `order-${order.id}`,
+          type: 'ORDER',
+          category: 'orders',
+          severity: 'action',
+          title: `New Order #${order.orderNumber}`,
+          message: `${order.customerName} placed order (${paymentLabel}) - Rs. ${order.totalLkr.toLocaleString()} to ${order.city}. Ready for courier packaging.`,
+          timestamp: order.createdAt.toISOString(),
+          link: `/admin/orders?status=PENDING`,
+          actionLabel: 'Process Order',
+          orderNumber: order.orderNumber,
+        });
+      }
+    }
+
+    // 3. Low Stock / Out of Stock
+    for (const prod of products) {
+      const isOut = prod.stock <= 0;
+      notifications.push({
+        id: `stock-${prod.id}`,
+        type: isOut ? 'OUT_OF_STOCK' : 'LOW_STOCK',
+        category: 'inventory',
+        severity: isOut ? 'critical' : 'warning',
+        title: isOut ? `🚨 Out of Stock: ${prod.title}` : `⚠️ Low Stock (${prod.stock} left): ${prod.title}`,
+        message: isOut
+          ? `SKU ${prod.sku} is completely sold out! Restock immediately to prevent lost sales.`
+          : `Only ${prod.stock} unit(s) remaining for SKU ${prod.sku}.`,
+        timestamp: prod.updatedAt.toISOString(),
+        link: `/admin/products`,
+        actionLabel: 'Update Stock',
+        sku: prod.sku,
+      });
+    }
+
+    // 4. Pending Reviews
+    for (const rev of reviews) {
+      notifications.push({
+        id: `review-${rev.id}`,
+        type: 'REVIEW',
+        category: 'reviews',
+        severity: 'info',
+        title: `Customer Review (${rev.rating}★)`,
+        message: `${rev.authorName} reviewed "${rev.product?.title || 'Product'}": "${rev.comment.slice(0, 60)}${rev.comment.length > 60 ? '...' : ''}"`,
+        timestamp: rev.createdAt.toISOString(),
+        link: `/admin/reviews`,
+        actionLabel: 'Moderate',
+      });
+    }
+
+    // Sort all notifications by most recent timestamp
+    notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const counts = {
+      total: notifications.length,
+      orders: notifications.filter((n) => n.category === 'orders').length,
+      inventory: notifications.filter((n) => n.category === 'inventory').length,
+      reviews: notifications.filter((n) => n.category === 'reviews').length,
+      urgent: notifications.filter((n) => n.severity === 'urgent' || n.severity === 'critical').length,
+    };
+
+    return res.json({
+      notifications,
+      counts,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('Error fetching admin notifications:', error);
+    return res.status(500).json({ error: 'Failed to fetch admin notifications', detail: error?.message });
+  }
+});
+
 apiRouter.get('/admin/export-orders', adminAuthMiddleware, async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
