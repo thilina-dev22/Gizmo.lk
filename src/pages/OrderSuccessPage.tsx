@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { formatLKR } from "@/lib/utils";
-import { CheckCircle2, Truck, Phone, Home, Building2 } from "lucide-react";
+import { CheckCircle2, Truck, Phone, Home, Building2, Printer, FileText, Download } from "lucide-react";
+import { OrderInvoiceModal } from "@/components/common/OrderInvoiceModal";
 
 export function OrderSuccessPage() {
   const [searchParams] = useSearchParams();
@@ -10,6 +11,7 @@ export function OrderSuccessPage() {
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(!!id);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -65,7 +67,7 @@ export function OrderSuccessPage() {
             <div>
               <span className="text-slate-400">Payment:</span>{" "}
               <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded text-[11px] font-bold">
-                {order.paymentMethod === "COD" ? "Cash On Delivery" : order.paymentMethod === "BANK_TRANSFER" ? "Bank Deposit Slip" : "Online Card"}
+                {order.paymentMethod === "PAYHERE" ? "Online Card (PayHere)" : order.paymentMethod === "COD" ? "Cash On Delivery" : "Bank Deposit Slip"}
               </span>
             </div>
           </div>
@@ -122,6 +124,17 @@ export function OrderSuccessPage() {
               <span>Your uploaded payment slip is being verified by our finance team.</span>
             </div>
           )}
+
+          {/* Download PDF Invoice Button */}
+          <div className="pt-2">
+            <button
+              onClick={() => setIsInvoiceOpen(true)}
+              className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-750 text-cyan-400 hover:text-cyan-300 font-bold py-3 px-4 rounded-2xl border border-slate-700/80 text-xs transition-colors cursor-pointer"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Download / Print Official PDF Invoice</span>
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -143,6 +156,15 @@ export function OrderSuccessPage() {
           <span>Contact WhatsApp Support</span>
         </a>
       </div>
+
+      {/* Invoice Modal */}
+      {order && (
+        <OrderInvoiceModal
+          order={order}
+          isOpen={isInvoiceOpen}
+          onClose={() => setIsInvoiceOpen(false)}
+        />
+      )}
     </div>
   );
 }

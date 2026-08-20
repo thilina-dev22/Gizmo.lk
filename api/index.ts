@@ -78,6 +78,237 @@ function verifyPayHereNotification(
   return expectedMd5 === md5sig.toUpperCase();
 }
 
+// ==========================================
+// RESEND AUTOMATED EMAILS
+// ==========================================
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const ADMIN_NOTIFICATION_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'orders@gizmotek.lk';
+const FROM_EMAIL = process.env.MAIL_FROM || 'GizmoTek Store <orders@gizmotek.lk>';
+
+async function sendEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string | string[];
+  subject: string;
+  html: string;
+}) {
+  if (!RESEND_API_KEY) {
+    console.log(`[Resend Skipped - Set RESEND_API_KEY in .env/Vercel] To: ${to} | Subject: "${subject}"`);
+    return;
+  }
+
+  try {
+    const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
+    if (recipients.length === 0) return;
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: recipients,
+        subject,
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn(`Resend API response (${res.status}): ${errText}`);
+    } else {
+      console.log(`📧 Automated email sent via Resend to: ${recipients.join(', ')} | Subject: "${subject}"`);
+    }
+  } catch (err: any) {
+    console.error('Error sending automated email via Resend:', err?.message || err);
+  }
+}
+
+function renderOrderEmailTemplate(order: any, isForAdmin: boolean = false) {
+  const itemsHtml = (order.items || [])
+    .map((item: any) => {
+      const title = item.product?.title || 'Tech Product';
+      const qty = item.quantity;
+      const price = Number(item.unitPrice || 0);
+      const total = price * qty;
+      return `
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #f8fafc;">
+            <strong>${title}</strong>
+          </td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; text-align: center; color: #94a3b8;">x${qty}</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; text-align: right; color: #38bdf8; font-family: monospace;">Rs. ${total.toLocaleString()}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  const paymentDesc =
+    order.paymentMethod === 'PAYHERE'
+      ? order.paymentStatus === 'PAID'
+        ? '✅ Paid Online (Visa/MasterCard - PayHere)'
+        : '⏳ PayHere Online Card (Pending)'
+      : order.paymentMethod === 'COD'
+      ? '💵 Cash On Delivery'
+      : '🏦 Bank Deposit Slip Uploaded';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Order Confirmation - GizmoTek.lk</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0b0f19; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 24px 30px; background: linear-gradient(135deg, #0e7490 0%, #0369a1 100%); text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: 1px;">GIZMOTEK<span style="font-size: 14px; background: #0b0f19; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">.LK</span></h1>
+              <p style="margin: 6px 0 0 0; color: #e0f2fe; font-size: 13px;">${isForAdmin ? '🔔 New Order Placed (Admin Alert)' : '🎉 Order Confirmed & Queued for Dispatch'}</p>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 30px;">
+              <p style="margin-top: 0; font-size: 15px; line-height: 1.6; color: #f1f5f9;">
+                ${isForAdmin ? `Hello Admin,<br/>A new order <strong>#${order.orderNumber}</strong> has been received on GizmoTek.lk.` : `Dear <strong>${order.customerName}</strong>,<br/>Thank you for shopping at <strong>GizmoTek.lk</strong>! Your order <strong>#${order.orderNumber}</strong> has been received and is being prepared for islandwide delivery.`}
+              </p>
+
+              <!-- Order Summary Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #1e293b; border-radius: 12px; padding: 18px; margin: 20px 0;">
+                <tr>
+                  <td>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; line-height: 1.8;">
+                      <tr>
+                        <td style="color: #94a3b8;">Order Number:</td>
+                        <td style="text-align: right; font-weight: 800; color: #38bdf8; font-family: monospace;">#${order.orderNumber}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #94a3b8;">Payment Channel:</td>
+                        <td style="text-align: right; font-weight: 700; color: #f8fafc;">${paymentDesc}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #94a3b8;">Customer Name:</td>
+                        <td style="text-align: right; color: #f8fafc;">${order.customerName}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #94a3b8;">Contact Phone:</td>
+                        <td style="text-align: right; color: #f8fafc;">${order.customerPhone}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #94a3b8;">Delivery Address:</td>
+                        <td style="text-align: right; color: #f8fafc;">${order.address}, ${order.city} (${order.district} District)</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Items Table -->
+              <h3 style="color: #38bdf8; font-size: 14px; margin: 20px 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px;">Purchased Items</h3>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; border-collapse: collapse;">
+                <thead>
+                  <tr style="border-bottom: 2px solid #334155; text-align: left; color: #94a3b8; font-size: 11px; text-transform: uppercase;">
+                    <th style="padding-bottom: 8px;">Product</th>
+                    <th style="padding-bottom: 8px; text-align: center;">Qty</th>
+                    <th style="padding-bottom: 8px; text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <!-- Totals -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 16px; font-size: 13px; line-height: 1.8;">
+                <tr>
+                  <td style="color: #94a3b8;">Subtotal:</td>
+                  <td style="text-align: right; color: #f8fafc; font-family: monospace;">Rs. ${Number(order.subtotalLkr || order.totalLkr).toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td style="color: #94a3b8;">Islandwide Shipping:</td>
+                  <td style="text-align: right; color: #f8fafc; font-family: monospace;">${order.shippingFeeLkr === 0 ? 'FREE' : `Rs. ${Number(order.shippingFeeLkr).toLocaleString()}`}</td>
+                </tr>
+                <tr style="border-top: 2px solid #334155; font-size: 16px;">
+                  <td style="padding-top: 10px; font-weight: 800; color: #ffffff;">Grand Total:</td>
+                  <td style="padding-top: 10px; text-align: right; font-weight: 800; color: #38bdf8; font-family: monospace;">Rs. ${Number(order.totalLkr).toLocaleString()}</td>
+                </tr>
+              </table>
+
+              <!-- Delivery info -->
+              <div style="background-color: #0b0f19; border-left: 4px solid #06b6d4; border-radius: 8px; padding: 14px; margin-top: 25px; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+                🚚 <strong>Delivery Timeline:</strong> 1-2 business days for Colombo/Gampaha, 2-4 business days islandwide via official courier partners (Koombiyo, PromptX, Pronto).
+                <br/><br/>
+                🛡️ <strong>Warranty:</strong> All gadgets include GizmoTek 1-Year Hardware Warranty & 7-Day Replacement Guarantee.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 30px; background-color: #0b0f19; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
+              <p style="margin: 0;">GizmoTek.lk Online Store | No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+              <p style="margin: 4px 0 0 0;">Hotline: +94 77 123 4567 | Support: orders@gizmotek.lk</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+function renderShippingEmailTemplate(order: any) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Order Dispatched - GizmoTek.lk</title></head>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: sans-serif; color: #e2e8f0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0b0f19; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b; overflow: hidden;">
+          <tr>
+            <td style="padding: 24px 30px; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800;">📦 Package Dispatched!</h1>
+              <p style="margin: 6px 0 0 0; color: #e0f2fe; font-size: 13px;">Order #${order.orderNumber} is on its way</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 30px;">
+              <p style="font-size: 15px; color: #f1f5f9;">Dear <strong>${order.customerName}</strong>,</p>
+              <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
+                Great news! Your package for order <strong>#${order.orderNumber}</strong> has been handed over to our official courier service and is out for delivery to <strong>${order.address}, ${order.city}</strong>.
+              </p>
+              <div style="background-color: #1e293b; border-radius: 12px; padding: 16px; margin: 20px 0; font-size: 13px;">
+                <p style="margin: 0; color: #38bdf8; font-weight: 700;">Delivery Expected: 1 - 2 Business Days</p>
+                <p style="margin: 4px 0 0 0; color: #94a3b8;">Please keep your phone available for the courier call.</p>
+                ${order.paymentMethod === 'COD' ? `<p style="margin: 8px 0 0 0; color: #fbbf24; font-weight: bold;">Amount Due on Delivery: Rs. ${Number(order.totalLkr).toLocaleString()} (Cash)</p>` : ''}
+              </div>
+              <p style="font-size: 12px; color: #64748b;">If you have questions regarding delivery, contact us at +94 77 123 4567 or orders@gizmotek.lk.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
 const app = express();
 
 // Global Middleware
@@ -451,6 +682,23 @@ apiRouter.post('/orders', async (req, res) => {
       },
     });
 
+    // Send automated emails for COD and Direct Bank Transfer orders immediately
+    if (createdOrder.paymentMethod !== 'PAYHERE') {
+      sendEmail({
+        to: ADMIN_NOTIFICATION_EMAIL,
+        subject: `[New Order] #${createdOrder.orderNumber} - Rs. ${Number(createdOrder.totalLkr).toLocaleString()} (${createdOrder.customerName})`,
+        html: renderOrderEmailTemplate(createdOrder, true),
+      }).catch((e) => console.error('Admin email error:', e));
+
+      if (createdOrder.customerEmail) {
+        sendEmail({
+          to: createdOrder.customerEmail,
+          subject: `Your GizmoTek Order Confirmation #${createdOrder.orderNumber}`,
+          html: renderOrderEmailTemplate(createdOrder, false),
+        }).catch((e) => console.error('Customer email error:', e));
+      }
+    }
+
     return res.status(201).json({ success: true, order: createdOrder });
   } catch (error: any) {
     console.error('Error creating order:', error);
@@ -473,7 +721,23 @@ apiRouter.patch('/orders', adminAuthMiddleware, async (req, res) => {
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: dataToUpdate,
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
     });
+
+    // Notify customer when parcel is dispatched with courier
+    if (orderStatus === 'SHIPPED' && updatedOrder.customerEmail) {
+      sendEmail({
+        to: updatedOrder.customerEmail,
+        subject: `Your GizmoTek Order #${updatedOrder.orderNumber} Has Been Dispatched! 📦`,
+        html: renderShippingEmailTemplate(updatedOrder),
+      }).catch((e) => console.error('Dispatch email error:', e));
+    }
 
     return res.json({ success: true, order: updatedOrder });
   } catch (error: any) {
@@ -820,19 +1084,43 @@ apiRouter.post('/payhere/notify', async (req, res) => {
     }
 
     if (status_code === '2') {
-      await prisma.order.update({
+      const paidOrder = await prisma.order.update({
         where: { id: order_id },
         data: {
           paymentStatus: 'PAID',
           orderStatus: 'PROCESSING',
           notes: `Paid via PayHere Gateway (Payment ID: ${payment_id})`,
         },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
       });
+
+      // Send confirmed order email alerts
+      sendEmail({
+        to: ADMIN_NOTIFICATION_EMAIL,
+        subject: `[PAID Online Order] #${paidOrder.orderNumber} - Rs. ${Number(paidOrder.totalLkr).toLocaleString()} (PayHere)`,
+        html: renderOrderEmailTemplate(paidOrder, true),
+      }).catch((e) => console.error('Admin email error:', e));
+
+      if (paidOrder.customerEmail) {
+        sendEmail({
+          to: paidOrder.customerEmail,
+          subject: `Payment Successful! Your GizmoTek Order #${paidOrder.orderNumber}`,
+          html: renderOrderEmailTemplate(paidOrder, false),
+        }).catch((e) => console.error('Customer email error:', e));
+      }
     } else if (status_code === '-1' || status_code === '-2') {
       await prisma.order.update({
         where: { id: order_id },
         data: {
           paymentStatus: 'FAILED',
+          orderStatus: 'CANCELLED',
+          notes: `PayHere payment declined/failed (Status Code: ${status_code})`,
         },
       });
     }

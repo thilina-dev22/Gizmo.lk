@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { formatLKR } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
-import { Download, Eye, FileCheck, X, Package, Printer, MapPin, Phone, User, Mail } from "lucide-react";
-
+import { Download, Eye, FileCheck, X, Package, Printer, MapPin, Phone, User, Mail, FileText } from "lucide-react";
+import { OrderInvoiceModal } from "@/components/common/OrderInvoiceModal";
 
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -10,6 +10,7 @@ export function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedSlipUrl, setSelectedSlipUrl] = useState<string | null>(null);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<any | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -28,7 +29,6 @@ export function AdminOrdersPage() {
       setLoading(false);
     }
   };
-
 
   const handleUpdateStatus = async (orderId: string, orderStatus: string, paymentStatus?: string) => {
     try {
@@ -51,7 +51,7 @@ export function AdminOrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white">
-            Order Management & Courier Dispatch
+            Order Management &amp; Courier Dispatch
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Filter orders by status, inspect customer ordered items, verify bank deposit slips, and download courier shipping manifests.
@@ -70,17 +70,24 @@ export function AdminOrdersPage() {
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 text-xs font-semibold">
-        {["ALL", "PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"].map((st) => (
+        {[
+          { id: "ALL", label: "All Orders" },
+          { id: "PROCESSING", label: "Paid & Processing" },
+          { id: "PENDING", label: "Pending COD/Bank" },
+          { id: "SHIPPED", label: "Dispatched (Courier)" },
+          { id: "DELIVERED", label: "Delivered" },
+          { id: "CANCELLED", label: "Cancelled / Failed" },
+        ].map((st) => (
           <button
-            key={st}
-            onClick={() => setStatusFilter(st)}
+            key={st.id}
+            onClick={() => setStatusFilter(st.id)}
             className={`px-3.5 py-2 rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
-              statusFilter === st
+              statusFilter === st.id
                 ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                 : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-white"
             }`}
           >
-            {st === "ALL" ? "All Orders" : st}
+            {st.label}
           </button>
         ))}
       </div>
@@ -91,13 +98,13 @@ export function AdminOrdersPage() {
           <table className="w-full text-left text-xs">
             <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950">
               <tr>
-                <th className="p-4">Order No & Date</th>
-                <th className="p-4">Customer & Contact</th>
-                <th className="p-4">Address & District</th>
+                <th className="p-4">Order No &amp; Date</th>
+                <th className="p-4">Customer &amp; Contact</th>
+                <th className="p-4">Address &amp; District</th>
                 <th className="p-4">Ordered Items</th>
-                <th className="p-4">Method & Slip</th>
+                <th className="p-4">Method &amp; Status</th>
                 <th className="p-4">Total Amount (LKR)</th>
-                <th className="p-4">Status</th>
+                <th className="p-4">Invoice PDF</th>
                 <th className="p-4 text-right">Update Action</th>
               </tr>
             </thead>
@@ -117,6 +124,9 @@ export function AdminOrdersPage() {
               ) : (
                 orders.map((order) => {
                   const itemsCount = order.items ? order.items.length : 0;
+                  const isPaid = order.paymentStatus === "PAID";
+                  const isFailed = order.paymentStatus === "FAILED" || order.orderStatus === "CANCELLED";
+
                   return (
                     <tr key={order.id} className="hover:bg-slate-850 transition-colors">
                       <td className="p-4">
@@ -147,10 +157,10 @@ export function AdminOrdersPage() {
                           <span>View {itemsCount} Item{itemsCount > 1 ? "s" : ""}</span>
                         </button>
                       </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-medium text-[10px]">
-                            {order.paymentMethod}
+                      <td className="p-4 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-bold text-[10px] text-slate-300">
+                            {order.paymentMethod === "PAYHERE" ? "CARD (PAYHERE)" : order.paymentMethod}
                           </span>
                           {order.bankSlipUrl && (
                             <button
@@ -161,22 +171,32 @@ export function AdminOrdersPage() {
                             </button>
                           )}
                         </div>
+                        <div>
+                          <span
+                            className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                              isPaid
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : isFailed
+                                ? "bg-rose-500/20 text-rose-400"
+                                : "bg-amber-500/20 text-amber-400"
+                            }`}
+                          >
+                            {isPaid ? "● PAID" : isFailed ? "✕ FAILED" : "○ UNPAID / PENDING"}
+                          </span>
+                        </div>
                       </td>
                       <td className="p-4 font-bold text-cyan-400 font-mono">
                         {formatLKR(order.totalLkr)}
                       </td>
                       <td className="p-4">
-                        <span
-                          className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                            order.orderStatus === "DELIVERED"
-                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                              : order.orderStatus === "SHIPPED"
-                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
-                              : "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                          }`}
+                        <button
+                          onClick={() => setSelectedInvoiceOrder(order)}
+                          className="inline-flex items-center gap-1 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 px-2.5 py-1.5 rounded-lg border border-slate-800 text-[11px] font-medium transition-colors cursor-pointer"
+                          title="Print / Save PDF Invoice"
                         >
-                          {order.orderStatus}
-                        </span>
+                          <Printer className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>PDF</span>
+                        </button>
                       </td>
                       <td className="p-4 text-right">
                         <select
@@ -379,6 +399,15 @@ export function AdminOrdersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Official Invoice PDF Modal */}
+      {selectedInvoiceOrder && (
+        <OrderInvoiceModal
+          order={selectedInvoiceOrder}
+          isOpen={!!selectedInvoiceOrder}
+          onClose={() => setSelectedInvoiceOrder(null)}
+        />
       )}
     </div>
   );
