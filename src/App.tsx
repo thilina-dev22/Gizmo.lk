@@ -13,6 +13,13 @@ const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage").then((m
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage").then((m) => ({ default: m.CheckoutPage })));
 const OrderSuccessPage = lazy(() => import("./pages/OrderSuccessPage").then((m) => ({ default: m.OrderSuccessPage })));
 
+// Policy & Compliance Pages (PayHere Requirements)
+const TermsPage = lazy(() => import("./pages/policies/TermsPage").then((m) => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import("./pages/policies/PrivacyPage").then((m) => ({ default: m.PrivacyPage })));
+const ReturnPolicyPage = lazy(() => import("./pages/policies/ReturnPolicyPage").then((m) => ({ default: m.ReturnPolicyPage })));
+const ShippingPolicyPage = lazy(() => import("./pages/policies/ShippingPolicyPage").then((m) => ({ default: m.ShippingPolicyPage })));
+const ContactPage = lazy(() => import("./pages/policies/ContactPage").then((m) => ({ default: m.ContactPage })));
+
 // Admin Pages
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout").then((m) => ({ default: m.AdminLayout })));
 const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage").then((m) => ({ default: m.AdminLoginPage })));
@@ -72,6 +79,18 @@ export function App() {
             <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/checkout/success" element={<OrderSuccessPage />} />
+
+            {/* Policy & Compliance Pages */}
+            <Route path="/terms-and-conditions" element={<TermsPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/return-policy" element={<ReturnPolicyPage />} />
+            <Route path="/refund-policy" element={<ReturnPolicyPage />} />
+            <Route path="/shipping-policy" element={<ShippingPolicyPage />} />
+            <Route path="/delivery-policy" element={<ShippingPolicyPage />} />
+            <Route path="/contact-us" element={<ContactPage />} />
+            <Route path="/contact" element={<ContactPage />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />

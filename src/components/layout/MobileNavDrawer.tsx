@@ -243,6 +243,50 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                   Quick doorstep delivery to all 25 districts in Sri Lanka with direct bank slip verification option.
                 </p>
               </div>
+
+              {/* Policy & Legal Links */}
+              <div className="pt-2 space-y-1">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Store Policies
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[11px]">
+                  <Link
+                    to="/terms-and-conditions"
+                    onClick={onClose}
+                    className="p-1.5 text-slate-400 hover:text-cyan-400"
+                  >
+                    Terms &amp; Conditions
+                  </Link>
+                  <Link
+                    to="/privacy-policy"
+                    onClick={onClose}
+                    className="p-1.5 text-slate-400 hover:text-cyan-400"
+                  >
+                    Privacy Policy
+                  </Link>
+                  <Link
+                    to="/return-policy"
+                    onClick={onClose}
+                    className="p-1.5 text-slate-400 hover:text-cyan-400"
+                  >
+                    Return Policy
+                  </Link>
+                  <Link
+                    to="/shipping-policy"
+                    onClick={onClose}
+                    className="p-1.5 text-slate-400 hover:text-cyan-400"
+                  >
+                    Shipping Policy
+                  </Link>
+                  <Link
+                    to="/contact"
+                    onClick={onClose}
+                    className="p-1.5 text-slate-400 hover:text-cyan-400 col-span-2"
+                  >
+                    Contact Customer Care ➔
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Bottom Actions */}

@@ -108,9 +108,41 @@ export function Footer() {
           </ul>
         </div>
 
-        {/* Col 3: Customer Care & Quick Access */}
+        {/* Col 3: Customer Care & Policies */}
         <div className="space-y-3">
-          <h4 className="text-slate-100 font-bold text-xs uppercase tracking-wider">Quick Links & Admin</h4>
+          <h4 className="text-slate-100 font-bold text-xs uppercase tracking-wider">Policies &amp; Legal</h4>
+          <ul className="space-y-2 text-slate-400">
+            <li>
+              <Link to="/terms-and-conditions" className="hover:text-cyan-400 transition-colors">
+                Terms &amp; Conditions
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy-policy" className="hover:text-cyan-400 transition-colors">
+                Privacy Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/return-policy" className="hover:text-cyan-400 transition-colors">
+                Return &amp; Refund Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/shipping-policy" className="hover:text-cyan-400 transition-colors">
+                Shipping &amp; Delivery Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/contact" className="hover:text-cyan-400 transition-colors">
+                Contact Customer Support
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        {/* Col 4: Quick Links & Admin */}
+        <div className="space-y-3">
+          <h4 className="text-slate-100 font-bold text-xs uppercase tracking-wider">Quick Links &amp; Admin</h4>
           <ul className="space-y-2 text-slate-400">
             <li>
               <Link to="/products" className="hover:text-cyan-400 transition-colors">
@@ -124,7 +156,7 @@ export function Footer() {
                 rel="noreferrer"
                 className="hover:text-emerald-400 transition-colors flex items-center gap-1"
               >
-                <span>WhatsApp Support</span>
+                <span>WhatsApp Support (+94 77 123 4567)</span>
               </a>
             </li>
             <li className="pt-2">
@@ -138,14 +170,18 @@ export function Footer() {
             </li>
           </ul>
         </div>
+      </div>
 
-        {/* Col 4: Official Courier Partners */}
-        <div className="space-y-3">
-          <h4 className="text-slate-100 font-bold text-xs uppercase tracking-wider">Official Delivery Partners</h4>
-          <p className="text-[11px] text-slate-400">
-            We partner with certified Sri Lankan logistics networks for fast cash collection and real-time tracking:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+      {/* Official Courier Partners Bar */}
+      <div className="border-t border-slate-800/80 bg-slate-900/30 py-6 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h4 className="text-slate-200 font-bold text-xs">Official Delivery Logistics Partners</h4>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Islandwide tracking, insured transit, and doorstep cash collection across Sri Lanka:
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
             <KoombiyoLogo />
             <PromptXLogo />
             <ProntoLogo />
@@ -157,8 +193,18 @@ export function Footer() {
       {/* Bottom Legal & Copyright Bar */}
       <div className="border-t border-slate-800/60 py-4 px-4 sm:px-6 bg-slate-950">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400 text-center sm:text-left">
-          <div>
-            &copy; {new Date().getFullYear()} <span className="text-slate-200 font-semibold">gizmotek.lk online store</span>. All rights reserved.
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1">
+            <span>&copy; {new Date().getFullYear()} <strong className="text-slate-200">GizmoTek Online Store</strong>. All rights reserved.</span>
+            <span className="text-slate-700">•</span>
+            <Link to="/terms-and-conditions" className="hover:text-cyan-400">Terms</Link>
+            <span className="text-slate-700">•</span>
+            <Link to="/privacy-policy" className="hover:text-cyan-400">Privacy</Link>
+            <span className="text-slate-700">•</span>
+            <Link to="/return-policy" className="hover:text-cyan-400">Returns</Link>
+            <span className="text-slate-700">•</span>
+            <Link to="/shipping-policy" className="hover:text-cyan-400">Shipping</Link>
+            <span className="text-slate-700">•</span>
+            <Link to="/contact" className="hover:text-cyan-400">Contact</Link>
           </div>
           <div className="flex items-center gap-1.5 text-slate-400">
             <span>Developed with ❤️ by</span>
