@@ -19,6 +19,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { inMemoryProducts, inMemoryReviews } from "@/data/mockData";
+
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
 
 export function ProductDetailPage() {
@@ -52,15 +54,25 @@ export function ProductDetailPage() {
       const res = await fetch(`/api/products/${id}`);
       if (res.ok) {
         const data = await res.json();
-        setProduct(data.product);
-        const imgs = safeParseImages(data.product?.images);
-        setActiveImage(imgs[0] || FALLBACK_IMAGE);
+        if (data.product) {
+          setProduct(data.product);
+          const imgs = safeParseImages(data.product?.images);
+          setActiveImage(imgs[0] || FALLBACK_IMAGE);
+          setLoading(false);
+          return;
+        }
       }
     } catch (err) {
-      console.error("Fetch product error:", err);
-    } finally {
-      setLoading(false);
+      console.warn("Fetch product fallback:", err);
     }
+
+    const fallback = inMemoryProducts.find((p) => p.id === id || p.slug === id);
+    if (fallback) {
+      setProduct(fallback);
+      const imgs = safeParseImages(fallback?.images);
+      setActiveImage(imgs[0] || FALLBACK_IMAGE);
+    }
+    setLoading(false);
   };
 
   const fetchReviews = async () => {
@@ -68,11 +80,19 @@ export function ProductDetailPage() {
       const res = await fetch(`/api/reviews?productId=${id}`);
       if (res.ok) {
         const data = await res.json();
-        setReviewsList(data.reviews || []);
+        if (data.reviews && data.reviews.length > 0) {
+          setReviewsList(data.reviews);
+          return;
+        }
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.warn("Fetch reviews fallback:", err);
     }
+
+    const fallbackReviews = inMemoryReviews.filter(
+      (r) => (r.productId === id || r.product?.id === id || r.product?.slug === id) && r.isApproved
+    );
+    setReviewsList(fallbackReviews);
   };
 
   const handleAddToCart = () => {

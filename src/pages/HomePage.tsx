@@ -6,6 +6,8 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { Product } from "@/store/useCartStore";
 import { Sparkles, ArrowRight, Truck, Banknote, Building2, HelpCircle, CheckCircle2 } from "lucide-react";
 
+import { inMemoryProducts } from "@/data/mockData";
+
 export function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,13 +21,18 @@ export function HomePage() {
       const res = await fetch("/api/products");
       if (res.ok) {
         const data = await res.json();
-        setFeaturedProducts(data.products?.slice(0, 12) || []);
+        if (data.products && data.products.length > 0) {
+          setFeaturedProducts(data.products.slice(0, 12));
+          setLoading(false);
+          return;
+        }
       }
     } catch (err) {
-      console.error("Home fetch products error:", err);
-    } finally {
-      setLoading(false);
+      console.warn("Home fetch products fallback:", err);
     }
+
+    setFeaturedProducts(inMemoryProducts.slice(0, 12));
+    setLoading(false);
   };
 
   return (

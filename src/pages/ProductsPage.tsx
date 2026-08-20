@@ -5,6 +5,7 @@ import { Product } from "@/store/useCartStore";
 import { CATEGORIES } from "@/lib/constants";
 import { formatLKR } from "@/lib/utils";
 import { Filter, SlidersHorizontal, Search, RefreshCw } from "lucide-react";
+import { inMemoryProducts } from "@/data/mockData";
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,13 +60,36 @@ export function ProductsPage() {
       const res = await fetch(`/api/products?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.products || []);
+        if (data.products && data.products.length > 0) {
+          setProducts(data.products);
+          setLoading(false);
+          return;
+        }
       }
     } catch (err) {
-      console.error("Fetch products page error:", err);
-    } finally {
-      setLoading(false);
+      console.warn("Fetch products fallback:", err);
     }
+
+    let filtered = [...inMemoryProducts];
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+      );
+    }
+    if (category && category !== "all") {
+      const cat = category.toLowerCase();
+      filtered = filtered.filter((p) => p.category.toLowerCase().includes(cat));
+    }
+    if (sort === "price-low") filtered.sort((a, b) => a.sellingPriceLkr - b.sellingPriceLkr);
+    else if (sort === "price-high") filtered.sort((a, b) => b.sellingPriceLkr - a.sellingPriceLkr);
+    else if (sort === "bestsellers") filtered.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0));
+
+    setProducts(filtered);
+    setLoading(false);
   };
 
   const filteredProducts = products.filter(
