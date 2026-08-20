@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { formatLKR } from "@/lib/utils";
-import { Printer, Download, X, CheckCircle2, ShieldCheck, Phone, Mail, MapPin, Truck } from "lucide-react";
+import { Printer, Download, X, ArrowLeft, ShieldCheck, Truck } from "lucide-react";
 
 interface OrderInvoiceModalProps {
   order: any;
@@ -9,6 +9,25 @@ interface OrderInvoiceModalProps {
 }
 
 export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Lock body scroll
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen || !order) return null;
 
   const handlePrint = () => {
@@ -35,185 +54,215 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
   const isPaid = order.paymentStatus === "PAID";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-8 text-slate-200">
-        {/* Header Actions (Hidden on Print) */}
-        <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-            <span className="text-xs font-bold text-slate-200">Order Invoice &amp; Receipt</span>
-          </div>
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-3xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-200"
+      >
+        {/* Sticky Header Bar (Always Visible & Hidden on Print) */}
+        <div className="sticky top-0 z-30 px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3 print:hidden">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-cyan-400" />
+            <span>Back to Order</span>
+          </button>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md transition-colors cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>Print / Download PDF</span>
+              <span>Print / Save PDF</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:bg-rose-950/60 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-colors cursor-pointer"
+              title="Close"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Printable Invoice Container */}
-        <div id="printable-invoice" className="p-6 sm:p-10 space-y-8 bg-white text-slate-900">
-          {/* Top Brand Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b-2 border-slate-200 gap-4">
-            <div>
-              <div className="text-2xl font-black tracking-wider text-slate-950 flex items-center gap-2">
-                <span className="text-cyan-600">GIZMOTEK</span>
-                <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-900 text-white">.LK</span>
+        {/* Scrollable Printable Invoice Content */}
+        <div className="overflow-y-auto flex-1 bg-white">
+          <div id="printable-invoice" className="p-6 sm:p-10 space-y-8 text-slate-900">
+            {/* Top Brand Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b-2 border-slate-200 gap-4">
+              <div>
+                <div className="text-2xl font-black tracking-wider text-slate-950 flex items-center gap-2">
+                  <span className="text-cyan-600">GIZMOTEK</span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-900 text-white">.LK</span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-1">
+                  Premier Tech &amp; Electronics Online Store | Sri Lanka
+                </p>
+                <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
+                  <p>No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+                  <p>Hotline: +94 77 123 4567 | Email: orders@gizmotek.lk</p>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-600 mt-1">
-                Premier Tech &amp; Electronics Online Store | Sri Lanka
-              </p>
-              <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
-                <p>No. 128, Galle Road, Colombo 03, Sri Lanka</p>
-                <p>Hotline: +94 77 123 4567 | Email: orders@gizmotek.lk</p>
+
+              <div className="text-left sm:text-right space-y-1">
+                <span className="inline-block px-3 py-1 bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-extrabold rounded-lg uppercase tracking-wider">
+                  Official Order Receipt
+                </span>
+                <p className="text-base font-black text-slate-900 font-mono">
+                  #{order.orderNumber || "GZ-STORE"}
+                </p>
+                <p className="text-[11px] text-slate-500">{formattedDate}</p>
               </div>
             </div>
 
-            <div className="text-left sm:text-right space-y-1">
-              <span className="inline-block px-3 py-1 bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-extrabold rounded-lg uppercase tracking-wider">
-                Official Order Receipt
-              </span>
-              <p className="text-base font-black text-slate-900 font-mono">
-                #{order.orderNumber || "GZ-STORE"}
-              </p>
-              <p className="text-[11px] text-slate-500">{formattedDate}</p>
-            </div>
-          </div>
+            {/* Customer & Delivery Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Bill To / Customer
+                </span>
+                <p className="font-bold text-slate-900 text-sm">{order.customerName}</p>
+                <p className="text-slate-700">Phone: {order.customerPhone}</p>
+                {order.customerEmail && <p className="text-slate-600">Email: {order.customerEmail}</p>}
+              </div>
 
-          {/* Customer & Delivery Details Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
-            <div className="space-y-1.5">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Delivery Destination &amp; Logistics
+                </span>
+                <p className="text-slate-800 font-medium">{order.address}</p>
+                <p className="font-bold text-cyan-800">{order.city}, {order.district} District</p>
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-600 pt-1">
+                  <Truck className="w-3.5 h-3.5 text-cyan-600" />
+                  <span>Express Courier: <strong>Koombiyo / PromptX / Pronto</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Status Bar */}
+            <div className="flex flex-wrap items-center justify-between p-3 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+              <div>
+                <span className="text-slate-500">Payment Channel:</span>{" "}
+                <strong className="text-slate-900">{paymentLabel}</strong>
+              </div>
+              <div>
+                <span className="text-slate-500">Status:</span>{" "}
+                <span
+                  className={`font-extrabold px-2.5 py-0.5 rounded text-[11px] ${
+                    isPaid
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : order.orderStatus === "CANCELLED"
+                      ? "bg-rose-100 text-rose-800"
+                      : "bg-amber-100 text-amber-800 border border-amber-300"
+                  }`}
+                >
+                  {isPaid ? "PAID / VERIFIED" : order.orderStatus === "CANCELLED" ? "PAYMENT FAILED / CANCELLED" : "PAYMENT PENDING"}
+                </span>
+              </div>
+            </div>
+
+            {/* Purchased Items Table */}
+            <div className="space-y-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Bill To / Customer
+                Purchased Gadgets &amp; Items
               </span>
-              <p className="font-bold text-slate-900 text-sm">{order.customerName}</p>
-              <p className="text-slate-700">Phone: {order.customerPhone}</p>
-              {order.customerEmail && <p className="text-slate-600">Email: {order.customerEmail}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Delivery Destination &amp; Logistics
-              </span>
-              <p className="text-slate-800 font-medium">{order.address}</p>
-              <p className="font-bold text-cyan-800">{order.city}, {order.district} District</p>
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-600 pt-1">
-                <Truck className="w-3.5 h-3.5 text-cyan-600" />
-                <span>Express Courier: <strong>Koombiyo / PromptX / Pronto</strong></span>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Status Bar */}
-          <div className="flex flex-wrap items-center justify-between p-3 rounded-xl bg-slate-100 border border-slate-200 text-xs">
-            <div>
-              <span className="text-slate-500">Payment Channel:</span>{" "}
-              <strong className="text-slate-900">{paymentLabel}</strong>
-            </div>
-            <div>
-              <span className="text-slate-500">Status:</span>{" "}
-              <span
-                className={`font-extrabold px-2.5 py-0.5 rounded text-[11px] ${
-                  isPaid
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    : order.orderStatus === "CANCELLED"
-                    ? "bg-rose-100 text-rose-800"
-                    : "bg-amber-100 text-amber-800 border border-amber-300"
-                }`}
-              >
-                {isPaid ? "PAID / VERIFIED" : order.orderStatus === "CANCELLED" ? "PAYMENT FAILED / CANCELLED" : "PAYMENT PENDING"}
-              </span>
-            </div>
-          </div>
-
-          {/* Purchased Items Table */}
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Purchased Gadgets &amp; Items
-            </span>
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-slate-700 text-[10px] uppercase font-bold border-b border-slate-200">
-                  <tr>
-                    <th className="p-3">Item Description</th>
-                    <th className="p-3 text-center">Qty</th>
-                    <th className="p-3 text-right">Unit Price</th>
-                    <th className="p-3 text-right">Amount (LKR)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {order.items && order.items.length > 0 ? (
-                    order.items.map((item: any, idx: number) => (
-                      <tr key={idx} className="text-slate-800">
-                        <td className="p-3 font-semibold text-slate-900">
-                          {item.product?.title || "Tech Product"}
-                          {item.product?.sku && (
-                            <span className="block text-[10px] text-slate-500 font-mono">
-                              SKU: {item.product.sku}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3 text-center font-bold">{item.quantity}</td>
-                        <td className="p-3 text-right text-slate-600">{formatLKR(item.unitPrice)}</td>
-                        <td className="p-3 text-right font-bold text-slate-900">
-                          {formatLKR(item.unitPrice * item.quantity)}
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-700 text-[10px] uppercase font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Item Description</th>
+                      <th className="p-3 text-center">Qty</th>
+                      <th className="p-3 text-right">Unit Price</th>
+                      <th className="p-3 text-right">Amount (LKR)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {order.items && order.items.length > 0 ? (
+                      order.items.map((item: any, idx: number) => (
+                        <tr key={idx} className="text-slate-800">
+                          <td className="p-3 font-semibold text-slate-900">
+                            {item.product?.title || "Tech Product"}
+                            {item.product?.sku && (
+                              <span className="block text-[10px] text-slate-500 font-mono">
+                                SKU: {item.product.sku}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center font-bold">{item.quantity}</td>
+                          <td className="p-3 text-right text-slate-600">{formatLKR(item.unitPrice)}</td>
+                          <td className="p-3 text-right font-bold text-slate-900">
+                            {formatLKR(item.unitPrice * item.quantity)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="p-4 text-center text-slate-400">
+                          Order items detail
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="p-4 text-center text-slate-400">
-                        Order items detail
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Summary / Total Box */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-2 gap-4 border-t border-slate-200">
+              <div className="space-y-1 text-[11px] text-slate-500 max-w-sm">
+                <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                  <ShieldCheck className="w-4 h-4 text-cyan-600" />
+                  <span>1-Year GizmoTek Hardware Warranty</span>
+                </div>
+                <p>
+                  Includes 7-Day 1-to-1 Replacement Guarantee for manufacturer defects. Keep this invoice for warranty verification.
+                </p>
+              </div>
+
+              <div className="w-full sm:w-64 space-y-2 text-xs">
+                <div className="flex justify-between text-slate-600">
+                  <span>Subtotal:</span>
+                  <span className="font-semibold">{formatLKR(order.subtotalLkr || order.totalLkr)}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Islandwide Shipping:</span>
+                  <span>{order.shippingFeeLkr === 0 ? "FREE" : formatLKR(order.shippingFeeLkr || 0)}</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t-2 border-slate-900 text-sm font-black text-slate-900">
+                  <span>Grand Total:</span>
+                  <span className="text-cyan-700 font-mono">{formatLKR(order.totalLkr)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Note */}
+            <div className="pt-4 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-1">
+              <p>Thank you for shopping with GizmoTek Online Store (https://www.gizmotek.lk).</p>
+              <p>For inquiries, warranty claims, or parcel tracking: WhatsApp / Hotline: +94 77 123 4567 | orders@gizmotek.lk</p>
             </div>
           </div>
 
-          {/* Summary / Total Box */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-2 gap-4 border-t border-slate-200">
-            <div className="space-y-1 text-[11px] text-slate-500 max-w-sm">
-              <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                <ShieldCheck className="w-4 h-4 text-cyan-600" />
-                <span>1-Year GizmoTek Hardware Warranty</span>
-              </div>
-              <p>
-                Includes 7-Day 1-to-1 Replacement Guarantee for manufacturer defects. Keep this invoice for warranty verification.
-              </p>
-            </div>
-
-            <div className="w-full sm:w-64 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-600">
-                <span>Subtotal:</span>
-                <span className="font-semibold">{formatLKR(order.subtotalLkr || order.totalLkr)}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Islandwide Shipping:</span>
-                <span>{order.shippingFeeLkr === 0 ? "FREE" : formatLKR(order.shippingFeeLkr || 0)}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t-2 border-slate-900 text-sm font-black text-slate-900">
-                <span>Grand Total:</span>
-                <span className="text-cyan-700 font-mono">{formatLKR(order.totalLkr)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Note */}
-          <div className="pt-4 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-1">
-            <p>Thank you for shopping with GizmoTek Online Store (https://www.gizmotek.lk).</p>
-            <p>For inquiries, warranty claims, or parcel tracking: WhatsApp / Hotline: +94 77 123 4567 | orders@gizmotek.lk</p>
+          {/* Bottom Action Footer (print:hidden) */}
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 print:hidden">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4 text-cyan-400" />
+              <span>Back / Exit Invoice</span>
+            </button>
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold text-xs shadow-md transition-colors cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download / Print PDF</span>
+            </button>
           </div>
         </div>
       </div>
