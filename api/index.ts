@@ -1081,7 +1081,25 @@ apiRouter.get('/admin/notifications', adminAuthMiddleware, async (req, res) => {
 
 apiRouter.get('/admin/export-orders', adminAuthMiddleware, async (req, res) => {
   try {
+    const { status, startDate, endDate } = req.query;
+    const where: any = {};
+
+    if (status && status !== 'ALL' && typeof status === 'string') {
+      where.orderStatus = status;
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate && typeof startDate === 'string') {
+        where.createdAt.gte = new Date(startDate + 'T00:00:00');
+      }
+      if (endDate && typeof endDate === 'string') {
+        where.createdAt.lte = new Date(endDate + 'T23:59:59.999');
+      }
+    }
+
     const orders = await prisma.order.findMany({
+      where,
       include: {
         items: {
           include: {

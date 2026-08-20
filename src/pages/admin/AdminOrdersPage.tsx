@@ -30,10 +30,15 @@ export function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Filters & Pagination
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [datePreset, setDatePreset] = useState<"ALL_TIME" | "TODAY" | "YESTERDAY" | "LAST_7_DAYS" | "THIS_MONTH" | "CUSTOM">("ALL_TIME");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
   const [selectedSlipOrder, setSelectedSlipOrder] = useState<any | null>(null);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<any | null>(null);
@@ -63,27 +68,109 @@ export function AdminOrdersPage() {
     }
   };
 
+  // Filter orders by date range
+  const dateFilteredOrders = useMemo(() => {
+    const now = new Date();
+
+    return orders.filter((order) => {
+      if (!order.createdAt) return true;
+      const orderDate = new Date(order.createdAt);
+
+      if (datePreset === "TODAY") {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        return orderDate >= startOfToday;
+      }
+
+      if (datePreset === "YESTERDAY") {
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+        const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        return orderDate >= startOfYesterday && orderDate <= endOfYesterday;
+      }
+
+      if (datePreset === "LAST_7_DAYS") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return orderDate >= sevenDaysAgo;
+      }
+
+      if (datePreset === "THIS_MONTH") {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        return orderDate >= startOfMonth;
+      }
+
+      if (datePreset === "CUSTOM") {
+        if (startDate) {
+          const start = new Date(startDate + "T00:00:00");
+          if (orderDate < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(endDate + "T23:59:59.999");
+          if (orderDate > end) return false;
+        }
+        return true;
+      }
+
+      return true; // ALL_TIME
+    });
+  }, [orders, datePreset, startDate, endDate]);
+
+  // Tab counts calculated for the active date range
   const tabCounts = useMemo(() => {
+    const now = new Date();
+    const dateScopedAllOrders = allOrders.filter((order) => {
+      if (!order.createdAt) return true;
+      const orderDate = new Date(order.createdAt);
+
+      if (datePreset === "TODAY") {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        return orderDate >= startOfToday;
+      }
+      if (datePreset === "YESTERDAY") {
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+        const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        return orderDate >= startOfYesterday && orderDate <= endOfYesterday;
+      }
+      if (datePreset === "LAST_7_DAYS") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return orderDate >= sevenDaysAgo;
+      }
+      if (datePreset === "THIS_MONTH") {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        return orderDate >= startOfMonth;
+      }
+      if (datePreset === "CUSTOM") {
+        if (startDate) {
+          const start = new Date(startDate + "T00:00:00");
+          if (orderDate < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(endDate + "T23:59:59.999");
+          if (orderDate > end) return false;
+        }
+        return true;
+      }
+      return true;
+    });
+
     const counts: Record<string, number> = {
-      ALL: allOrders.length,
+      ALL: dateScopedAllOrders.length,
       PROCESSING: 0,
       PENDING: 0,
       SHIPPED: 0,
       DELIVERED: 0,
       CANCELLED: 0,
     };
-    allOrders.forEach((o) => {
+    dateScopedAllOrders.forEach((o) => {
       if (counts[o.orderStatus] !== undefined) {
         counts[o.orderStatus]++;
       }
     });
     return counts;
-  }, [allOrders]);
+  }, [allOrders, datePreset, startDate, endDate]);
 
   const filteredOrders = useMemo(() => {
-    if (!searchQuery.trim()) return orders;
+    if (!searchQuery.trim()) return dateFilteredOrders;
     const q = searchQuery.toLowerCase().trim();
-    return orders.filter((order) => {
+    return dateFilteredOrders.filter((order) => {
       const orderNum = (order.orderNumber || "").toLowerCase();
       const customer = (order.customerName || "").toLowerCase();
       const phone = (order.customerPhone || "").toLowerCase();
@@ -101,11 +188,11 @@ export function AdminOrdersPage() {
         address.includes(q)
       );
     });
-  }, [orders, searchQuery]);
+  }, [dateFilteredOrders, searchQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, itemsPerPage]);
+  }, [searchQuery, statusFilter, datePreset, startDate, endDate, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
   const paginatedOrders = useMemo(() => {
@@ -178,15 +265,25 @@ export function AdminOrdersPage() {
     setTimeout(() => setActionFeedback(null), 4000);
   };
 
+  const datePresetLabels: Record<string, string> = {
+    ALL_TIME: "All Time",
+    TODAY: "Today",
+    YESTERDAY: "Yesterday",
+    LAST_7_DAYS: "Last 7 Days",
+    THIS_MONTH: "This Month",
+    CUSTOM: "Custom Range",
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header & Export */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white">
             Order Management &amp; Courier Dispatch
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Filter orders by status, inspect customer ordered items, verify bank deposit slips, and download courier shipping manifests.
+            Filter orders by status &amp; date, inspect customer items, verify bank deposit slips, and download courier shipping manifests.
           </p>
         </div>
         <a
@@ -199,6 +296,7 @@ export function AdminOrdersPage() {
         </a>
       </div>
 
+      {/* Action Feedback Banner */}
       {actionFeedback && (
         <div className="p-3.5 rounded-2xl bg-cyan-950/90 border border-cyan-500/40 text-cyan-200 text-xs font-semibold flex items-center justify-between shadow-lg animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
@@ -214,6 +312,70 @@ export function AdminOrdersPage() {
         </div>
       )}
 
+      {/* Date Range Selection Toolbar */}
+      <div className="bg-slate-900/80 p-4 rounded-3xl border border-slate-800 space-y-3 shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+            <Filter className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>Order Date Scope:</span>
+            <strong className="text-cyan-400 font-bold">{datePresetLabels[datePreset]}</strong>
+          </div>
+
+          {/* Quick Date Presets */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-semibold no-scrollbar">
+            {(["ALL_TIME", "TODAY", "YESTERDAY", "LAST_7_DAYS", "THIS_MONTH", "CUSTOM"] as const).map((preset) => (
+              <button
+                key={preset}
+                onClick={() => setDatePreset(preset)}
+                className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
+                  datePreset === preset
+                    ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm font-bold"
+                    : "bg-slate-950 text-slate-400 border border-slate-800 hover:text-white hover:bg-slate-850"
+                }`}
+              >
+                {datePresetLabels[preset]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Custom Date Pickers */}
+        {datePreset === "CUSTOM" && (
+          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-800/80 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">Start Date:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-cyan-500 cursor-pointer"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">End Date:</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-cyan-500 cursor-pointer"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+              >
+                Reset Dates
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Filter Tabs with Dynamic Count Badges */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 text-xs font-semibold no-scrollbar">
         {[
           { id: "ALL", label: "All Orders", count: tabCounts.ALL },
@@ -246,6 +408,7 @@ export function AdminOrdersPage() {
         ))}
       </div>
 
+      {/* Search Bar & Table Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
         <div className="relative w-full sm:max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
