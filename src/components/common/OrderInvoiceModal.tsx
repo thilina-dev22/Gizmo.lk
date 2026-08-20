@@ -31,7 +31,100 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
   if (!isOpen || !order) return null;
 
   const handlePrint = () => {
-    window.print();
+    const invoiceElement = document.getElementById("printable-invoice");
+    if (!invoiceElement) {
+      window.print();
+      return;
+    }
+
+    try {
+      // Create an isolated printing iframe to guarantee 100% full-color PDF rendering without blank sheets
+      const printFrame = document.createElement("iframe");
+      printFrame.style.position = "fixed";
+      printFrame.style.right = "0";
+      printFrame.style.bottom = "0";
+      printFrame.style.width = "0";
+      printFrame.style.height = "0";
+      printFrame.style.border = "0";
+      document.body.appendChild(printFrame);
+
+      const frameDoc = printFrame.contentWindow?.document;
+      if (!frameDoc) {
+        window.print();
+        return;
+      }
+
+      // Collect all stylesheet links & inline styles from active DOM
+      const headStyles = Array.from(document.querySelectorAll("link[rel='stylesheet'], style"))
+        .map((el) => el.outerHTML)
+        .join("\n");
+
+      frameDoc.open();
+      frameDoc.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <title>GizmoTek_Invoice_${order.orderNumber || "Receipt"}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            ${headStyles}
+            <style>
+              @page {
+                size: A4 portrait;
+                margin: 10mm 12mm;
+              }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                box-sizing: border-box;
+              }
+              html, body {
+                background-color: #ffffff !important;
+                color: #0f172a !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+              }
+              #printable-invoice {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+              }
+              .print\\:hidden {
+                display: none !important;
+              }
+            </style>
+          </head>
+          <body class="bg-white text-slate-900">
+            ${invoiceElement.outerHTML}
+          </body>
+        </html>
+      `);
+      frameDoc.close();
+
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+        } catch (e) {
+          console.error("Iframe print error:", e);
+          window.print();
+        } finally {
+          setTimeout(() => {
+            if (document.body.contains(printFrame)) {
+              document.body.removeChild(printFrame);
+            }
+          }, 2000);
+        }
+      }, 400);
+    } catch (err) {
+      console.error("Print generation error:", err);
+      window.print();
+    }
   };
 
   const formattedDate = new Date(order.createdAt || Date.now()).toLocaleDateString("en-LK", {
@@ -55,10 +148,12 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
 
   return (
     <div
+      id="invoice-modal-root"
       onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
     >
       <div
+        id="invoice-modal-card"
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-3xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col text-slate-200"
       >
