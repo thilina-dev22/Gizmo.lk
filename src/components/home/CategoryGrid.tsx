@@ -1,5 +1,5 @@
 import React from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { Smartphone, Headphones, Watch, Laptop, Car, ArrowRight } from "lucide-react";
 
 export function CategoryGrid() {
@@ -64,7 +64,7 @@ export function CategoryGrid() {
             </h2>
           </div>
           <Link
-            href="/products"
+            to="/products"
             className="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 font-bold mt-2 md:mt-0"
           >
             <span>View All Categories</span>
@@ -78,7 +78,7 @@ export function CategoryGrid() {
             return (
               <Link
                 key={cat.id}
-                href={`/products?category=${encodeURIComponent(cat.id)}`}
+                to={`/products?category=${encodeURIComponent(cat.id)}`}
                 className={`group relative p-5 rounded-2xl bg-gradient-to-br ${cat.color} bg-slate-900/90 border ${cat.border} hover:border-cyan-400/80 transition-all duration-300 transform hover:-translate-y-1 shadow-lg`}
               >
                 <div className="flex items-center justify-between mb-4">

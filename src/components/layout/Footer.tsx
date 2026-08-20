@@ -1,9 +1,8 @@
 import React from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { GizmoLogo } from "../logo/GizmoLogo";
-import { TRUST_BADGES } from "@/lib/constants";
 import { KoombiyoLogo, PromptXLogo, ProntoLogo, FardarLogo } from "../common/CourierLogos";
-import { Truck, Banknote, Building2, ShieldCheck, Phone, Mail, MapPin, ShieldAlert, ArrowRight } from "lucide-react";
+import { Truck, Banknote, Building2, ShieldCheck, Phone, Mail, MapPin, ShieldAlert } from "lucide-react";
 
 export function Footer() {
   return (
@@ -82,27 +81,27 @@ export function Footer() {
           <h4 className="text-slate-100 font-bold text-xs uppercase tracking-wider">Top Categories</h4>
           <ul className="space-y-2 text-slate-400">
             <li>
-              <Link href="/products?category=Smartphones" className="hover:text-cyan-400 transition-colors">
+              <Link to="/products?category=Smartphones" className="hover:text-cyan-400 transition-colors">
                 Smartphones & Mobile
               </Link>
             </li>
             <li>
-              <Link href="/products?category=Audio" className="hover:text-cyan-400 transition-colors">
+              <Link to="/products?category=Audio" className="hover:text-cyan-400 transition-colors">
                 Audio & Wireless Earbuds
               </Link>
             </li>
             <li>
-              <Link href="/products?category=Smartwatches" className="hover:text-cyan-400 transition-colors">
+              <Link to="/products?category=Smartwatches" className="hover:text-cyan-400 transition-colors">
                 Smartwatches & Fitness
               </Link>
             </li>
             <li>
-              <Link href="/products?category=Computer%20Accessories" className="hover:text-cyan-400 transition-colors">
+              <Link to="/products?category=Computer%20Accessories" className="hover:text-cyan-400 transition-colors">
                 Computer & PC Gear
               </Link>
             </li>
             <li>
-              <Link href="/products?category=Car%20Gadgets" className="hover:text-cyan-400 transition-colors">
+              <Link to="/products?category=Car%20Gadgets" className="hover:text-cyan-400 transition-colors">
                 Car Dashcams & Mounts
               </Link>
             </li>
@@ -114,7 +113,7 @@ export function Footer() {
           <h4 className="text-slate-100 font-bold text-xs uppercase tracking-wider">Quick Links & Admin</h4>
           <ul className="space-y-2 text-slate-400">
             <li>
-              <Link href="/products" className="hover:text-cyan-400 transition-colors">
+              <Link to="/products" className="hover:text-cyan-400 transition-colors">
                 All Products Catalog
               </Link>
             </li>
@@ -130,7 +129,7 @@ export function Footer() {
             </li>
             <li className="pt-2">
               <Link
-                href="/admin"
+                to="/admin"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-cyan-400 font-semibold hover:border-cyan-500/50 hover:bg-slate-850 transition-all text-xs"
               >
                 <ShieldAlert className="w-3.5 h-3.5" />
@@ -177,4 +176,3 @@ export function Footer() {
     </footer>
   );
 }
-

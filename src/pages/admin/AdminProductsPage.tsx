@@ -1,0 +1,529 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Product } from "@/store/useCartStore";
+import { CATEGORIES } from "@/lib/constants";
+import { formatLKR } from "@/lib/utils";
+import { OptimizedImage } from "@/components/common/OptimizedImage";
+import { Plus, Edit, ExternalLink, X, Search } from "lucide-react";
+
+export function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Form State
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("Audio");
+  const [sellingPriceLkr, setSellingPriceLkr] = useState("");
+  const [costPriceLkr, setCostPriceLkr] = useState("");
+  const [sku, setSku] = useState("");
+  const [stock, setStock] = useState("20");
+  const [imageUrl, setImageUrl] = useState("");
+  const [additionalImages, setAdditionalImages] = useState("");
+  const [description, setDescription] = useState("");
+  const [specsText, setSpecsText] = useState("");
+  const [supplierLink, setSupplierLink] = useState("");
+  const [supplierNotes, setSupplierNotes] = useState("");
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isBestSeller, setIsBestSeller] = useState(false);
+  const [rating, setRating] = useState("0");
+  const [reviewCount, setReviewCount] = useState("0");
+
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/products");
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data.products || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenModal = (product?: Product) => {
+    if (product) {
+      setEditingProduct(product);
+      setTitle(product.title);
+      setCategory(product.category);
+      setSellingPriceLkr(String(product.sellingPriceLkr));
+      setCostPriceLkr(String(product.costPriceLkr));
+      setSku(product.sku);
+      setStock(String(product.stock));
+      const imgs = JSON.parse(product.images || "[]");
+      setImageUrl(imgs[0] || "");
+      setAdditionalImages(imgs.slice(1).join("\n"));
+      setDescription(product.description || "");
+      setSpecsText(
+        product.specs
+          ? typeof product.specs === "string"
+            ? product.specs
+            : JSON.stringify(product.specs, null, 2)
+          : ""
+      );
+      setSupplierLink(product.supplierLink || "");
+      setSupplierNotes(product.supplierNotes || "");
+      setIsFeatured(product.isFeatured);
+      setIsBestSeller(product.isBestSeller);
+      setRating(String(product.rating || 0));
+      setReviewCount(String(product.reviewCount || 0));
+    } else {
+      setEditingProduct(null);
+      setTitle("");
+      setCategory("Audio");
+      setSellingPriceLkr("");
+      setCostPriceLkr("");
+      setSku(`GZ-${Math.floor(1000 + Math.random() * 9000)}`);
+      setStock("10");
+      setImageUrl("");
+      setAdditionalImages("");
+      setDescription("");
+      setSpecsText("");
+      setSupplierLink("");
+      setSupplierNotes("");
+      setIsFeatured(false);
+      setIsBestSeller(false);
+      setRating("0");
+      setReviewCount("0");
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const extraImgs = additionalImages
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const allImages = imageUrl ? [imageUrl, ...extraImgs] : extraImgs;
+
+      const payload = {
+        title,
+        category,
+        sellingPriceLkr: Number(sellingPriceLkr),
+        costPriceLkr: Number(costPriceLkr || 0),
+        sku,
+        stock: Number(stock),
+        images: allImages,
+        description,
+        specs: specsText,
+        supplierLink,
+        supplierNotes,
+        isFeatured,
+        isBestSeller,
+        rating: Number(rating || 0),
+        reviewCount: Number(reviewCount || 0),
+      };
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setIsModalOpen(false);
+        fetchProducts();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white">
+            Product Catalog & Stock Management
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Manage cost price vs selling price, supplier links, and stock levels in LKR.
+          </p>
+        </div>
+
+        <button
+          onClick={() => handleOpenModal()}
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs shadow-neon transition-all cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add New Product</span>
+        </button>
+      </div>
+
+      {/* Product Table */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950">
+              <tr>
+                <th className="p-4">Product</th>
+                <th className="p-4">SKU & Category</th>
+                <th className="p-4">Cost Price (LKR)</th>
+                <th className="p-4">Selling Price (LKR)</th>
+                <th className="p-4">Est. Profit</th>
+                <th className="p-4">Stock</th>
+                <th className="p-4">Supplier / Import Link</th>
+                <th className="p-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 text-slate-300">
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                    Loading inventory...
+                  </td>
+                </tr>
+              ) : products.map((product) => {
+                const imgs = JSON.parse(product.images || "[]");
+                const profitLkr = product.sellingPriceLkr - product.costPriceLkr;
+                return (
+                  <tr key={product.id} className="hover:bg-slate-850 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
+                          <OptimizedImage src={imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop"} alt={product.title} fill />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-200 line-clamp-1 max-w-[200px]">{product.title}</h4>
+                          <span className="text-[10px] text-cyan-400">{product.slug}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="font-mono text-xs font-semibold text-slate-200">{product.sku}</div>
+                      <span className="text-[10px] text-slate-400">{product.category}</span>
+                    </td>
+                    <td className="p-4 text-slate-400 font-mono">{formatLKR(product.costPriceLkr)}</td>
+                    <td className="p-4 font-bold text-cyan-400 font-mono">{formatLKR(product.sellingPriceLkr)}</td>
+                    <td className="p-4 font-bold text-emerald-400 font-mono">+{formatLKR(profitLkr)}</td>
+                    <td className="p-4">
+                      <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-bold text-slate-200">
+                        {product.stock} pcs
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      {product.supplierLink ? (
+                        <a
+                          href={product.supplierLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-cyan-400 hover:underline inline-flex items-center gap-1 text-[11px]"
+                        >
+                          <span>Supplier URL</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-600 text-[10px]">None</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          to={`/products/${product.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 text-cyan-400 hover:text-cyan-300 bg-slate-950 hover:bg-slate-800 rounded-lg border border-slate-800 flex items-center gap-1 text-[11px] font-semibold transition-colors"
+                          title="View Product on Storefront"
+                        >
+                          <Search className="w-3 h-3" />
+                          <span>View</span>
+                        </Link>
+                        <button
+                          onClick={() => handleOpenModal(product)}
+                          className="p-1.5 text-slate-400 hover:text-white bg-slate-950 rounded-lg border border-slate-800 cursor-pointer"
+                          title="Edit product"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add / Edit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-bold text-slate-100 text-base">
+                {editingProduct ? "Edit Product" : "Add New Inventory Product"}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-300">Product Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Category *</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none cursor-pointer"
+                  >
+                    {CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">SKU Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Cost Price (LKR)</label>
+                  <input
+                    type="number"
+                    value={costPriceLkr}
+                    onChange={(e) => setCostPriceLkr(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Selling Price (LKR) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={sellingPriceLkr}
+                    onChange={(e) => setSellingPriceLkr(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Stock Qty</label>
+                  <input
+                    type="number"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Storefront Customer Content Section */}
+              <div className="pt-2 border-t border-slate-800 space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+                  Storefront Content & Product Page Details
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Main Product Image URL</label>
+                    <input
+                      type="url"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">
+                      Additional Gallery Image URLs <span className="text-slate-500 font-normal">(One per line)</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={additionalImages}
+                      onChange={(e) => setAdditionalImages(e.target.value)}
+                      placeholder="https://image2.jpg&#10;https://image3.jpg"
+                      className="w-full bg-slate-950 text-slate-100 p-2 rounded-xl border border-slate-800 outline-none resize-none text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Full Product Description (Storefront View) *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Enter full product overview, features, package contents, and customer info..."
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none resize-none text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">
+                    Key Tech Specs & Features <span className="text-slate-500 font-normal">(e.g. Battery: 24h, Bluetooth: 5.3)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={specsText}
+                    onChange={(e) => setSpecsText(e.target.value)}
+                    placeholder="Bluetooth 5.3, Active Noise Cancellation, 24h Playtime, IPX5 Waterproof"
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none resize-none text-xs"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">
+                      Initial Rating Score <span className="text-slate-500 font-normal">(0.0 to 5.0)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      value={rating}
+                      onChange={(e) => setRating(e.target.value)}
+                      placeholder="0.0"
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">
+                      Initial Review Count <span className="text-slate-500 font-normal">(Default 0)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={reviewCount}
+                      onChange={(e) => setReviewCount(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs font-medium">
+                    <input
+                      type="checkbox"
+                      checked={isFeatured}
+                      onChange={(e) => setIsFeatured(e.target.checked)}
+                      className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
+                    />
+                    <span>Featured Product Drop</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs font-medium">
+                    <input
+                      type="checkbox"
+                      checked={isBestSeller}
+                      onChange={(e) => setIsBestSeller(e.target.checked)}
+                      className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
+                    />
+                    <span>Best Seller Badge</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Supplier & Import Section (Optional) */}
+              <div className="pt-2 border-t border-slate-800 space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Supplier & Import Source (Optional Internal Info)
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-slate-300">
+                      Supplier / Import Source URL <span className="text-slate-500 font-normal">(Optional)</span>
+                    </label>
+                    {supplierLink ? (
+                      <button
+                        type="button"
+                        onClick={() => setSupplierLink("")}
+                        className="text-[10px] text-cyan-400 hover:underline font-medium cursor-pointer"
+                      >
+                        Clear URL (Direct Local Stock)
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400 font-medium">Direct / Local Wholesale Stock</span>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={supplierLink}
+                    onChange={(e) => setSupplierLink(e.target.value)}
+                    placeholder="Leave blank for local stock, or enter e.g. https://aliexpress.com/item/123"
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none text-xs placeholder:text-slate-600"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Internal Supplier Notes</label>
+                  <textarea
+                    rows={2}
+                    value={supplierNotes}
+                    onChange={(e) => setSupplierNotes(e.target.value)}
+                    placeholder="Internal notes about supplier shipping times or local distributor contacts"
+                    className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none resize-none text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-950 text-slate-400 font-semibold hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save Product"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

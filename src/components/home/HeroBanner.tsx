@@ -1,10 +1,8 @@
-"use client";
-
 import React from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Sparkles, ShoppingCart, Truck, ShieldCheck, Flame, ArrowRight, Zap, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, Truck, ShieldCheck, Flame, ArrowRight, Zap, CheckCircle2 } from "lucide-react";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 export function HeroBanner() {
   return (
@@ -58,7 +56,7 @@ export function HeroBanner() {
             {/* Call To Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
               <Link
-                href="/products"
+                to="/products"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-600 hover:from-cyan-300 hover:to-cyan-500 text-slate-950 font-extrabold text-sm px-8 py-4 rounded-xl shadow-neon transition-all transform hover:-translate-y-0.5"
               >
                 <ShoppingCart className="w-5 h-5" />
@@ -94,16 +92,17 @@ export function HeroBanner() {
 
               {/* Main Product Feature Image */}
               <div className="relative h-64 w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 group">
-                <Image
+                <OptimizedImage
                   src="https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=800&auto=format&fit=crop"
                   alt="CyberBass Earbuds"
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  priority
+                  className="group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
                 
                 {/* Floating Tag */}
-                <div className="absolute bottom-3 left-3 right-3 p-3 bg-slate-900/90 backdrop-blur-md rounded-xl border border-slate-700/80 flex items-center justify-between">
+                <div className="absolute bottom-3 left-3 right-3 p-3 bg-slate-900/90 backdrop-blur-md rounded-xl border border-slate-700/80 flex items-center justify-between z-10">
                   <div>
                     <h3 className="text-xs font-bold text-white">CyberBass ANC Earbuds</h3>
                     <p className="text-[10px] text-slate-400">Touchscreen Case + Active Noise Cancel</p>

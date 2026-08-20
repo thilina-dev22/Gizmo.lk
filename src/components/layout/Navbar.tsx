@@ -1,38 +1,29 @@
-"use client";
-
-import React, { useState, useEffect, useRef, Suspense } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import {
   Search,
   ShoppingBag,
   Menu,
   X,
-  ChevronDown,
-  Phone,
-  Truck,
-  ShieldCheck,
   Sparkles,
   SlidersHorizontal,
-  ExternalLink,
-  ShieldAlert,
 } from "lucide-react";
 import { GizmoLogo } from "../logo/GizmoLogo";
 import { useCartStore, Product } from "@/store/useCartStore";
 import { CATEGORIES } from "@/lib/constants";
 import { formatLKR } from "@/lib/utils";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 interface NavbarProps {
   onOpenMobileNav: () => void;
 }
 
-function NavbarInner({ onOpenMobileNav }: NavbarProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const isCatalogPage = pathname === "/products";
-  const rawCategory = searchParams?.get("category");
+export function Navbar({ onOpenMobileNav }: NavbarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const isCatalogPage = location.pathname === "/products";
+  const rawCategory = searchParams.get("category");
   const categoryParam = rawCategory ? decodeURIComponent(rawCategory) : null;
 
   const { getTotalCount, openCart } = useCartStore();
@@ -107,7 +98,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
     if (searchQuery.trim()) {
       setShowSearchDropdown(false);
       setIsMobileSearchOpen(false);
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -119,13 +110,13 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onOpenMobileNav}
-            className="lg:hidden p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-900 rounded-xl transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="lg:hidden p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-900 rounded-xl transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
             aria-label="Open navigation menu"
           >
             <Menu className="w-6 h-6" />
           </button>
 
-          <Link href="/" className="shrink-0">
+          <Link to="/" className="shrink-0">
             <GizmoLogo size="md" />
           </Link>
         </div>
@@ -145,7 +136,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
 
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all shadow-md flex items-center gap-1"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs transition-all shadow-md flex items-center gap-1 cursor-pointer"
             >
               <span>Search</span>
             </button>
@@ -167,20 +158,20 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
                   </div>
                   {searchResults.slice(0, 5).map((product) => {
                     const imgs = JSON.parse(product.images || "[]");
-                    const thumbUrl = imgs[0] || "/placeholder.jpg";
+                    const thumbUrl = imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
                     return (
                       <Link
                         key={product.id}
-                        href={`/products/${product.id}`}
+                        to={`/products/${product.id}`}
                         onClick={() => setShowSearchDropdown(false)}
                         className="flex items-center gap-3 p-3 hover:bg-slate-800/80 transition-colors group"
                       >
                         <div className="w-10 h-10 relative rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
-                          <Image
+                          <OptimizedImage
                             src={thumbUrl}
                             alt={product.title}
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform"
+                            className="group-hover:scale-105 transition-transform"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -200,7 +191,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
                     );
                   })}
                   <Link
-                    href={`/products?search=${encodeURIComponent(searchQuery)}`}
+                    to={`/products?search=${encodeURIComponent(searchQuery)}`}
                     onClick={() => setShowSearchDropdown(false)}
                     className="block text-center py-2.5 bg-slate-950/80 text-xs font-medium text-cyan-400 hover:underline"
                   >
@@ -224,7 +215,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
               setIsMobileSearchOpen(!isMobileSearchOpen);
               setShowSearchDropdown(true);
             }}
-            className="md:hidden p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-900 rounded-xl transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="md:hidden p-2 text-slate-300 hover:text-cyan-400 hover:bg-slate-900 rounded-xl transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
             aria-label="Toggle Search Bar"
           >
             {isMobileSearchOpen ? (
@@ -236,7 +227,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
 
           {/* Desktop Browse Catalog Button */}
           <Link
-            href="/products"
+            to="/products"
             className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-lg hover:bg-slate-900 border border-transparent hover:border-slate-800"
           >
             <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
@@ -246,7 +237,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
           {/* Cart Trigger */}
           <button
             onClick={openCart}
-            className="relative flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-850 hover:from-slate-850 hover:to-slate-800 text-slate-200 px-3 sm:px-3.5 py-2 rounded-xl border border-slate-700/80 shadow-md hover:border-cyan-500/50 transition-all group"
+            className="relative flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-850 hover:from-slate-850 hover:to-slate-800 text-slate-200 px-3 sm:px-3.5 py-2 rounded-xl border border-slate-700/80 shadow-md hover:border-cyan-500/50 transition-all group cursor-pointer"
             aria-label="Open Shopping Cart"
           >
             <div className="relative">
@@ -282,7 +273,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400" />
             <button
               type="submit"
-              className="absolute right-1 top-1/2 -translate-y-1/2 bg-cyan-500 text-slate-950 font-bold px-3 py-1 rounded-lg text-[11px]"
+              className="absolute right-1 top-1/2 -translate-y-1/2 bg-cyan-500 text-slate-950 font-bold px-3 py-1 rounded-lg text-[11px] cursor-pointer"
             >
               Search
             </button>
@@ -300,11 +291,11 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
                 <div>
                   {searchResults.slice(0, 4).map((product) => {
                     const imgs = JSON.parse(product.images || "[]");
-                    const thumbUrl = imgs[0] || "/placeholder.jpg";
+                    const thumbUrl = imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
                     return (
                       <Link
                         key={product.id}
-                        href={`/products/${product.id}`}
+                        to={`/products/${product.id}`}
                         onClick={() => {
                           setShowSearchDropdown(false);
                           setIsMobileSearchOpen(false);
@@ -312,7 +303,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
                         className="flex items-center gap-3 p-2.5 hover:bg-slate-800 transition-colors"
                       >
                         <div className="w-9 h-9 relative rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
-                          <Image src={thumbUrl} alt={product.title} fill className="object-cover" />
+                          <OptimizedImage src={thumbUrl} alt={product.title} fill />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-semibold text-slate-200 truncate">
@@ -331,7 +322,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
                     );
                   })}
                   <Link
-                    href={`/products?search=${encodeURIComponent(searchQuery)}`}
+                    to={`/products?search=${encodeURIComponent(searchQuery)}`}
                     onClick={() => {
                       setShowSearchDropdown(false);
                       setIsMobileSearchOpen(false);
@@ -364,7 +355,7 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
               return (
                 <Link
                   key={cat.id}
-                  href={cat.id === "all" ? "/products" : `/products?category=${encodeURIComponent(cat.id)}`}
+                  to={cat.id === "all" ? "/products" : `/products?category=${encodeURIComponent(cat.id)}`}
                   className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
                     isActive
                       ? "bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/30"
@@ -388,19 +379,3 @@ function NavbarInner({ onOpenMobileNav }: NavbarProps) {
     </header>
   );
 }
-
-export function Navbar(props: NavbarProps) {
-  return (
-    <Suspense
-      fallback={
-        <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-slate-950/90 border-b border-slate-800/80 shadow-2xl h-16 flex items-center px-6">
-          <GizmoLogo size="md" />
-        </header>
-      }
-    >
-      <NavbarInner {...props} />
-    </Suspense>
-  );
-}
-
-

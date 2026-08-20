@@ -1,12 +1,10 @@
-"use client";
-
 import React from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingBag, Truck, ShieldCheck, Check, ArrowRight } from "lucide-react";
+import { X, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { formatLKR, safeParseImages, safeParseSpecs } from "@/lib/utils";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 export function QuickViewModal() {
   const { quickViewProduct, setQuickViewProduct, addItem } = useCartStore();
@@ -14,7 +12,7 @@ export function QuickViewModal() {
   if (!quickViewProduct) return null;
 
   const images = safeParseImages(quickViewProduct.images);
-  const mainImage = images[0] || "/placeholder.jpg";
+  const mainImage = images[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
   const specs = safeParseSpecs(quickViewProduct.specs);
 
   return (
@@ -39,19 +37,18 @@ export function QuickViewModal() {
           {/* Close button */}
           <button
             onClick={() => setQuickViewProduct(null)}
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-950 border border-slate-800 transition-colors z-20"
+            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-950 border border-slate-800 transition-colors z-20 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Image Preview */}
-            <div className="relative h-64 md:h-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
-              <Image
+            <div className="relative h-64 md:h-full min-h-[240px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+              <OptimizedImage
                 src={mainImage}
                 alt={quickViewProduct.title}
                 fill
-                className="object-cover"
               />
             </div>
 
@@ -91,16 +88,16 @@ export function QuickViewModal() {
                     addItem(quickViewProduct);
                     setQuickViewProduct(null);
                   }}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold py-3 rounded-xl shadow-neon transition-all text-xs"
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold py-3 rounded-xl shadow-neon transition-all text-xs cursor-pointer"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Add to Cart & Checkout</span>
                 </button>
 
                 <Link
-                  href={`/products/${quickViewProduct.id}`}
+                  to={`/products/${quickViewProduct.id}`}
                   onClick={() => setQuickViewProduct(null)}
-                  className="w-full flex items-center justify-center gap-1.5 bg-slate-950 hover:bg-slate-800 text-slate-300 font-semibold py-2.5 rounded-xl border border-slate-800 text-xs"
+                  className="w-full flex items-center justify-center gap-1.5 bg-slate-950 hover:bg-slate-850 text-slate-300 font-semibold py-2.5 rounded-xl border border-slate-800 text-xs"
                 >
                   <span>View Full Specs & Gallery</span>
                   <ArrowRight className="w-3.5 h-3.5" />

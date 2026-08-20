@@ -1,11 +1,9 @@
-"use client";
-
 import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { Link } from "react-router-dom";
 import { Eye, ShoppingBag, Star, Zap, Check } from "lucide-react";
 import { Product, useCartStore } from "@/store/useCartStore";
 import { formatLKR, safeParseImages } from "@/lib/utils";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 interface ProductCardProps {
   product: Product;
@@ -19,7 +17,6 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const images = safeParseImages(product.images);
   const initialImage = images[0] || FALLBACK_IMAGE;
-  const [imgSrc, setImgSrc] = useState(initialImage);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -54,13 +51,12 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Product Image Box */}
       <div className="relative h-52 w-full bg-slate-950 overflow-hidden">
-        <Link href={`/products/${product.id}`} className="block w-full h-full">
-          <Image
-            src={imgSrc}
+        <Link to={`/products/${product.id}`} className="block w-full h-full">
+          <OptimizedImage
+            src={initialImage}
             alt={product.title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={() => setImgSrc(FALLBACK_IMAGE)}
+            className="group-hover:scale-105 transition-transform duration-500"
           />
         </Link>
 
@@ -68,7 +64,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4 pointer-events-none group-hover:pointer-events-auto">
           <button
             onClick={() => setQuickViewProduct(product)}
-            className="bg-slate-900/90 hover:bg-slate-900 text-slate-200 hover:text-cyan-400 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 backdrop-blur-md transition-all shadow-lg"
+            className="bg-slate-900/90 hover:bg-slate-900 text-slate-200 hover:text-cyan-400 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 backdrop-blur-md transition-all shadow-lg cursor-pointer"
           >
             <Eye className="w-4 h-4" />
             <span>Quick View</span>
@@ -82,7 +78,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
             {product.category}
           </span>
-          <Link href={`/products/${product.id}`}>
+          <Link to={`/products/${product.id}`}>
             <h3 className="text-xs font-bold text-slate-100 group-hover:text-cyan-400 transition-colors line-clamp-2 leading-snug">
               {product.title}
             </h3>
@@ -119,7 +115,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <button
             onClick={handleAddToCart}
-            className={`font-bold p-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs ${
+            className={`font-bold p-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs cursor-pointer ${
               added
                 ? "bg-emerald-500 text-slate-950"
                 : "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950"
@@ -143,4 +139,3 @@ export function ProductCard({ product }: ProductCardProps) {
     </div>
   );
 }
-

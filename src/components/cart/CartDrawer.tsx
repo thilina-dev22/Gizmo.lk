@@ -1,13 +1,11 @@
-"use client";
-
 import React, { useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Truck, Sparkles, ShieldCheck } from "lucide-react";
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Truck, ShieldCheck } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { formatLKR } from "@/lib/utils";
 import { FREE_SHIPPING_THRESHOLD_LKR } from "@/lib/constants";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 export function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, getSubtotal } = useCartStore();
@@ -69,7 +67,7 @@ export function CartDrawer() {
               </div>
               <button
                 onClick={closeCart}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-900 border border-slate-800 transition-colors"
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-900 border border-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -111,7 +109,7 @@ export function CartDrawer() {
                   </div>
                   <button
                     onClick={closeCart}
-                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-neon transition-all"
+                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-neon transition-all cursor-pointer"
                   >
                     Start Shopping Now
                   </button>
@@ -119,12 +117,12 @@ export function CartDrawer() {
               ) : (
                 items.map(({ product, quantity }) => {
                   const imgs = JSON.parse(product.images || "[]");
-                  const thumb = imgs[0] || "/placeholder.jpg";
+                  const thumb = imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
                   return (
                     <div key={product.id} className="pt-3 first:pt-0 flex gap-3">
                       {/* Product Thumbnail */}
                       <div className="w-16 h-16 relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shrink-0">
-                        <Image src={thumb} alt={product.title} fill className="object-cover" />
+                        <OptimizedImage src={thumb} alt={product.title} fill />
                       </div>
 
                       {/* Content */}
@@ -136,7 +134,7 @@ export function CartDrawer() {
                             </h4>
                             <button
                               onClick={() => removeItem(product.id)}
-                              className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                              className="text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
                               title="Remove item"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -150,14 +148,14 @@ export function CartDrawer() {
                           <div className="flex items-center border border-slate-700/80 rounded-lg bg-slate-900/90 overflow-hidden">
                             <button
                               onClick={() => updateQuantity(product.id, quantity - 1)}
-                              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <span className="px-2.5 text-xs font-bold text-slate-100">{quantity}</span>
                             <button
                               onClick={() => updateQuantity(product.id, quantity + 1)}
-                              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -205,7 +203,7 @@ export function CartDrawer() {
                 </div>
 
                 <Link
-                  href="/checkout"
+                  to="/checkout"
                   onClick={closeCart}
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-extrabold text-sm py-3 rounded-xl shadow-neon transition-all"
                 >
@@ -220,4 +218,3 @@ export function CartDrawer() {
     </AnimatePresence>
   );
 }
-

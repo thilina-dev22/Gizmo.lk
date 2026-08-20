@@ -1,27 +1,24 @@
-"use client";
-
-import React, { useState, useEffect, Suspense } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, Smartphone, Headphones, Watch, Laptop, Car, ShieldCheck, Phone, ChevronRight } from "lucide-react";
 import { GizmoLogo } from "../logo/GizmoLogo";
 import { CATEGORIES } from "@/lib/constants";
 import { Product } from "@/store/useCartStore";
 import { formatLKR } from "@/lib/utils";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 interface MobileNavDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const isCatalogPage = pathname === "/products";
-  const rawCategory = searchParams?.get("category");
+export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const isCatalogPage = location.pathname === "/products";
+  const rawCategory = searchParams.get("category");
   const categoryParam = rawCategory ? decodeURIComponent(rawCategory) : null;
 
   const [search, setSearch] = useState("");
@@ -89,7 +86,7 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
     e.preventDefault();
     if (search.trim()) {
       onClose();
-      router.push(`/products?search=${encodeURIComponent(search.trim())}`);
+      navigate(`/products?search=${encodeURIComponent(search.trim())}`);
     }
   };
 
@@ -119,7 +116,7 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
               <GizmoLogo size="sm" />
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-900 border border-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+                className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-900 border border-slate-800 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -142,7 +139,7 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -161,11 +158,11 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
                     <div>
                       {searchResults.slice(0, 4).map((product) => {
                         const imgs = JSON.parse(product.images || "[]");
-                        const thumbUrl = imgs[0] || "/placeholder.jpg";
+                        const thumbUrl = imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
                         return (
                           <Link
                             key={product.id}
-                            href={`/products/${product.id}`}
+                            to={`/products/${product.id}`}
                             onClick={() => {
                               setShowSearchDropdown(false);
                               onClose();
@@ -173,7 +170,7 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
                             className="flex items-center gap-2.5 p-2.5 hover:bg-slate-800 transition-colors"
                           >
                             <div className="w-8 h-8 relative rounded-lg overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
-                              <Image src={thumbUrl} alt={product.title} fill className="object-cover" />
+                              <OptimizedImage src={thumbUrl} alt={product.title} fill />
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="text-xs font-semibold text-slate-200 truncate">
@@ -214,7 +211,7 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
                   return (
                     <Link
                       key={cat.id}
-                      href={cat.id === "all" ? "/products" : `/products?category=${encodeURIComponent(cat.id)}`}
+                      to={cat.id === "all" ? "/products" : `/products?category=${encodeURIComponent(cat.id)}`}
                       onClick={onClose}
                       className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all border ${
                         isActive
@@ -260,7 +257,7 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
                 WhatsApp Order Support
               </a>
               <Link
-                href="/admin"
+                to="/admin"
                 onClick={onClose}
                 className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-850 text-slate-300 font-medium py-2 rounded-xl border border-slate-700"
               >
@@ -273,13 +270,3 @@ function MobileNavDrawerInner({ isOpen, onClose }: MobileNavDrawerProps) {
     </AnimatePresence>
   );
 }
-
-export function MobileNavDrawer(props: MobileNavDrawerProps) {
-  return (
-    <Suspense fallback={null}>
-      <MobileNavDrawerInner {...props} />
-    </Suspense>
-  );
-}
-
-
