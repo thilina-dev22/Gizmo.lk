@@ -1168,7 +1168,12 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 GizmoTek API Backend running on http://localhost:${PORT}`);
-});
+// Start Server (Standalone Node environment)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 GizmoTek API Backend running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
+
