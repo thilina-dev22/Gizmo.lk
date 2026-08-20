@@ -6,8 +6,6 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { Product } from "@/store/useCartStore";
 import { Sparkles, ArrowRight, Truck, Banknote, Building2, HelpCircle, CheckCircle2 } from "lucide-react";
 
-import { inMemoryProducts } from "@/data/mockData";
-
 export function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,24 +15,17 @@ export function HomePage() {
   }, []);
 
   const fetchFeaturedProducts = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/products");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.products && data.products.length > 0) {
-          setFeaturedProducts(data.products.slice(0, 12));
-          setLoading(false);
-          return;
-        }
-      }
+      const res = await fetch("/api/products?sort=newest");
+      const data = await res.json();
+      setFeaturedProducts(data.products ? data.products.slice(0, 12) : []);
     } catch (err) {
-      console.warn("Home fetch products fallback:", err);
+      console.error("Home fetch products error:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setFeaturedProducts(inMemoryProducts.slice(0, 12));
-    setLoading(false);
   };
-
   return (
     <div className="space-y-12 pb-16">
       {/* Hero Banner */}

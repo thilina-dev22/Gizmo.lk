@@ -1,167 +1,111 @@
-import type { VercelRequest, VercelResponse } from '../src/types/api';
-import { sendJson, sendText } from '../src/types/api';
-import { getDb, reportDbError } from '../src/lib/db';
-import { inMemoryReviews, inMemoryOrders } from '../src/data/mockData';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { prisma } from './_db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'OPTIONS') {
-    return sendJson(res, 200, { ok: true });
-  }
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-session');
+
+  if (req.method === 'OPTIONS') return res.status(200).json({ ok: true });
 
   const action = String(req.query?.action || '').toLowerCase();
 
-  // 1. ADMIN LOGIN
+  // 1. LOGIN
   if (action === 'login' && req.method === 'POST') {
     try {
       const { username, password } = req.body || {};
       const validUsername = process.env.ADMIN_USERNAME || 'admin';
       const validPassword = process.env.ADMIN_PASSWORD || 'gizmotek2026admin';
-      const token = process.env.ADMIN_SESSION_TOKEN || 'gizmotek_authenticated_admin_session_token_2026';
+      const token = process.env.ADMIN_SESSION_TOKEN || 'gizmotek_admin_session_2026';
 
       if (username === validUsername && password === validPassword) {
-        try {
-          res.setHeader(
-            'Set-Cookie',
-            `gizmotek_admin_session=${token}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax${
-              process.env.NODE_ENV === 'production' ? '; Secure' : ''
-            }`
-          );
-        } catch (e) {}
-        return sendJson(res, 200, { success: true, token, message: 'Authentication successful' });
+        res.setHeader(
+          'Set-Cookie',
+          `gizmotek_admin_session=${token}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+        );
+        return res.status(200).json({ success: true, token, message: 'Authentication successful' });
       }
-      return sendJson(res, 401, { error: 'Invalid admin credentials' });
-    } catch (error) {
-      return sendJson(res, 500, { error: 'Internal login error' });
+      return res.status(401).json({ error: 'Invalid admin credentials' });
+    } catch (error: any) {
+      return res.status(500).json({ error: 'Internal login error' });
     }
   }
 
-  // 2. ADMIN LOGOUT
+  // 2. LOGOUT
   if (action === 'logout') {
-    try {
-      res.setHeader('Set-Cookie', 'gizmotek_admin_session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax');
-    } catch (e) {}
-    return sendJson(res, 200, { success: true, message: 'Logged out successfully' });
+    res.setHeader('Set-Cookie', 'gizmotek_admin_session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax');
+    return res.status(200).json({ success: true, message: 'Logged out successfully' });
   }
 
-  // 3. ADMIN REVIEWS (GET / PATCH)
+  // 3. REVIEWS
   if (action === 'reviews') {
-    if (req.method === 'GET') {
-      try {
-        const db = await getDb();
-        if (db && typeof db.review?.findMany === 'function') {
-          const reviews = await db.review.findMany({
-            include: { product: { select: { id: true, title: true, images: true } } },
-            orderBy: { createdAt: 'desc' },
-          });
-          if (reviews && reviews.length > 0) return sendJson(res, 200, { reviews });
+    try {
+      if (req.method === 'GET') {
+        const reviews = await prisma.review.findMany({
+          include: { product: { select: { id: true, title: true, images: true } } },
+          orderBy: { createdAt: 'desc' },
+        });
+        return res.status(200).json({ reviews });
+      }
+
+      if (req.method === 'PATCH') {
+        const { reviewId, action: reviewAction } = req.body || {};
+        if (!reviewId || !reviewAction) {
+          return res.status(400).json({ error: 'Missing reviewId or action' });
         }
-      } catch (e) {
-        reportDbError(e);
-      }
-      return sendJson(res, 200, { reviews: inMemoryReviews });
-    }
-
-    if (req.method === 'PATCH') {
-      const { reviewId, action: reviewAction } = req.body || {};
-      if (!reviewId || !reviewAction) {
-        return sendJson(res, 400, { error: 'Missing reviewId or action parameter' });
-      }
-
-      const review = inMemoryReviews.find((r) => r.id === reviewId);
-      if (review && reviewAction === 'approve') review.isApproved = true;
-
-      try {
-        const db = await getDb();
-        if (db && typeof db.review?.update === 'function') {
-          if (reviewAction === 'approve') {
-            await db.review.update({ where: { id: reviewId }, data: { isApproved: true } });
-          } else if (reviewAction === 'decline') {
-            await db.review.delete({ where: { id: reviewId } });
-          }
+        if (reviewAction === 'approve') {
+          await prisma.review.update({ where: { id: reviewId }, data: { isApproved: true } });
+        } else if (reviewAction === 'decline') {
+          await prisma.review.delete({ where: { id: reviewId } });
         }
-      } catch (e) {
-        reportDbError(e);
+        return res.status(200).json({ success: true, status: String(reviewAction).toUpperCase() });
       }
-
-      return sendJson(res, 200, { success: true, status: String(reviewAction).toUpperCase() });
+    } catch (error: any) {
+      console.error('[api/admin/reviews] Error:', error?.message || error);
+      return res.status(500).json({ error: 'Internal server error', detail: error?.message });
     }
   }
 
   // 4. EXPORT ORDERS CSV
   if (action === 'export-orders') {
     try {
-      let ordersList = inMemoryOrders;
-      try {
-        const db = await getDb();
-        if (db && typeof db.order?.findMany === 'function') {
-          const dbOrders = await db.order.findMany({
-            include: { items: { include: { product: true } } },
-            orderBy: { createdAt: 'desc' },
-          });
-          if (dbOrders && dbOrders.length > 0) ordersList = dbOrders as any;
-        }
-      } catch (e) {
-        reportDbError(e);
-      }
+      const orders = await prisma.order.findMany({
+        include: { items: { include: { product: true } } },
+        orderBy: { createdAt: 'desc' },
+      });
 
-      const csvRows: string[] = [];
-      csvRows.push(
-        [
-          'Waybill/Order No',
-          'Receiver Name',
-          'Receiver Contact',
-          'Delivery Address',
-          'District',
-          'City',
-          'COD Amount LKR',
-          'Payment Method',
-          'Order Status',
-          'Payment Status',
-          'Items Description',
-          'Order Date',
-          'Courier Remarks',
-        ].join(',')
-      );
+      const escapeCsv = (val: any) => {
+        if (val === null || val === undefined) return '""';
+        return `"${String(val).replace(/"/g, '""')}"`;
+      };
 
-      for (const o of ordersList) {
+      const csvRows: string[] = [
+        ['Waybill/Order No','Receiver Name','Receiver Contact','Delivery Address','District','City','COD Amount LKR','Payment Method','Order Status','Payment Status','Items Description','Order Date','Courier Remarks'].join(',')
+      ];
+
+      for (const o of orders) {
         const codAmount = o.paymentMethod === 'COD' ? o.totalLkr : 0;
         const itemsDesc = o.items
           ? o.items.map((i: any) => `${i.product?.title || 'Gadget'} (x${i.quantity})`).join(' | ')
           : 'Tech Gadgets';
-
-        const escapeCsv = (val: any) => {
-          if (val === null || val === undefined) return '""';
-          return `"${String(val).replace(/"/g, '""')}"`;
-        };
-
-        csvRows.push(
-          [
-            escapeCsv(o.orderNumber),
-            escapeCsv(o.customerName),
-            escapeCsv(o.customerPhone),
-            escapeCsv(o.address),
-            escapeCsv(o.district),
-            escapeCsv(o.city),
-            escapeCsv(codAmount),
-            escapeCsv(o.paymentMethod),
-            escapeCsv(o.orderStatus),
-            escapeCsv(o.paymentStatus),
-            escapeCsv(itemsDesc),
-            escapeCsv(new Date(o.createdAt).toLocaleDateString('en-LK')),
-            escapeCsv(o.notes || 'Handle with care - Fragile Electronics'),
-          ].join(',')
-        );
+        csvRows.push([
+          escapeCsv(o.orderNumber), escapeCsv(o.customerName), escapeCsv(o.customerPhone),
+          escapeCsv(o.address), escapeCsv(o.district), escapeCsv(o.city),
+          escapeCsv(codAmount), escapeCsv(o.paymentMethod), escapeCsv(o.orderStatus),
+          escapeCsv(o.paymentStatus), escapeCsv(itemsDesc),
+          escapeCsv(new Date(o.createdAt).toLocaleDateString('en-LK')),
+          escapeCsv(o.notes || 'Handle with care - Fragile Electronics'),
+        ].join(','));
       }
 
-      const csvData = csvRows.join('\r\n');
-      try {
-        res.setHeader('Content-Disposition', `attachment; filename=GizmoTek_Orders_${Date.now()}.csv`);
-      } catch (e) {}
-      return sendText(res, 200, csvData, 'text/csv; charset=utf-8');
-    } catch (error) {
-      return sendJson(res, 500, { error: 'Failed to export orders CSV' });
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=GizmoTek_Orders_${Date.now()}.csv`);
+      return res.status(200).send(csvRows.join('\r\n'));
+    } catch (error: any) {
+      console.error('[api/admin/export-orders] Error:', error?.message || error);
+      return res.status(500).json({ error: 'Failed to export orders CSV', detail: error?.message });
     }
   }
 
-  return sendJson(res, 404, { error: 'Unknown admin action' });
+  return res.status(404).json({ error: 'Unknown admin action' });
 }

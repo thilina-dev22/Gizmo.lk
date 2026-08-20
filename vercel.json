@@ -1,22 +1,15 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    {
-      "source": "/api/products/:id",
-      "destination": "/api/products?id=:id"
-    },
-    {
-      "source": "/api/admin/:action",
-      "destination": "/api/admin?action=:action"
-    },
-    {
-      "source": "/api/payhere/:action",
-      "destination": "/api/payhere?action=:action"
-    },
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@3"
     }
+  },
+  "rewrites": [
+    { "source": "/api/products/:id", "destination": "/api/products?id=:id" },
+    { "source": "/api/admin/:action", "destination": "/api/admin?action=:action" },
+    { "source": "/api/payhere/:action", "destination": "/api/payhere?action=:action" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

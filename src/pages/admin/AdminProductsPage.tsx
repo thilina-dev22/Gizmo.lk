@@ -5,7 +5,6 @@ import { CATEGORIES } from "@/lib/constants";
 import { formatLKR } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import { Plus, Edit, ExternalLink, X, Search } from "lucide-react";
-import { inMemoryProducts } from "@/data/mockData";
 
 export function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -39,22 +38,18 @@ export function AdminProductsPage() {
 
   const fetchProducts = async () => {
     setLoading(true);
-    let loaded = inMemoryProducts;
     try {
       const res = await fetch("/api/products");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.products && data.products.length > 0) {
-          loaded = data.products;
-        }
-      }
+      const data = await res.json();
+      setProducts(data.products || []);
     } catch (e) {
-      console.warn("Admin products fallback:", e);
+      console.error("Admin products error:", e);
+      setProducts([]);
     } finally {
-      setProducts(loaded);
       setLoading(false);
     }
   };
+
 
   const handleOpenModal = (product?: Product) => {
     if (product) {

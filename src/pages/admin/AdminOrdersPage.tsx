@@ -3,7 +3,6 @@ import { formatLKR } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import { Download, Eye, FileCheck, X, Package, Printer, MapPin, Phone, User, Mail } from "lucide-react";
 
-import { inMemoryOrders } from "@/data/mockData";
 
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -18,26 +17,18 @@ export function AdminOrdersPage() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    let loadedOrders = inMemoryOrders;
-    if (statusFilter !== "ALL") {
-      loadedOrders = loadedOrders.filter((o) => o.orderStatus === statusFilter);
-    }
-
     try {
       const res = await fetch(`/api/orders?status=${statusFilter}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.orders && data.orders.length > 0) {
-          loadedOrders = data.orders;
-        }
-      }
+      const data = await res.json();
+      setOrders(data.orders || []);
     } catch (e) {
-      console.warn("Orders fetch fallback:", e);
+      console.error("Orders fetch error:", e);
+      setOrders([]);
     } finally {
-      setOrders(loadedOrders);
       setLoading(false);
     }
   };
+
 
   const handleUpdateStatus = async (orderId: string, orderStatus: string, paymentStatus?: string) => {
     try {

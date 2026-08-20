@@ -19,7 +19,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import { inMemoryProducts, inMemoryReviews } from "@/data/mockData";
+
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
 
@@ -52,47 +52,28 @@ export function ProductDetailPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/products/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.product) {
-          setProduct(data.product);
-          const imgs = safeParseImages(data.product?.images);
-          setActiveImage(imgs[0] || FALLBACK_IMAGE);
-          setLoading(false);
-          return;
-        }
+      const data = await res.json();
+      if (data.product) {
+        setProduct(data.product);
+        const imgs = safeParseImages(data.product?.images);
+        setActiveImage(imgs[0] || FALLBACK_IMAGE);
       }
     } catch (err) {
-      console.warn("Fetch product fallback:", err);
+      console.error("Fetch product error:", err);
+    } finally {
+      setLoading(false);
     }
-
-    const fallback = inMemoryProducts.find((p) => p.id === id || p.slug === id);
-    if (fallback) {
-      setProduct(fallback);
-      const imgs = safeParseImages(fallback?.images);
-      setActiveImage(imgs[0] || FALLBACK_IMAGE);
-    }
-    setLoading(false);
   };
 
   const fetchReviews = async () => {
     try {
       const res = await fetch(`/api/reviews?productId=${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.reviews && data.reviews.length > 0) {
-          setReviewsList(data.reviews);
-          return;
-        }
-      }
+      const data = await res.json();
+      setReviewsList(data.reviews || []);
     } catch (err) {
-      console.warn("Fetch reviews fallback:", err);
+      console.error("Fetch reviews error:", err);
+      setReviewsList([]);
     }
-
-    const fallbackReviews = inMemoryReviews.filter(
-      (r) => (r.productId === id || r.product?.id === id || r.product?.slug === id) && r.isApproved
-    );
-    setReviewsList(fallbackReviews);
   };
 
   const handleAddToCart = () => {

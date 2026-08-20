@@ -4,7 +4,6 @@ import { formatLKR } from "@/lib/utils";
 import { DollarSign, ShoppingBag, Banknote, Building2, TrendingUp, ArrowRight, Download } from "lucide-react";
 import { Product } from "@/store/useCartStore";
 
-import { inMemoryOrders, inMemoryProducts } from "@/data/mockData";
 
 export function AdminOverviewPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -17,36 +16,22 @@ export function AdminOverviewPage() {
 
   const fetchDashboardData = async () => {
     setLoading(true);
-    let loadedOrders = inMemoryOrders;
-    let loadedProducts = inMemoryProducts;
-
     try {
       const [ordersRes, productsRes] = await Promise.all([
-        fetch("/api/orders").catch(() => null),
-        fetch("/api/products").catch(() => null),
+        fetch("/api/orders"),
+        fetch("/api/products"),
       ]);
-
-      if (ordersRes && ordersRes.ok) {
-        const ordersData = await ordersRes.json();
-        if (ordersData.orders && ordersData.orders.length > 0) {
-          loadedOrders = ordersData.orders;
-        }
-      }
-
-      if (productsRes && productsRes.ok) {
-        const productsData = await productsRes.json();
-        if (productsData.products && productsData.products.length > 0) {
-          loadedProducts = productsData.products;
-        }
-      }
+      const ordersData = await ordersRes.json();
+      const productsData = await productsRes.json();
+      setOrders(ordersData.orders || []);
+      setProducts(productsData.products || []);
     } catch (e) {
-      console.warn("Admin dashboard data fallback:", e);
+      console.error("Admin dashboard error:", e);
     } finally {
-      setOrders(loadedOrders);
-      setProducts(loadedProducts);
       setLoading(false);
     }
   };
+
 
   // Analytics Metrics Calculation
   const totalSalesLkr = orders.reduce((sum, o) => sum + (o.totalLkr || 0), 0);
