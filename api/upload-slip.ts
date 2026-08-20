@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '../src/types/api';
+import { sendJson } from '../src/types/api';
 
 export const config = {
   api: {
@@ -9,13 +10,12 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return sendJson(res, 200, { ok: true });
+  }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendJson(res, 405, { error: 'Method not allowed' });
   }
 
   try {
@@ -23,19 +23,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (imageBase64 || file) {
       const url = imageBase64 || file;
-      return res.status(200).json({
+      return sendJson(res, 200, {
         url,
         fileName: fileName || 'bank-slip.jpg',
         message: 'Bank deposit slip uploaded successfully',
       });
     }
 
-    return res.status(200).json({
+    return sendJson(res, 200, {
       url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=600&auto=format&fit=crop',
       fileName: 'bank-slip.jpg',
       message: 'Bank deposit slip uploaded successfully',
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to process bank slip image' });
+    return sendJson(res, 500, { error: 'Failed to process bank slip image' });
   }
 }

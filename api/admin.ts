@@ -1,14 +1,14 @@
 import type { VercelRequest, VercelResponse } from '../src/types/api';
+import { sendJson, sendText } from '../src/types/api';
 import { getDb, reportDbError } from '../src/lib/db';
 import { inMemoryReviews, inMemoryOrders } from '../src/data/mockData';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-session');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return sendJson(res, 200, { ok: true });
+  }
 
-  const action = String(req.query.action || '').toLowerCase();
+  const action = String(req.query?.action || '').toLowerCase();
 
   // 1. ADMIN LOGIN
   if (action === 'login' && req.method === 'POST') {
@@ -19,24 +19,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const token = process.env.ADMIN_SESSION_TOKEN || 'gizmotek_authenticated_admin_session_token_2026';
 
       if (username === validUsername && password === validPassword) {
-        res.setHeader(
-          'Set-Cookie',
-          `gizmotek_admin_session=${token}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax${
-            process.env.NODE_ENV === 'production' ? '; Secure' : ''
-          }`
-        );
-        return res.status(200).json({ success: true, token, message: 'Authentication successful' });
+        try {
+          res.setHeader(
+            'Set-Cookie',
+            `gizmotek_admin_session=${token}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax${
+              process.env.NODE_ENV === 'production' ? '; Secure' : ''
+            }`
+          );
+        } catch (e) {}
+        return sendJson(res, 200, { success: true, token, message: 'Authentication successful' });
       }
-      return res.status(401).json({ error: 'Invalid admin credentials' });
+      return sendJson(res, 401, { error: 'Invalid admin credentials' });
     } catch (error) {
-      return res.status(500).json({ error: 'Internal login error' });
+      return sendJson(res, 500, { error: 'Internal login error' });
     }
   }
 
   // 2. ADMIN LOGOUT
   if (action === 'logout') {
-    res.setHeader('Set-Cookie', 'gizmotek_admin_session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax');
-    return res.status(200).json({ success: true, message: 'Logged out successfully' });
+    try {
+      res.setHeader('Set-Cookie', 'gizmotek_admin_session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax');
+    } catch (e) {}
+    return sendJson(res, 200, { success: true, message: 'Logged out successfully' });
   }
 
   // 3. ADMIN REVIEWS (GET / PATCH)
@@ -49,18 +53,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             include: { product: { select: { id: true, title: true, images: true } } },
             orderBy: { createdAt: 'desc' },
           });
-          if (reviews && reviews.length > 0) return res.status(200).json({ reviews });
+          if (reviews && reviews.length > 0) return sendJson(res, 200, { reviews });
         }
       } catch (e) {
         reportDbError(e);
       }
-      return res.status(200).json({ reviews: inMemoryReviews });
+      return sendJson(res, 200, { reviews: inMemoryReviews });
     }
 
     if (req.method === 'PATCH') {
       const { reviewId, action: reviewAction } = req.body || {};
       if (!reviewId || !reviewAction) {
-        return res.status(400).json({ error: 'Missing reviewId or action parameter' });
+        return sendJson(res, 400, { error: 'Missing reviewId or action parameter' });
       }
 
       const review = inMemoryReviews.find((r) => r.id === reviewId);
@@ -79,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         reportDbError(e);
       }
 
-      return res.status(200).json({ success: true, status: String(reviewAction).toUpperCase() });
+      return sendJson(res, 200, { success: true, status: String(reviewAction).toUpperCase() });
     }
   }
 
@@ -150,13 +154,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const csvData = csvRows.join('\r\n');
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=GizmoTek_Orders_${Date.now()}.csv`);
-      return res.status(200).send(csvData);
+      try {
+        res.setHeader('Content-Disposition', `attachment; filename=GizmoTek_Orders_${Date.now()}.csv`);
+      } catch (e) {}
+      return sendText(res, 200, csvData, 'text/csv; charset=utf-8');
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to export orders CSV' });
+      return sendJson(res, 500, { error: 'Failed to export orders CSV' });
     }
   }
 
-  return res.status(404).json({ error: 'Unknown admin action' });
+  return sendJson(res, 404, { error: 'Unknown admin action' });
 }

@@ -1,18 +1,18 @@
 import type { VercelRequest, VercelResponse } from '../src/types/api';
+import { sendJson } from '../src/types/api';
 import { getDb, ensureTablesExist, reportDbError } from '../src/lib/db';
 import { inMemoryProducts } from '../src/data/mockData';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-session');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return sendJson(res, 200, { ok: true });
+  }
 
   try {
     if (req.method === 'GET') {
-      const { id, slug, search = '', category = '', sort = 'newest', featured } = req.query;
+      const { id, slug, search = '', category = '', sort = 'newest', featured } = req.query || {};
 
-      // Handle single product query if id/slug passed as query
+      // Handle single product query if id/slug passed
       if (id || slug) {
         const prodId = String(id || slug);
         try {
@@ -21,15 +21,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const product = await db.product.findFirst({
               where: { OR: [{ id: prodId }, { slug: prodId }] },
             });
-            if (product) return res.status(200).json({ product });
+            if (product) return sendJson(res, 200, { product });
           }
         } catch (e) {
           reportDbError(e);
         }
 
         const fallback = inMemoryProducts.find((p) => p.id === prodId || p.slug === prodId);
-        if (fallback) return res.status(200).json({ product: fallback });
-        return res.status(404).json({ error: 'Product not found' });
+        if (fallback) return sendJson(res, 200, { product: fallback });
+        return sendJson(res, 404, { error: 'Product not found' });
       }
 
       // Handle product list
@@ -73,8 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           const products = await db.product.findMany({ where, orderBy });
           if (products && products.length > 0) {
-            res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=60');
-            return res.status(200).json({ products });
+            return sendJson(res, 200, { products });
           }
         }
       } catch (e) {
@@ -110,8 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         filtered.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0));
       }
 
-      res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=60');
-      return res.status(200).json({ products: filtered });
+      return sendJson(res, 200, { products: filtered });
     }
 
     if (req.method === 'POST') {
@@ -134,7 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } = req.body || {};
 
       if (!title || !category || !sellingPriceLkr || !sku) {
-        return res.status(400).json({ error: 'Missing required product fields' });
+        return sendJson(res, 400, { error: 'Missing required product fields' });
       }
 
       const slug = title
@@ -197,9 +195,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             },
           });
 
-          return res.status(200).json({ success: true, product });
+          return sendJson(res, 200, { success: true, product });
         }
-      } catch (e) {}
+      } catch (e) {
+        reportDbError(e);
+      }
 
       const newProduct = {
         id: `prod-${Date.now()}`,
@@ -223,11 +223,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         updatedAt: new Date().toISOString(),
       };
       inMemoryProducts.unshift(newProduct);
-      return res.status(200).json({ success: true, product: newProduct });
+      return sendJson(res, 200, { success: true, product: newProduct });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendJson(res, 405, { error: 'Method not allowed' });
   } catch (error: any) {
-    return res.status(200).json({ products: inMemoryProducts });
+    return sendJson(res, 200, { products: inMemoryProducts });
   }
 }

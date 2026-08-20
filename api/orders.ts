@@ -1,16 +1,16 @@
 import type { VercelRequest, VercelResponse } from '../src/types/api';
-import { getDb } from '../src/lib/db';
+import { sendJson } from '../src/types/api';
+import { getDb, reportDbError } from '../src/lib/db';
 import { inMemoryOrders, inMemoryProducts } from '../src/data/mockData';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-session');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return sendJson(res, 200, { ok: true });
+  }
 
   try {
     if (req.method === 'GET') {
-      const { status, id, orderNumber } = req.query;
+      const { status, id, orderNumber } = req.query || {};
 
       if (id || orderNumber) {
         try {
@@ -25,12 +25,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               },
               include: { items: { include: { product: true } } },
             });
-            if (order) return res.status(200).json({ order });
+            if (order) return sendJson(res, 200, { order });
           }
-        } catch (e) {}
+        } catch (e) {
+          reportDbError(e);
+        }
 
         const found = inMemoryOrders.find((o) => o.id === id || o.orderNumber === (orderNumber || id));
-        return res.status(200).json({ order: found || inMemoryOrders[0] });
+        return sendJson(res, 200, { order: found || inMemoryOrders[0] });
       }
 
       try {
@@ -47,15 +49,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             orderBy: { createdAt: 'desc' },
           });
 
-          if (orders && orders.length > 0) return res.status(200).json({ orders });
+          if (orders && orders.length > 0) return sendJson(res, 200, { orders });
         }
-      } catch (e) {}
+      } catch (e) {
+        reportDbError(e);
+      }
 
       let filtered = [...inMemoryOrders];
       if (status && status !== 'ALL') {
         filtered = filtered.filter((o) => o.orderStatus === status);
       }
-      return res.status(200).json({ orders: filtered });
+      return sendJson(res, 200, { orders: filtered });
     }
 
     if (req.method === 'POST') {
@@ -73,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } = req.body || {};
 
       if (!customerName || !customerPhone || !address || !district || !items || items.length === 0) {
-        return res.status(400).json({ error: 'Missing required order information' });
+        return sendJson(res, 400, { error: 'Missing required order information' });
       }
 
       let subtotalLkr = 0;
@@ -87,7 +91,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const dbProd = await db.product.findUnique({ where: { id: item.productId } });
             if (dbProd) product = dbProd as any;
           }
-        } catch (e) {}
+        } catch (e) {
+          reportDbError(e);
+        }
 
         const unitPrice = product ? product.sellingPriceLkr : 5000;
         subtotalLkr += unitPrice * item.quantity;
@@ -157,19 +163,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             include: { items: { include: { product: true } } },
           });
           inMemoryOrders.unshift(createdOrder);
-          return res.status(200).json({ success: true, order: createdOrder });
+          return sendJson(res, 200, { success: true, order: createdOrder });
         }
-      } catch (e) {}
+      } catch (e) {
+        reportDbError(e);
+      }
 
       inMemoryOrders.unshift(newOrder);
-      return res.status(200).json({ success: true, order: newOrder });
+      return sendJson(res, 200, { success: true, order: newOrder });
     }
 
     if (req.method === 'PATCH') {
       const { orderId, orderStatus, paymentStatus } = req.body || {};
 
       if (!orderId) {
-        return res.status(400).json({ error: 'Missing orderId parameter' });
+        return sendJson(res, 400, { error: 'Missing orderId parameter' });
       }
 
       const dataToUpdate: any = {};
@@ -183,20 +191,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             where: { id: orderId },
             data: dataToUpdate,
           });
-          return res.status(200).json({ success: true, order: updatedOrder });
+          return sendJson(res, 200, { success: true, order: updatedOrder });
         }
-      } catch (e) {}
+      } catch (e) {
+        reportDbError(e);
+      }
 
       const order = inMemoryOrders.find((o) => o.id === orderId);
       if (order) {
         if (orderStatus) order.orderStatus = orderStatus;
         if (paymentStatus) order.paymentStatus = paymentStatus;
       }
-      return res.status(200).json({ success: true, order });
+      return sendJson(res, 200, { success: true, order });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendJson(res, 405, { error: 'Method not allowed' });
   } catch (error: any) {
-    return res.status(200).json({ orders: inMemoryOrders });
+    return sendJson(res, 200, { orders: inMemoryOrders });
   }
 }

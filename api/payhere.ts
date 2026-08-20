@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '../src/types/api';
+import { sendJson } from '../src/types/api';
 import {
   PAYHERE_MERCHANT_ID,
   PAYHERE_CHECKOUT_URL,
@@ -9,12 +10,11 @@ import { getDb, reportDbError } from '../src/lib/db';
 import { inMemoryOrders } from '../src/data/mockData';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return sendJson(res, 200, { ok: true });
+  }
 
-  const action = String(req.query.action || '').toLowerCase();
+  const action = String(req.query?.action || '').toLowerCase();
 
   // 1. GENERATE PAYHERE HASH
   if (action === 'hash') {
@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } = req.body || {};
 
       if (!orderId || !totalLkr) {
-        return res.status(400).json({ error: 'Missing orderId or totalLkr' });
+        return sendJson(res, 400, { error: 'Missing orderId or totalLkr' });
       }
 
       const nameParts = (customerName || 'Valued Customer').trim().split(' ');
@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'LKR'
       );
 
-      const origin = req.headers.origin || 'https://www.gizmotek.lk';
+      const origin = req.headers?.origin || 'https://www.gizmotek.lk';
 
       const payherePayload = {
         actionUrl: PAYHERE_CHECKOUT_URL,
@@ -68,9 +68,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         hash: hash,
       };
 
-      return res.status(200).json({ success: true, payload: payherePayload });
+      return sendJson(res, 200, { success: true, payload: payherePayload });
     } catch (error: any) {
-      return res.status(500).json({ error: 'Failed to generate PayHere payment hash' });
+      return sendJson(res, 500, { error: 'Failed to generate PayHere payment hash' });
     }
   }
 
@@ -97,7 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
 
       if (!isValid) {
-        return res.status(400).json({ error: 'Invalid signature' });
+        return sendJson(res, 400, { error: 'Invalid signature' });
       }
 
       const order = inMemoryOrders.find((o) => o.id === order_id);
@@ -128,11 +128,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         reportDbError(e);
       }
 
-      return res.status(200).json({ success: true });
+      return sendJson(res, 200, { success: true });
     } catch (error: any) {
-      return res.status(500).json({ error: 'Internal webhook processing error' });
+      return sendJson(res, 500, { error: 'Internal webhook processing error' });
     }
   }
 
-  return res.status(404).json({ error: 'Unknown payhere action' });
+  return sendJson(res, 404, { error: 'Unknown payhere action' });
 }

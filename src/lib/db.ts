@@ -1,9 +1,12 @@
-import type { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
-let prismaInstance: PrismaClient | null = null;
-let isTablesChecked = false;
+declare global {
+  var prismaGlobal: PrismaClient | undefined;
+}
+
 let isDbDisabled = false;
 let lastDbErrorTime = 0;
+let isTablesChecked = false;
 
 export function reportDbError(error: any) {
   isDbDisabled = true;
@@ -23,12 +26,11 @@ export async function getDb(): Promise<PrismaClient | null> {
   }
 
   try {
-    if (prismaInstance) return prismaInstance;
-    const { PrismaClient } = await import("@prisma/client");
-    prismaInstance = new PrismaClient({
+    if (global.prismaGlobal) return global.prismaGlobal;
+    global.prismaGlobal = new PrismaClient({
       log: ["error"],
     });
-    return prismaInstance;
+    return global.prismaGlobal;
   } catch (e) {
     reportDbError(e);
     return null;
@@ -36,7 +38,7 @@ export async function getDb(): Promise<PrismaClient | null> {
 }
 
 export async function ensureTablesExist() {
-  if (isTablesChecked || !process.env.DATABASE_URL) return;
+  if (isTablesChecked || !process.env.DATABASE_URL || isDbDisabled) return;
 
   try {
     const db = await getDb();

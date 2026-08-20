@@ -1,19 +1,19 @@
 import type { VercelRequest, VercelResponse } from '../src/types/api';
-import { getDb } from '../src/lib/db';
+import { sendJson } from '../src/types/api';
+import { getDb, reportDbError } from '../src/lib/db';
 import { inMemoryReviews, inMemoryProducts } from '../src/data/mockData';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return sendJson(res, 200, { ok: true });
+  }
 
   try {
     if (req.method === 'GET') {
-      const { productId } = req.query;
+      const { productId } = req.query || {};
 
       if (!productId || typeof productId !== 'string') {
-        return res.status(400).json({ error: 'Missing productId parameter' });
+        return sendJson(res, 400, { error: 'Missing productId parameter' });
       }
 
       try {
@@ -26,24 +26,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             },
             orderBy: { createdAt: 'desc' },
           });
-          if (reviews && reviews.length > 0) return res.status(200).json({ reviews });
+          if (reviews && reviews.length > 0) return sendJson(res, 200, { reviews });
         }
-      } catch (e) {}
+      } catch (e) {
+        reportDbError(e);
+      }
 
       const reviews = inMemoryReviews.filter((r) => r.productId === productId && r.isApproved);
-      return res.status(200).json({ reviews });
+      return sendJson(res, 200, { reviews });
     }
 
     if (req.method === 'POST') {
       const { productId, authorName, rating, comment } = req.body || {};
 
       if (!productId || !authorName || !rating || !comment) {
-        return res.status(400).json({ error: 'Missing required review fields' });
+        return sendJson(res, 400, { error: 'Missing required review fields' });
       }
 
       const numRating = parseInt(String(rating), 10);
       if (isNaN(numRating) || numRating < 1 || numRating > 5) {
-        return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+        return sendJson(res, 400, { error: 'Rating must be between 1 and 5' });
       }
 
       try {
@@ -58,9 +60,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               isApproved: false,
             },
           });
-          return res.status(200).json({ success: true, review });
+          return sendJson(res, 200, { success: true, review });
         }
-      } catch (e) {}
+      } catch (e) {
+        reportDbError(e);
+      }
 
       const review = {
         id: `rev-${Date.now()}`,
@@ -73,11 +77,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         product: inMemoryProducts.find((p) => p.id === productId),
       };
       inMemoryReviews.unshift(review);
-      return res.status(200).json({ success: true, review });
+      return sendJson(res, 200, { success: true, review });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendJson(res, 405, { error: 'Method not allowed' });
   } catch (error: any) {
-    return res.status(200).json({ reviews: inMemoryReviews });
+    return sendJson(res, 200, { reviews: inMemoryReviews });
   }
 }
