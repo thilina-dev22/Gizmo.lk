@@ -310,7 +310,7 @@ let inMemoryReviews: any[] = [
   },
 ];
 
-// Middleware
+// Global Express Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -333,12 +333,15 @@ const adminAuthMiddleware = (req: express.Request, res: express.Response, next: 
   next();
 };
 
+// Create an isolated router for API endpoints
+const apiRouter = express.Router();
+
 // ==========================================
 // 1. PRODUCTS API
 // ==========================================
 
-// GET /api/products
-app.get(['/api/products', '/products'], async (req, res) => {
+// GET /products
+apiRouter.get('/products', async (req, res) => {
   const { search = '', category = '', sort = 'newest', featured } = req.query;
 
   try {
@@ -428,8 +431,8 @@ app.get(['/api/products', '/products'], async (req, res) => {
   return res.json({ products: filtered });
 });
 
-// GET /api/products/:id
-app.get(['/api/products/:id', '/products/:id'], async (req, res) => {
+// GET /products/:id
+apiRouter.get('/products/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -451,8 +454,8 @@ app.get(['/api/products/:id', '/products/:id'], async (req, res) => {
   return res.status(404).json({ error: 'Product not found' });
 });
 
-// POST /api/products (Admin create/edit)
-app.post(['/api/products', '/products'], async (req, res) => {
+// POST /products (Admin create/edit)
+apiRouter.post('/products', async (req, res) => {
   try {
     const {
       title,
@@ -571,8 +574,8 @@ app.post(['/api/products', '/products'], async (req, res) => {
 // 2. ORDERS API
 // ==========================================
 
-// GET /api/orders
-app.get(['/api/orders', '/orders'], async (req, res) => {
+// GET /orders
+apiRouter.get('/orders', async (req, res) => {
   try {
     const { status, id, orderNumber } = req.query;
 
@@ -631,8 +634,8 @@ app.get(['/api/orders', '/orders'], async (req, res) => {
   }
 });
 
-// POST /api/orders
-app.post(['/api/orders', '/orders'], async (req, res) => {
+// POST /orders
+apiRouter.post('/orders', async (req, res) => {
   try {
     const {
       customerName,
@@ -746,8 +749,8 @@ app.post(['/api/orders', '/orders'], async (req, res) => {
   }
 });
 
-// PATCH /api/orders
-app.patch(['/api/orders', '/orders'], async (req, res) => {
+// PATCH /orders
+apiRouter.patch('/orders', async (req, res) => {
   try {
     const { orderId, orderStatus, paymentStatus } = req.body;
 
@@ -784,8 +787,8 @@ app.patch(['/api/orders', '/orders'], async (req, res) => {
 // 3. REVIEWS API
 // ==========================================
 
-// GET /api/reviews
-app.get(['/api/reviews', '/reviews'], async (req, res) => {
+// GET /reviews
+apiRouter.get('/reviews', async (req, res) => {
   try {
     const { productId } = req.query;
 
@@ -813,8 +816,8 @@ app.get(['/api/reviews', '/reviews'], async (req, res) => {
   }
 });
 
-// POST /api/reviews
-app.post(['/api/reviews', '/reviews'], async (req, res) => {
+// POST /reviews
+apiRouter.post('/reviews', async (req, res) => {
   try {
     const { productId, authorName, rating, comment } = req.body;
 
@@ -863,8 +866,8 @@ app.post(['/api/reviews', '/reviews'], async (req, res) => {
 // 4. ADMIN AUTH & REVIEWS MODERATION
 // ==========================================
 
-// POST /api/admin/login
-app.post(['/api/admin/login', '/admin/login'], (req, res) => {
+// POST /admin/login
+apiRouter.post('/admin/login', (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -890,14 +893,14 @@ app.post(['/api/admin/login', '/admin/login'], (req, res) => {
   }
 });
 
-// POST /api/admin/logout
-app.post(['/api/admin/logout', '/admin/logout'], (req, res) => {
+// POST /admin/logout
+apiRouter.post('/admin/logout', (req, res) => {
   res.clearCookie('gizmotek_admin_session', { path: '/' });
   return res.json({ success: true, message: 'Logged out successfully' });
 });
 
-// GET /api/admin/reviews
-app.get(['/api/admin/reviews', '/admin/reviews'], async (req, res) => {
+// GET /admin/reviews
+apiRouter.get('/admin/reviews', async (req, res) => {
   try {
     try {
       if (db && typeof db.review?.findMany === 'function') {
@@ -919,8 +922,8 @@ app.get(['/api/admin/reviews', '/admin/reviews'], async (req, res) => {
   }
 });
 
-// PATCH /api/admin/reviews
-app.patch(['/api/admin/reviews', '/admin/reviews'], async (req, res) => {
+// PATCH /admin/reviews
+apiRouter.patch('/admin/reviews', async (req, res) => {
   try {
     const { reviewId, action } = req.body;
 
@@ -958,8 +961,8 @@ app.patch(['/api/admin/reviews', '/admin/reviews'], async (req, res) => {
   }
 });
 
-// GET /api/admin/export-orders (CSV Download)
-app.get(['/api/admin/export-orders', '/admin/export-orders'], async (req, res) => {
+// GET /admin/export-orders (CSV Download)
+apiRouter.get('/admin/export-orders', async (req, res) => {
   try {
     let ordersList = inMemoryOrders;
     try {
@@ -1039,8 +1042,8 @@ app.get(['/api/admin/export-orders', '/admin/export-orders'], async (req, res) =
 // 5. PAYHERE PAYMENT GATEWAY API
 // ==========================================
 
-// POST /api/payhere/hash
-app.post(['/api/payhere/hash', '/payhere/hash'], (req, res) => {
+// POST /payhere/hash
+apiRouter.post('/payhere/hash', (req, res) => {
   try {
     const {
       orderId,
@@ -1097,8 +1100,8 @@ app.post(['/api/payhere/hash', '/payhere/hash'], (req, res) => {
   }
 });
 
-// POST /api/payhere/notify
-app.post(['/api/payhere/notify', '/payhere/notify'], async (req, res) => {
+// POST /payhere/notify
+apiRouter.post('/payhere/notify', async (req, res) => {
   try {
     const {
       merchant_id,
@@ -1158,8 +1161,8 @@ app.post(['/api/payhere/notify', '/payhere/notify'], async (req, res) => {
 // 6. BANK SLIP UPLOAD API
 // ==========================================
 
-// POST /api/upload-slip
-app.post(['/api/upload-slip', '/upload-slip'], upload.single('file'), (req, res) => {
+// POST /upload-slip
+apiRouter.post('/upload-slip', upload.single('file'), (req, res) => {
   try {
     const file = req.file;
 
@@ -1180,27 +1183,28 @@ app.post(['/api/upload-slip', '/upload-slip'], upload.single('file'), (req, res)
   }
 });
 
-// ==========================================
-// 7. PRODUCTION STATIC ASSETS & SPA ROUTING
-// ==========================================
-const distPath = path.resolve(process.cwd(), 'dist');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  app.use((req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/api')) {
-      return res.sendFile(path.resolve(distPath, 'index.html'));
-    }
-    next();
-  });
-}
+// Mount the API Router to BOTH '/api' and '/'
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
-// Start Server (Standalone Node environment)
+// ==========================================
+// 7. PRODUCTION STATIC ASSETS & SPA ROUTING (Local/Standalone Node ONLY)
+// ==========================================
 if (!process.env.VERCEL) {
+  const distPath = path.resolve(process.cwd(), 'dist');
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.use((req, res, next) => {
+      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        return res.sendFile(path.resolve(distPath, 'index.html'));
+      }
+      next();
+    });
+  }
+
   app.listen(PORT, () => {
     console.log(`🚀 GizmoTek API Backend running on http://localhost:${PORT}`);
   });
 }
 
 export default app;
-
-
