@@ -1,43 +1,31 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+let prismaInstance: PrismaClient | null = null;
+let isTablesChecked = false;
 
-function createPrismaClient(): PrismaClient | null {
-  if (!process.env.DATABASE_URL) {
-    return null;
-  }
+export async function getDb(): Promise<PrismaClient | null> {
+  if (prismaInstance) return prismaInstance;
+  if (!process.env.DATABASE_URL) return null;
+
   try {
-    const client =
-      globalForPrisma.prisma ??
-      new PrismaClient({
-        log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-      });
-    return client;
+    const { PrismaClient } = await import("@prisma/client");
+    prismaInstance = new PrismaClient({
+      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    });
+    return prismaInstance;
   } catch (e) {
-    console.error("PrismaClient initialization warning:", e);
+    console.warn("PrismaClient initialization fallback:", e);
     return null;
   }
 }
 
-export const db: PrismaClient | null = createPrismaClient();
-
-if (process.env.NODE_ENV !== "production" && db) globalForPrisma.prisma = db;
-
-let isTablesChecked = false;
-
 export async function ensureTablesExist() {
-  if (
-    isTablesChecked ||
-    !db ||
-    !process.env.DATABASE_URL ||
-    typeof db.$executeRawUnsafe !== "function"
-  ) {
-    return;
-  }
+  if (isTablesChecked || !process.env.DATABASE_URL) return;
 
   try {
+    const db = await getDb();
+    if (!db || typeof db.$executeRawUnsafe !== "function") return;
+
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Review" (
         "id" TEXT NOT NULL PRIMARY KEY,
@@ -60,6 +48,6 @@ export async function ensureTablesExist() {
 
     isTablesChecked = true;
   } catch (err) {
-    // Silently ignore if DB is unreachable
+    // Silently fallback if database is not reachable
   }
 }

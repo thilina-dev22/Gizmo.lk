@@ -4,8 +4,7 @@ import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import dotenv from 'dotenv';
-import { db, ensureTablesExist } from './src/lib/db';
+import { getDb, ensureTablesExist } from './src/lib/db';
 import {
   PAYHERE_MERCHANT_ID,
   PAYHERE_CHECKOUT_URL,
@@ -384,6 +383,7 @@ apiRouter.get('/products', async (req, res) => {
       orderBy = { isBestSeller: 'desc' };
     }
 
+    const db = await getDb();
     if (db && typeof db.product?.findMany === 'function') {
       const products = await db.product.findMany({
         where,
@@ -436,6 +436,7 @@ apiRouter.get('/products/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
+    const db = await getDb();
     if (db && typeof db.product?.findUnique === 'function') {
       const product = await db.product.findUnique({
         where: { id },
@@ -498,6 +499,7 @@ apiRouter.post('/products', async (req, res) => {
         : '{}';
 
     try {
+      const db = await getDb();
       if (db && typeof db.product?.upsert === 'function') {
         const product = await db.product.upsert({
           where: { sku },
@@ -581,6 +583,7 @@ apiRouter.get('/orders', async (req, res) => {
 
     if (id || orderNumber) {
       try {
+        const db = await getDb();
         if (db && typeof db.order?.findFirst === 'function') {
           const order = await db.order.findFirst({
             where: {
@@ -609,6 +612,7 @@ apiRouter.get('/orders', async (req, res) => {
         where.orderStatus = status;
       }
 
+      const db = await getDb();
       if (db && typeof db.order?.findMany === 'function') {
         const orders = await db.order.findMany({
           where,
@@ -656,6 +660,7 @@ apiRouter.post('/orders', async (req, res) => {
 
     let subtotalLkr = 0;
     const itemsData: any[] = [];
+    const db = await getDb();
 
     for (const item of items) {
       let product = inMemoryProducts.find((p) => p.id === item.productId);
@@ -763,6 +768,7 @@ apiRouter.patch('/orders', async (req, res) => {
     if (paymentStatus) dataToUpdate.paymentStatus = paymentStatus;
 
     try {
+      const db = await getDb();
       if (db && typeof db.order?.update === 'function') {
         const updatedOrder = await db.order.update({
           where: { id: orderId },
@@ -797,6 +803,7 @@ apiRouter.get('/reviews', async (req, res) => {
     }
 
     try {
+      const db = await getDb();
       if (db && typeof db.review?.findMany === 'function') {
         const reviews = await db.review.findMany({
           where: {
@@ -831,6 +838,7 @@ apiRouter.post('/reviews', async (req, res) => {
     }
 
     try {
+      const db = await getDb();
       if (db && typeof db.review?.create === 'function') {
         const review = await db.review.create({
           data: {
@@ -903,6 +911,7 @@ apiRouter.post('/admin/logout', (req, res) => {
 apiRouter.get('/admin/reviews', async (req, res) => {
   try {
     try {
+      const db = await getDb();
       if (db && typeof db.review?.findMany === 'function') {
         const reviews = await db.review.findMany({
           include: {
@@ -941,6 +950,7 @@ apiRouter.patch('/admin/reviews', async (req, res) => {
     }
 
     try {
+      const db = await getDb();
       if (db && typeof db.review?.update === 'function') {
         if (action === 'approve') {
           await db.review.update({
@@ -966,6 +976,7 @@ apiRouter.get('/admin/export-orders', async (req, res) => {
   try {
     let ordersList = inMemoryOrders;
     try {
+      const db = await getDb();
       if (db && typeof db.order?.findMany === 'function') {
         const dbOrders = await db.order.findMany({
           include: {
@@ -1137,6 +1148,7 @@ apiRouter.post('/payhere/notify', async (req, res) => {
     }
 
     try {
+      const db = await getDb();
       if (db && typeof db.order?.update === 'function') {
         if (status_code === '2') {
           await db.order.update({
