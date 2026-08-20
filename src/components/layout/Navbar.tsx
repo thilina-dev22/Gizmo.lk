@@ -342,10 +342,10 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
         </div>
       )}
 
-      {/* Category Navigation Strip (Desktop) */}
-      <div className="hidden lg:block border-t border-slate-800/60 bg-slate-950/60">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs font-medium text-slate-300">
-          <div className="flex items-center space-x-1 py-2 overflow-x-auto no-scrollbar">
+      {/* Category Navigation Strip (Mobile & Desktop) */}
+      <div className="border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between text-xs font-medium text-slate-300">
+          <div className="flex items-center space-x-1.5 py-2 overflow-x-auto touch-scroll no-scrollbar w-full lg:w-auto">
             {CATEGORIES.map((cat) => {
               const isActive =
                 isCatalogPage &&
@@ -356,10 +356,10 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
                 <Link
                   key={cat.id}
                   to={cat.id === "all" ? "/products" : `/products?category=${encodeURIComponent(cat.id)}`}
-                  className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 text-xs ${
                     isActive
-                      ? "bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/30"
-                      : "hover:bg-slate-900 hover:text-cyan-400"
+                      ? "bg-cyan-500/20 text-cyan-400 font-bold border border-cyan-500/40 shadow-sm"
+                      : "bg-slate-900/60 lg:bg-transparent border border-slate-800 lg:border-transparent text-slate-300 hover:bg-slate-900 hover:text-cyan-400"
                   }`}
                 >
                   {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
@@ -369,7 +369,7 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
             })}
           </div>
 
-          <div className="flex items-center gap-3 py-2 text-slate-400 font-normal">
+          <div className="hidden lg:flex items-center gap-3 py-2 text-slate-400 font-normal shrink-0 pl-4">
             <span className="flex items-center gap-1 text-cyan-400 font-semibold">
               <Sparkles className="w-3.5 h-3.5" /> Exclusive Tech Deals Sri Lanka
             </span>

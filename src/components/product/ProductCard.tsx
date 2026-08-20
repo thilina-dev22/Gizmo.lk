@@ -50,7 +50,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Product Image Box */}
-      <div className="relative h-52 w-full bg-slate-950 overflow-hidden">
+      <div className="relative h-40 sm:h-52 w-full bg-slate-950 overflow-hidden">
         <Link to={`/products/${product.id}`} className="block w-full h-full">
           <OptimizedImage
             src={initialImage}
@@ -73,9 +73,9 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Content */}
-      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5 sm:space-y-3">
         <div>
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
+          <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-0.5 sm:mb-1">
             {product.category}
           </span>
           <Link to={`/products/${product.id}`}>
@@ -86,12 +86,12 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Rating Stars */}
-        <div className="flex items-center gap-1 text-amber-400 text-xs">
+        <div className="flex items-center gap-1 text-amber-400 text-[11px] sm:text-xs">
           <div className="flex">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
-                className={`w-3 h-3 ${
+                className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${
                   i < Math.round(product.rating || 0)
                     ? "fill-amber-400 text-amber-400"
                     : "text-slate-700"
@@ -99,23 +99,23 @@ export function ProductCard({ product }: ProductCardProps) {
               />
             ))}
           </div>
-          <span className="text-[10px] text-slate-400 font-medium ml-1">
-            {(product.rating || 0).toFixed(1)} ({(product.reviewCount || 0)} reviews)
+          <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium ml-0.5">
+            {(product.rating || 0).toFixed(1)}
           </span>
         </div>
 
         {/* Price & Action */}
-        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-slate-400 block">Selling Price</span>
-            <span className="text-sm font-extrabold text-cyan-400">
+        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5">
+          <div className="min-w-0">
+            <span className="text-[9px] sm:text-[10px] text-slate-400 block truncate">Price</span>
+            <span className="text-xs sm:text-sm font-extrabold text-cyan-400 truncate block">
               {formatLKR(product.sellingPriceLkr)}
             </span>
           </div>
 
           <button
             onClick={handleAddToCart}
-            className={`font-bold p-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs cursor-pointer ${
+            className={`font-bold p-2 sm:p-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-1 text-xs shrink-0 min-w-[34px] min-h-[34px] cursor-pointer ${
               added
                 ? "bg-emerald-500 text-slate-950"
                 : "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950"

@@ -56,20 +56,20 @@ export function HomePage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="h-80 bg-slate-900/60 rounded-2xl border border-slate-800 animate-pulse p-4 space-y-4"
+                className="h-72 sm:h-80 bg-slate-900/60 rounded-2xl border border-slate-800 animate-pulse p-3 sm:p-4 space-y-3 sm:space-y-4"
               >
-                <div className="h-44 bg-slate-800 rounded-xl"></div>
-                <div className="h-4 bg-slate-800 rounded w-3/4"></div>
-                <div className="h-4 bg-slate-800 rounded w-1/2"></div>
+                <div className="h-36 sm:h-44 bg-slate-800 rounded-xl"></div>
+                <div className="h-3.5 bg-slate-800 rounded w-3/4"></div>
+                <div className="h-3.5 bg-slate-800 rounded w-1/2"></div>
               </div>
             ))}
           </div>
         ) : featuredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

@@ -72,33 +72,35 @@ export function CategoryGrid() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           {categories.map((cat) => {
             const Icon = cat.icon;
             return (
               <Link
                 key={cat.id}
                 to={`/products?category=${encodeURIComponent(cat.id)}`}
-                className={`group relative p-5 rounded-2xl bg-gradient-to-br ${cat.color} bg-slate-900/90 border ${cat.border} hover:border-cyan-400/80 transition-all duration-300 transform hover:-translate-y-1 shadow-lg`}
+                className={`group relative p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${cat.color} bg-slate-900/90 border ${cat.border} hover:border-cyan-400/80 transition-all duration-300 transform hover:-translate-y-1 shadow-lg flex flex-col justify-between`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 rounded-xl bg-slate-950/80 text-cyan-400 border border-slate-800 group-hover:scale-110 transition-transform">
-                    <Icon className="w-6 h-6" />
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2.5 sm:p-3 rounded-xl bg-slate-950/80 text-cyan-400 border border-slate-800 group-hover:scale-110 transition-transform">
+                      <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 bg-slate-950/80 px-2 py-0.5 rounded-full border border-slate-800">
+                      {cat.count}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-950/80 px-2 py-0.5 rounded-full border border-slate-800">
-                    {cat.count}
-                  </span>
+
+                  <h3 className="font-bold text-slate-100 text-xs sm:text-sm group-hover:text-cyan-300 transition-colors line-clamp-1">
+                    {cat.name}
+                  </h3>
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1 line-clamp-1">
+                    {cat.desc}
+                  </p>
                 </div>
 
-                <h3 className="font-bold text-slate-100 text-sm group-hover:text-cyan-300 transition-colors">
-                  {cat.name}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">
-                  {cat.desc}
-                </p>
-
-                <div className="mt-4 flex items-center gap-1 text-[11px] font-semibold text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span>Browse Gear</span>
+                <div className="mt-3 flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-cyan-400 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span>Explore</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </Link>

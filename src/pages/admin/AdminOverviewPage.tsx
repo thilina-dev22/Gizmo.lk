@@ -76,18 +76,18 @@ export function AdminOverviewPage() {
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         {/* Metric 1 */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Total Sales</span>
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
-              <DollarSign className="w-4 h-4" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-400">Total Sales</span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-white">{formatLKR(totalSalesLkr)}</div>
-          <div className="text-[11px] text-cyan-400 font-medium flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> Across {orders.length} total orders
+          <div className="text-base sm:text-2xl font-extrabold text-white truncate">{formatLKR(totalSalesLkr)}</div>
+          <div className="text-[9px] sm:text-[11px] text-cyan-400 font-medium flex items-center gap-1 truncate">
+            <TrendingUp className="w-3 h-3 shrink-0" /> {orders.length} total orders
           </div>
         </div>
 
