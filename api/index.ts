@@ -714,9 +714,26 @@ apiRouter.patch('/orders', adminAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Missing orderId parameter' });
     }
 
+    const currentOrder = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!currentOrder) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
     const dataToUpdate: any = {};
-    if (orderStatus) dataToUpdate.orderStatus = orderStatus;
-    if (paymentStatus) dataToUpdate.paymentStatus = paymentStatus;
+    if (orderStatus) {
+      dataToUpdate.orderStatus = orderStatus;
+      // Automatically set COD orders as PAID when delivered if paymentStatus not explicitly provided
+      if (orderStatus === 'DELIVERED' && currentOrder.paymentMethod === 'COD' && !paymentStatus) {
+        dataToUpdate.paymentStatus = 'PAID';
+      }
+      // Automatically set pending orders as FAILED when cancelled if paymentStatus not explicitly provided
+      if (orderStatus === 'CANCELLED' && currentOrder.paymentStatus === 'PENDING' && !paymentStatus) {
+        dataToUpdate.paymentStatus = 'FAILED';
+      }
+    }
+    if (paymentStatus) {
+      dataToUpdate.paymentStatus = paymentStatus;
+    }
 
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },

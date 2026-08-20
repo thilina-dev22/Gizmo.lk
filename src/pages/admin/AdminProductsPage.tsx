@@ -1,16 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Product } from "@/store/useCartStore";
 import { CATEGORIES } from "@/lib/constants";
 import { formatLKR, safeParseImages } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
-import { Plus, Edit, ExternalLink, X, Search } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  ExternalLink,
+  X,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Layers,
+  AlertTriangle,
+  CheckCircle2,
+} from "lucide-react";
 
 export function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [stockFilter, setStockFilter] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK">("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -50,6 +69,44 @@ export function AdminProductsPage() {
     }
   };
 
+  // Filtered products calculation
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      // Category match
+      if (selectedCategory !== "ALL" && product.category !== selectedCategory) {
+        return false;
+      }
+
+      // Stock status match
+      if (stockFilter === "IN_STOCK" && product.stock <= 5) return false;
+      if (stockFilter === "LOW_STOCK" && (product.stock <= 0 || product.stock > 5)) return false;
+      if (stockFilter === "OUT_OF_STOCK" && product.stock > 0) return false;
+
+      // Search query match
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const t = (product.title || "").toLowerCase();
+        const s = (product.sku || "").toLowerCase();
+        const c = (product.category || "").toLowerCase();
+        const slug = (product.slug || "").toLowerCase();
+        return t.includes(q) || s.includes(q) || c.includes(q) || slug.includes(q);
+      }
+
+      return true;
+    });
+  }, [products, selectedCategory, stockFilter, searchQuery]);
+
+  // Reset page to 1 when filters or page size change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, stockFilter, itemsPerPage]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredProducts, currentPage, itemsPerPage]);
 
   const handleOpenModal = (product?: Product) => {
     if (product) {
@@ -151,7 +208,7 @@ export function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white">
-            Product Catalog & Stock Management
+            Product Catalog &amp; Stock Management
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Manage cost price vs selling price, supplier links, and stock levels in LKR.
@@ -167,6 +224,106 @@ export function AdminProductsPage() {
         </button>
       </div>
 
+      {/* Search & Filter Toolbar */}
+      <div className="space-y-3 bg-slate-900/60 p-4 rounded-3xl border border-slate-800">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          {/* Live Search Input */}
+          <div className="relative w-full md:max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Title, SKU (e.g. GZ-101), Category, Slug..."
+              className="w-full bg-slate-950 text-slate-200 pl-10 pr-10 py-2 rounded-xl border border-slate-800 text-xs focus:border-cyan-500 outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category & Per Page selector */}
+          <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Layers className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Category:</span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs outline-none focus:border-cyan-500 cursor-pointer"
+              >
+                <option value="ALL">All Categories ({products.length})</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name} ({products.filter((p) => p.category === cat.name).length})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span>Show:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-2 py-1.5 text-xs outline-none focus:border-cyan-500 cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Stock status filter pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-semibold no-scrollbar">
+          {[
+            { id: "ALL", label: "All Inventory", count: products.length },
+            {
+              id: "IN_STOCK",
+              label: "In Stock (>5)",
+              count: products.filter((p) => p.stock > 5).length,
+            },
+            {
+              id: "LOW_STOCK",
+              label: "Low Stock (<=5)",
+              count: products.filter((p) => p.stock > 0 && p.stock <= 5).length,
+            },
+            {
+              id: "OUT_OF_STOCK",
+              label: "Out of Stock (0)",
+              count: products.filter((p) => p.stock <= 0).length,
+            },
+          ].map((st) => (
+            <button
+              key={st.id}
+              onClick={() => setStockFilter(st.id as any)}
+              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                stockFilter === st.id
+                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm"
+                  : "bg-slate-950 text-slate-400 border border-slate-800 hover:text-white"
+              }`}
+            >
+              <span>{st.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                  stockFilter === st.id ? "bg-cyan-500/30 text-cyan-200" : "bg-slate-800 text-slate-400"
+                }`}
+              >
+                {st.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Product Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
@@ -174,7 +331,7 @@ export function AdminProductsPage() {
             <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950">
               <tr>
                 <th className="p-4">Product</th>
-                <th className="p-4">SKU & Category</th>
+                <th className="p-4">SKU &amp; Category</th>
                 <th className="p-4">Cost Price (LKR)</th>
                 <th className="p-4">Selling Price (LKR)</th>
                 <th className="p-4">Est. Profit</th>
@@ -190,76 +347,160 @@ export function AdminProductsPage() {
                     Loading inventory...
                   </td>
                 </tr>
-              ) : products.map((product) => {
-                const imgs = JSON.parse(product.images || "[]");
-                const profitLkr = product.sellingPriceLkr - product.costPriceLkr;
-                return (
-                  <tr key={product.id} className="hover:bg-slate-850 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
-                          <OptimizedImage src={imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop"} alt={product.title} fill />
+              ) : paginatedProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                    {searchQuery
+                      ? `No products matching "${searchQuery}".`
+                      : "No products found for the selected filter."}
+                  </td>
+                </tr>
+              ) : (
+                paginatedProducts.map((product) => {
+                  const imgs = safeParseImages(product.images);
+                  const profitLkr = product.sellingPriceLkr - product.costPriceLkr;
+                  const isOutOfStock = product.stock <= 0;
+                  const isLowStock = product.stock > 0 && product.stock <= 5;
+
+                  return (
+                    <tr key={product.id} className="hover:bg-slate-850 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
+                            <OptimizedImage
+                              src={
+                                imgs[0] ||
+                                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop"
+                              }
+                              alt={product.title}
+                              fill
+                            />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-200 line-clamp-1 max-w-[200px]">{product.title}</h4>
+                            <span className="text-[10px] text-cyan-400">{product.slug}</span>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-bold text-slate-200 line-clamp-1 max-w-[200px]">{product.title}</h4>
-                          <span className="text-[10px] text-cyan-400">{product.slug}</span>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-mono text-xs font-semibold text-slate-200">{product.sku}</div>
+                        <span className="text-[10px] text-slate-400">{product.category}</span>
+                      </td>
+                      <td className="p-4 text-slate-400 font-mono">{formatLKR(product.costPriceLkr)}</td>
+                      <td className="p-4 font-bold text-cyan-400 font-mono">{formatLKR(product.sellingPriceLkr)}</td>
+                      <td className="p-4 font-bold text-emerald-400 font-mono">+{formatLKR(profitLkr)}</td>
+                      <td className="p-4">
+                        <span
+                          className={`px-2 py-0.5 rounded border text-[11px] font-bold ${
+                            isOutOfStock
+                              ? "bg-rose-500/20 text-rose-400 border-rose-500/30"
+                              : isLowStock
+                              ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                              : "bg-slate-950 text-slate-200 border-slate-800"
+                          }`}
+                        >
+                          {product.stock} pcs {isOutOfStock ? "(Out)" : isLowStock ? "(Low)" : ""}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        {product.supplierLink ? (
+                          <a
+                            href={product.supplierLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cyan-400 hover:underline inline-flex items-center gap-1 text-[11px]"
+                          >
+                            <span>Supplier URL</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-600 text-[10px]">None</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to={`/products/${product.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1 text-cyan-400 hover:text-cyan-300 bg-slate-950 hover:bg-slate-800 rounded-lg border border-slate-800 flex items-center gap-1 text-[11px] font-semibold transition-colors"
+                            title="View Product on Storefront"
+                          >
+                            <Search className="w-3 h-3" />
+                            <span>View</span>
+                          </Link>
+                          <button
+                            onClick={() => handleOpenModal(product)}
+                            className="p-1.5 text-slate-400 hover:text-white bg-slate-950 rounded-lg border border-slate-800 cursor-pointer"
+                            title="Edit product"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-mono text-xs font-semibold text-slate-200">{product.sku}</div>
-                      <span className="text-[10px] text-slate-400">{product.category}</span>
-                    </td>
-                    <td className="p-4 text-slate-400 font-mono">{formatLKR(product.costPriceLkr)}</td>
-                    <td className="p-4 font-bold text-cyan-400 font-mono">{formatLKR(product.sellingPriceLkr)}</td>
-                    <td className="p-4 font-bold text-emerald-400 font-mono">+{formatLKR(profitLkr)}</td>
-                    <td className="p-4">
-                      <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-bold text-slate-200">
-                        {product.stock} pcs
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      {product.supplierLink ? (
-                        <a
-                          href={product.supplierLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-cyan-400 hover:underline inline-flex items-center gap-1 text-[11px]"
-                        >
-                          <span>Supplier URL</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : (
-                        <span className="text-slate-600 text-[10px]">None</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to={`/products/${product.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-2.5 py-1 text-cyan-400 hover:text-cyan-300 bg-slate-950 hover:bg-slate-800 rounded-lg border border-slate-800 flex items-center gap-1 text-[11px] font-semibold transition-colors"
-                          title="View Product on Storefront"
-                        >
-                          <Search className="w-3 h-3" />
-                          <span>View</span>
-                        </Link>
-                        <button
-                          onClick={() => handleOpenModal(product)}
-                          className="p-1.5 text-slate-400 hover:text-white bg-slate-950 rounded-lg border border-slate-800 cursor-pointer"
-                          title="Edit product"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {filteredProducts.length > 0 && (
+          <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <div>
+              Showing <strong className="text-slate-200 font-mono">{(currentPage - 1) * itemsPerPage + 1}</strong> to{" "}
+              <strong className="text-slate-200 font-mono">
+                {Math.min(currentPage * itemsPerPage, filteredProducts.length)}
+              </strong>{" "}
+              of <strong className="text-slate-200 font-mono">{filteredProducts.length}</strong> products
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                title="Previous Page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                .map((p, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showEllipsis = prev && p - prev > 1;
+
+                  return (
+                    <React.Fragment key={p}>
+                      {showEllipsis && <span className="px-1 text-slate-600">...</span>}
+                      <button
+                        onClick={() => setCurrentPage(p)}
+                        className={`min-w-[30px] h-[30px] rounded-lg border text-xs font-semibold transition-colors ${
+                          currentPage === p
+                            ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-400 font-bold"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                title="Next Page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add / Edit Modal */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { formatLKR } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import {
@@ -18,13 +18,22 @@ import {
   ExternalLink,
   ShieldCheck,
   AlertCircle,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Filter,
 } from "lucide-react";
 import { OrderInvoiceModal } from "@/components/common/OrderInvoiceModal";
 
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedSlipOrder, setSelectedSlipOrder] = useState<any | null>(null);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<any | null>(null);
@@ -37,25 +46,111 @@ export function AdminOrdersPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders?status=${statusFilter}`);
-      const data = await res.json();
-      setOrders(data.orders || []);
+      const [filterRes, allRes] = await Promise.all([
+        fetch(`/api/orders?status=${statusFilter}`),
+        fetch("/api/orders?status=ALL"),
+      ]);
+      const filterData = await filterRes.json();
+      const allData = await allRes.json();
+      setOrders(filterData.orders || []);
+      setAllOrders(allData.orders || []);
     } catch (e) {
       console.error("Orders fetch error:", e);
       setOrders([]);
+      setAllOrders([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateStatus = async (orderId: string, orderStatus: string, paymentStatus?: string) => {
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      ALL: allOrders.length,
+      PROCESSING: 0,
+      PENDING: 0,
+      SHIPPED: 0,
+      DELIVERED: 0,
+      CANCELLED: 0,
+    };
+    allOrders.forEach((o) => {
+      if (counts[o.orderStatus] !== undefined) {
+        counts[o.orderStatus]++;
+      }
+    });
+    return counts;
+  }, [allOrders]);
+
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery.trim()) return orders;
+    const q = searchQuery.toLowerCase().trim();
+    return orders.filter((order) => {
+      const orderNum = (order.orderNumber || "").toLowerCase();
+      const customer = (order.customerName || "").toLowerCase();
+      const phone = (order.customerPhone || "").toLowerCase();
+      const email = (order.customerEmail || "").toLowerCase();
+      const city = (order.city || "").toLowerCase();
+      const district = (order.district || "").toLowerCase();
+      const address = (order.address || "").toLowerCase();
+      return (
+        orderNum.includes(q) ||
+        customer.includes(q) ||
+        phone.includes(q) ||
+        email.includes(q) ||
+        city.includes(q) ||
+        district.includes(q) ||
+        address.includes(q)
+      );
+    });
+  }, [orders, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredOrders, currentPage, itemsPerPage]);
+
+  const handleUpdateStatus = async (orderId: string, newOrderStatus: string, newPaymentStatus?: string) => {
+    try {
+      const targetOrder = orders.find((o) => o.id === orderId);
+      let resolvedPaymentStatus = newPaymentStatus;
+      if (newOrderStatus === "DELIVERED" && targetOrder?.paymentMethod === "COD" && !newPaymentStatus) {
+        resolvedPaymentStatus = "PAID";
+      }
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          orderStatus: newOrderStatus,
+          paymentStatus: resolvedPaymentStatus,
+        }),
+      });
+      if (res.ok) {
+        if (newOrderStatus === "DELIVERED" && targetOrder?.paymentMethod === "COD") {
+          setActionFeedback(`📦 Order #${targetOrder.orderNumber} marked as DELIVERED & COD payment auto-updated to PAID!`);
+          setTimeout(() => setActionFeedback(null), 4500);
+        }
+        fetchOrders();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdatePaymentStatus = async (orderId: string, paymentStatus: string) => {
     try {
       const res = await fetch("/api/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, orderStatus, paymentStatus }),
+        body: JSON.stringify({ orderId, paymentStatus }),
       });
       if (res.ok) {
+        setActionFeedback(`💳 Payment status updated to ${paymentStatus}`);
+        setTimeout(() => setActionFeedback(null), 3000);
         fetchOrders();
       }
     } catch (e) {
@@ -85,7 +180,6 @@ export function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Export */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white">
@@ -95,7 +189,6 @@ export function AdminOrdersPage() {
             Filter orders by status, inspect customer ordered items, verify bank deposit slips, and download courier shipping manifests.
           </p>
         </div>
-
         <a
           href="/api/admin/export-orders"
           download
@@ -106,9 +199,8 @@ export function AdminOrdersPage() {
         </a>
       </div>
 
-      {/* Action Feedback Banner */}
       {actionFeedback && (
-        <div className="p-3.5 rounded-2xl bg-cyan-950/90 border border-cyan-500/40 text-cyan-200 text-xs font-semibold flex items-center justify-between shadow-lg">
+        <div className="p-3.5 rounded-2xl bg-cyan-950/90 border border-cyan-500/40 text-cyan-200 text-xs font-semibold flex items-center justify-between shadow-lg animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
             <span>{actionFeedback}</span>
@@ -122,31 +214,78 @@ export function AdminOrdersPage() {
         </div>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 text-xs font-semibold">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 text-xs font-semibold no-scrollbar">
         {[
-          { id: "ALL", label: "All Orders" },
-          { id: "PROCESSING", label: "Paid & Processing" },
-          { id: "PENDING", label: "Pending COD/Bank" },
-          { id: "SHIPPED", label: "Dispatched (Courier)" },
-          { id: "DELIVERED", label: "Delivered" },
-          { id: "CANCELLED", label: "Cancelled / Failed" },
+          { id: "ALL", label: "All Orders", count: tabCounts.ALL },
+          { id: "PROCESSING", label: "Paid & Processing", count: tabCounts.PROCESSING },
+          { id: "PENDING", label: "Pending COD/Bank", count: tabCounts.PENDING },
+          { id: "SHIPPED", label: "Dispatched (Courier)", count: tabCounts.SHIPPED },
+          { id: "DELIVERED", label: "Delivered", count: tabCounts.DELIVERED },
+          { id: "CANCELLED", label: "Cancelled / Failed", count: tabCounts.CANCELLED },
         ].map((st) => (
           <button
             key={st.id}
             onClick={() => setStatusFilter(st.id)}
-            className={`px-3.5 py-2 rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
               statusFilter === st.id
-                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-white"
+                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm"
+                : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-white hover:bg-slate-850"
             }`}
           >
-            {st.label}
+            <span>{st.label}</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                statusFilter === st.id
+                  ? "bg-cyan-500/30 text-cyan-200"
+                  : "bg-slate-800 text-slate-400"
+              }`}
+            >
+              {st.count}
+            </span>
           </button>
         ))}
       </div>
 
-      {/* Orders Table */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by Order # (e.g. GZ-14985), Customer, Phone, City..."
+            className="w-full bg-slate-950 text-slate-200 pl-10 pr-10 py-2 rounded-xl border border-slate-800 text-xs focus:border-cyan-500 outline-none transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 text-xs text-slate-400 w-full sm:w-auto justify-between sm:justify-end">
+          <span>
+            Found <strong className="text-cyan-400 font-mono">{filteredOrders.length}</strong> order{filteredOrders.length !== 1 ? "s" : ""}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px]">Show:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="bg-slate-950 text-slate-200 border border-slate-800 rounded-lg px-2 py-1 text-xs outline-none focus:border-cyan-500 cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -156,10 +295,10 @@ export function AdminOrdersPage() {
                 <th className="p-4">Customer &amp; Contact</th>
                 <th className="p-4">Address &amp; District</th>
                 <th className="p-4">Ordered Items</th>
-                <th className="p-4">Method &amp; Status</th>
+                <th className="p-4">Payment Method &amp; Status</th>
                 <th className="p-4">Total Amount (LKR)</th>
                 <th className="p-4">Invoice PDF</th>
-                <th className="p-4 text-right">Update Action</th>
+                <th className="p-4 text-right">Order Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
@@ -169,17 +308,20 @@ export function AdminOrdersPage() {
                     Loading orders database...
                   </td>
                 </tr>
-              ) : orders.length === 0 ? (
+              ) : paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-500">
-                    No orders found for filter status &quot;{statusFilter}&quot;.
+                    {searchQuery
+                      ? `No orders matching "${searchQuery}".`
+                      : `No orders found for filter "${statusFilter}".`}
                   </td>
                 </tr>
               ) : (
-                orders.map((order) => {
+                paginatedOrders.map((order) => {
                   const itemsCount = order.items ? order.items.length : 0;
                   const isPaid = order.paymentStatus === "PAID";
                   const isFailed = order.paymentStatus === "FAILED" || order.orderStatus === "CANCELLED";
+                  const isBankPending = order.paymentMethod === "BANK_TRANSFER" && order.paymentStatus === "PENDING";
 
                   return (
                     <tr key={order.id} className="hover:bg-slate-850 transition-colors">
@@ -220,29 +362,31 @@ export function AdminOrdersPage() {
                             <button
                               onClick={() => setSelectedSlipOrder(order)}
                               className="text-cyan-300 hover:text-white font-semibold text-[10px] flex items-center gap-1 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/40 shadow-sm hover:bg-cyan-900 transition-colors cursor-pointer"
-                              title="Click to inspect deposit slip screenshot and approve/decline payment"
+                              title="Click to inspect deposit slip screenshot"
                             >
                               <Eye className="w-3 h-3 text-cyan-400" />
                               <span>View Slip</span>
                             </button>
                           )}
                         </div>
-
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span
-                            className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                          <select
+                            value={order.paymentStatus}
+                            onChange={(e) => handleUpdatePaymentStatus(order.id, e.target.value)}
+                            className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded outline-none border cursor-pointer ${
                               isPaid
-                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                                 : isFailed
-                                ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                                : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                                : "bg-amber-500/20 text-amber-300 border-amber-500/40"
                             }`}
+                            title="Click to change payment status directly"
                           >
-                            {isPaid ? "● PAID" : isFailed ? "✕ FAILED" : "○ UNPAID / PENDING"}
-                          </span>
-
-                          {/* Quick Approve / Decline buttons right in table for pending bank slips */}
-                          {order.paymentMethod === "BANK_TRANSFER" && order.paymentStatus === "PENDING" && (
+                            <option value="PAID" className="bg-slate-900 text-emerald-400">● PAID</option>
+                            <option value="PENDING" className="bg-slate-900 text-amber-400">○ UNPAID / PENDING</option>
+                            <option value="FAILED" className="bg-slate-900 text-rose-400">✕ FAILED</option>
+                          </select>
+                          {isBankPending && (
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleApproveSlip(order)}
@@ -269,7 +413,6 @@ export function AdminOrdersPage() {
                         <button
                           onClick={() => setSelectedInvoiceOrder(order)}
                           className="inline-flex items-center gap-1 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 px-2.5 py-1.5 rounded-lg border border-slate-800 text-[11px] font-medium transition-colors cursor-pointer"
-                          title="Print / Save PDF Invoice"
                         >
                           <Printer className="w-3.5 h-3.5 text-cyan-400" />
                           <span>PDF</span>
@@ -295,9 +438,56 @@ export function AdminOrdersPage() {
             </tbody>
           </table>
         </div>
+        {filteredOrders.length > 0 && (
+          <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <div>
+              Showing <strong className="text-slate-200 font-mono">{(currentPage - 1) * itemsPerPage + 1}</strong> to{" "}
+              <strong className="text-slate-200 font-mono">
+                {Math.min(currentPage * itemsPerPage, filteredOrders.length)}
+              </strong>{" "}
+              of <strong className="text-slate-200 font-mono">{filteredOrders.length}</strong> orders
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                .map((p, idx, arr) => {
+                  const prev = arr[idx - 1];
+                  const showEllipsis = prev && p - prev > 1;
+                  return (
+                    <React.Fragment key={p}>
+                      {showEllipsis && <span className="px-1 text-slate-600">...</span>}
+                      <button
+                        onClick={() => setCurrentPage(p)}
+                        className={`min-w-[30px] h-[30px] rounded-lg border text-xs font-semibold transition-colors ${
+                          currentPage === p
+                            ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-400 font-bold"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Order Full Items & Details Modal */}
       {selectedOrderDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-5 relative max-h-[90vh] overflow-y-auto shadow-2xl">
