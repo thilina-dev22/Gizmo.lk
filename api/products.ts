@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb, ensureTablesExist } from '../src/lib/db';
+import { getDb, ensureTablesExist, reportDbError } from '../src/lib/db';
 import { inMemoryProducts } from '../src/data/mockData';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -23,7 +23,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
             if (product) return res.status(200).json({ product });
           }
-        } catch (e) {}
+        } catch (e) {
+          reportDbError(e);
+        }
 
         const fallback = inMemoryProducts.find((p) => p.id === prodId || p.slug === prodId);
         if (fallback) return res.status(200).json({ product: fallback });
@@ -75,7 +77,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json({ products });
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        reportDbError(e);
+      }
 
       // In-memory filter fallback
       let filtered = [...inMemoryProducts];

@@ -2,19 +2,35 @@ import type { PrismaClient } from "@prisma/client";
 
 let prismaInstance: PrismaClient | null = null;
 let isTablesChecked = false;
+let isDbDisabled = false;
+let lastDbErrorTime = 0;
+
+export function reportDbError(error: any) {
+  isDbDisabled = true;
+  lastDbErrorTime = Date.now();
+  console.warn(
+    "⚠️ Database unavailable/circuit breaker active, using in-memory catalog fallback:",
+    error?.message || error
+  );
+}
 
 export async function getDb(): Promise<PrismaClient | null> {
-  if (prismaInstance) return prismaInstance;
   if (!process.env.DATABASE_URL) return null;
 
+  // If a fatal DB connection failure occurred in the last 60 seconds, gracefully bypass
+  if (isDbDisabled && Date.now() - lastDbErrorTime < 60000) {
+    return null;
+  }
+
   try {
+    if (prismaInstance) return prismaInstance;
     const { PrismaClient } = await import("@prisma/client");
     prismaInstance = new PrismaClient({
-      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+      log: ["error"],
     });
     return prismaInstance;
   } catch (e) {
-    console.warn("PrismaClient initialization fallback:", e);
+    reportDbError(e);
     return null;
   }
 }
@@ -48,6 +64,6 @@ export async function ensureTablesExist() {
 
     isTablesChecked = true;
   } catch (err) {
-    // Silently fallback if database is not reachable
+    reportDbError(err);
   }
 }

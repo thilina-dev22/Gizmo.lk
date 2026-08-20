@@ -4,7 +4,8 @@ import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { getDb, ensureTablesExist } from './src/lib/db';
+import dotenv from 'dotenv';
+import { getDb, ensureTablesExist, reportDbError } from './src/lib/db';
 import {
   PAYHERE_MERCHANT_ID,
   PAYHERE_CHECKOUT_URL,
