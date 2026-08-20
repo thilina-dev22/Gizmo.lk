@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from './types';
+import type { VercelRequest, VercelResponse } from '../src/types/api';
 
 export const config = {
   api: {

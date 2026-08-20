@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from './types';
+import type { VercelRequest, VercelResponse } from '../src/types/api';
 import { getDb, ensureTablesExist, reportDbError } from '../src/lib/db';
 import { inMemoryProducts } from '../src/data/mockData';
 
