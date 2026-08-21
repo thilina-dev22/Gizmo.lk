@@ -249,9 +249,14 @@ function renderOrderEmailTemplate(order: any, isForAdmin: boolean = false) {
                   <td style="text-align: right; color: #f8fafc; font-family: monospace;">Rs. ${Number(order.subtotalLkr || order.totalLkr).toLocaleString()}</td>
                 </tr>
                 <tr>
-                  <td style="color: #94a3b8;">Islandwide Shipping:</td>
-                  <td style="text-align: right; color: #f8fafc; font-family: monospace;">${order.shippingFeeLkr === 0 ? 'FREE' : `Rs. ${Number(order.shippingFeeLkr).toLocaleString()}`}</td>
+                  <td style="color: #94a3b8;">Islandwide Delivery Fee:</td>
+                  <td style="text-align: right; color: #f8fafc; font-family: monospace;">Rs. 450</td>
                 </tr>
+                ${(order.paymentMethod === 'PAYHERE' || order.paymentMethod === 'CARD') ? `
+                <tr>
+                  <td style="color: #38bdf8;">Payment Gateway Fee (4%):</td>
+                  <td style="text-align: right; color: #38bdf8; font-family: monospace;">Rs. ${(Math.max(0, Number(order.totalLkr) - Number(order.subtotalLkr || 0) - 450) || Math.round(Number(order.subtotalLkr || 0) * 0.04)).toLocaleString()}</td>
+                </tr>` : ''}
                 <tr style="border-top: 2px solid #334155; font-size: 16px;">
                   <td style="padding-top: 10px; font-weight: 800; color: #ffffff;">Grand Total:</td>
                   <td style="padding-top: 10px; text-align: right; font-weight: 800; color: #38bdf8; font-family: monospace;">Rs. ${Number(order.totalLkr).toLocaleString()}</td>
@@ -786,10 +791,13 @@ apiRouter.post('/orders', async (req, res) => {
       });
     }
 
-    const isMetro = district === 'Colombo' || district === 'Gampaha';
-    const isFreeShipping = subtotalLkr >= 15000;
-    const shippingFeeLkr = isFreeShipping ? 0 : isMetro ? 350 : 500;
-    const totalLkr = subtotalLkr + shippingFeeLkr;
+    // Delivery fee: Flat 450 LKR for any city in Sri Lanka
+    const shippingFeeLkr = 450;
+    
+    // Payment Gateway processing fee: 4% extra for online card/PayHere payments
+    const isOnlineGateway = paymentMethod === 'PAYHERE' || paymentMethod === 'CARD';
+    const gatewayFeeLkr = isOnlineGateway ? Math.round(subtotalLkr * 0.04) : 0;
+    const totalLkr = subtotalLkr + shippingFeeLkr + gatewayFeeLkr;
 
     const orderNumber = `GZ-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -807,7 +815,7 @@ apiRouter.post('/orders', async (req, res) => {
         orderStatus: 'PENDING',
         bankSlipUrl: bankSlipUrl || null,
         subtotalLkr,
-        shippingFeeLkr,
+        shippingFeeLkr: shippingFeeLkr + gatewayFeeLkr, // Total fulfillment & handling fee
         totalLkr,
         notes: notes || null,
         items: {
@@ -848,6 +856,124 @@ apiRouter.post('/orders', async (req, res) => {
   } catch (error: any) {
     console.error('Error creating order:', error);
     return res.status(500).json({ error: 'Failed to create order in database', detail: error?.message });
+  }
+});
+
+// PayHere Hash & Payload Generation for secure checkout redirect
+apiRouter.post('/payhere/hash', async (req, res) => {
+  try {
+    const {
+      orderId,
+      orderNumber,
+      totalLkr,
+      customerName,
+      customerPhone,
+      customerEmail,
+      address,
+      city,
+      itemsSummary,
+    } = req.body;
+
+    if (!orderNumber || !totalLkr) {
+      return res.status(400).json({ error: 'Missing orderNumber or totalLkr' });
+    }
+
+    const hash = generatePayHereHash(
+      PAYHERE_MERCHANT_ID,
+      orderNumber,
+      Number(totalLkr),
+      'LKR',
+      PAYHERE_MERCHANT_SECRET
+    );
+
+    const nameParts = (customerName || '').trim().split(' ');
+    const first_name = nameParts[0] || 'Customer';
+    const last_name = nameParts.slice(1).join(' ') || 'Valued';
+
+    const baseUrl = process.env.APP_URL || 'https://gizmotek.lk';
+
+    const payload = {
+      actionUrl: PAYHERE_CHECKOUT_URL,
+      merchant_id: PAYHERE_MERCHANT_ID,
+      return_url: `${baseUrl}/checkout/success?orderNumber=${orderNumber}&id=${orderId || ''}`,
+      cancel_url: `${baseUrl}/checkout`,
+      notify_url: `${baseUrl}/api/payhere/notify`,
+      order_id: orderNumber,
+      items: itemsSummary || 'GizmoTek Sri Lanka Tech Order',
+      currency: 'LKR',
+      amount: Number(totalLkr).toFixed(2),
+      first_name,
+      last_name,
+      email: customerEmail || 'orders@gizmotek.lk',
+      phone: customerPhone || '0721410369',
+      address: address || 'Sri Lanka',
+      city: city || 'Colombo',
+      country: 'Sri Lanka',
+      hash,
+    };
+
+    return res.json({ success: true, payload });
+  } catch (error: any) {
+    console.error('Error generating PayHere token:', error);
+    return res.status(500).json({ error: 'Failed to generate PayHere token', detail: error?.message });
+  }
+});
+
+// PayHere Webhook Instant Payment Notification (IPN)
+apiRouter.post('/payhere/notify', async (req, res) => {
+  try {
+    const {
+      merchant_id,
+      order_id,
+      payhere_amount,
+      payhere_currency,
+      status_code,
+      md5sig,
+    } = req.body;
+
+    const isValid = verifyPayHereNotification(
+      merchant_id,
+      order_id,
+      payhere_amount,
+      payhere_currency,
+      status_code,
+      md5sig,
+      PAYHERE_MERCHANT_SECRET
+    );
+
+    if (isValid && status_code === '2') {
+      const updatedOrder = await prisma.order.update({
+        where: { orderNumber: order_id },
+        data: { paymentStatus: 'PAID' },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      // Send confirmation emails now that payment is confirmed
+      sendEmail({
+        to: ADMIN_NOTIFICATION_EMAIL,
+        subject: `[Paid Order via PayHere] #${updatedOrder.orderNumber} - Rs. ${Number(updatedOrder.totalLkr).toLocaleString()} (${updatedOrder.customerName})`,
+        html: renderOrderEmailTemplate(updatedOrder, true),
+      }).catch((e) => console.error('Admin email error:', e));
+
+      if (updatedOrder.customerEmail) {
+        sendEmail({
+          to: updatedOrder.customerEmail,
+          subject: `Payment Confirmed: Your GizmoTek Order #${updatedOrder.orderNumber}`,
+          html: renderOrderEmailTemplate(updatedOrder, false),
+        }).catch((e) => console.error('Customer email error:', e));
+      }
+    }
+
+    return res.status(200).send('OK');
+  } catch (error) {
+    console.error('PayHere notify error:', error);
+    return res.status(500).send('Error');
   }
 });
 

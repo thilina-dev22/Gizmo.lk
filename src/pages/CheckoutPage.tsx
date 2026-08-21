@@ -1,8 +1,15 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCartStore } from "@/store/useCartStore";
-import { SRI_LANKA_DISTRICTS, District, BANK_ACCOUNTS } from "@/lib/constants";
-import { formatLKR, calculateShippingFee } from "@/lib/utils";
+import {
+  SRI_LANKA_DISTRICTS,
+  District,
+  BANK_ACCOUNTS,
+  FLAT_DELIVERY_FEE_LKR,
+  PAYMENT_GATEWAY_FEE_PERCENT,
+} from "@/lib/constants";
+import { formatLKR, calculateShippingFee, calculatePaymentGatewayFee } from "@/lib/utils";
+import { getCitiesForDistrict, CityInfo } from "@/data/sriLankaCities";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import {
   Banknote,
@@ -16,6 +23,8 @@ import {
   ChevronLeft,
   AlertCircle,
   FileCheck,
+  Edit3,
+  List,
 } from "lucide-react";
 
 export function CheckoutPage() {
@@ -30,7 +39,10 @@ export function CheckoutPage() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [address, setAddress] = useState("");
   const [district, setDistrict] = useState<District>("Colombo");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState("Colombo 03 (Kollupitiya)");
+  const [isCustomCity, setIsCustomCity] = useState(false);
+  const [customCity, setCustomCity] = useState("");
+  const [postalCode, setPostalCode] = useState("00300");
   const [notes, setNotes] = useState("");
 
   // Payment Method State: "COD" | "BANK_TRANSFER" | "PAYHERE"
@@ -44,9 +56,42 @@ export function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Flat 450 LKR Delivery fee across any city in Sri Lanka
   const shippingFee = calculateShippingFee(district, subtotal);
-  const totalAmount = subtotal + shippingFee;
+
+  // 4% Payment Gateway Processing Fee for PayHere / Online Card payments
+  const isCardPayment = paymentMethod === "PAYHERE";
+  const gatewayFee = calculatePaymentGatewayFee(subtotal, paymentMethod);
+  const totalAmount = subtotal + shippingFee + gatewayFee;
   const isPayHereLimitExceeded = totalAmount > 50000;
+
+  // Handle District Change
+  const handleDistrictChange = (newDistrict: District) => {
+    setDistrict(newDistrict);
+    const cities = getCitiesForDistrict(newDistrict);
+    if (cities.length > 0) {
+      setCity(cities[0].name);
+      setPostalCode(cities[0].postalCode || "");
+      setIsCustomCity(false);
+    }
+  };
+
+  // Handle City Select
+  const handleCitySelect = (selectedVal: string) => {
+    if (selectedVal === "__OTHER__") {
+      setIsCustomCity(true);
+      setCity("");
+      setPostalCode("");
+    } else {
+      setIsCustomCity(false);
+      setCity(selectedVal);
+      const cities = getCitiesForDistrict(district);
+      const found = cities.find((c) => c.name === selectedVal);
+      if (found?.postalCode) {
+        setPostalCode(found.postalCode);
+      }
+    }
+  };
 
   // Handle Bank Slip file selection
   const handleSlipChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +124,8 @@ export function CheckoutPage() {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!customerName || !customerPhone || !address || !district || !city) {
+    const effectiveCity = isCustomCity ? customCity.trim() : city.trim();
+    if (!customerName || !customerPhone || !address || !district || !effectiveCity) {
       setErrorMsg("Please fill in all required shipping fields (*)");
       return;
     }
@@ -94,6 +140,10 @@ export function CheckoutPage() {
       return;
     }
 
+    const cityWithPostal = postalCode.trim()
+      ? `${effectiveCity} (Postal: ${postalCode.trim()})`
+      : effectiveCity;
+
     setSubmitting(true);
     try {
       const orderPayload = {
@@ -102,7 +152,7 @@ export function CheckoutPage() {
         customerEmail,
         address,
         district,
-        city,
+        city: cityWithPostal,
         paymentMethod,
         bankSlipUrl: slipPreviewUrl,
         notes,
@@ -135,7 +185,7 @@ export function CheckoutPage() {
               customerPhone,
               customerEmail,
               address,
-              city,
+              city: cityWithPostal,
               itemsSummary: items.map((i) => i.product.title).join(", "),
             }),
           });
@@ -291,27 +341,89 @@ export function CheckoutPage() {
                 <label className="font-semibold text-slate-300">District *</label>
                 <select
                   value={district}
-                  onChange={(e) => setDistrict(e.target.value as District)}
+                  onChange={(e) => handleDistrictChange(e.target.value as District)}
                   className="w-full bg-slate-950 text-slate-100 p-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none cursor-pointer"
                 >
                   {SRI_LANKA_DISTRICTS.map((dist) => (
                     <option key={dist} value={dist} className="bg-slate-900">
-                      {dist} {dist === "Colombo" || dist === "Gampaha" ? "(Metro - Rs. 350)" : "(Outstation - Rs. 500)"}
+                      {dist}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="space-y-1 text-xs">
-                <label className="font-semibold text-slate-300">City / Town *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Nugegoda, Kandy, Galle"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full bg-slate-950 text-slate-100 p-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none"
-                />
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-300">City / Town *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomCity(!isCustomCity);
+                      if (!isCustomCity) {
+                        setCustomCity("");
+                        setPostalCode("");
+                      } else {
+                        const cities = getCitiesForDistrict(district);
+                        if (cities.length > 0) {
+                          setCity(cities[0].name);
+                          setPostalCode(cities[0].postalCode || "");
+                        }
+                      }
+                    }}
+                    className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {isCustomCity ? (
+                      <>
+                        <List className="w-3 h-3" />
+                        <span>Select from City List</span>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="w-3 h-3" />
+                        <span>Type City Manually</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {!isCustomCity ? (
+                  <select
+                    value={city}
+                    onChange={(e) => handleCitySelect(e.target.value)}
+                    className="w-full bg-slate-950 text-slate-100 p-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none cursor-pointer"
+                  >
+                    {getCitiesForDistrict(district).map((c) => (
+                      <option key={c.name} value={c.name} className="bg-slate-900">
+                        {c.name} {c.postalCode ? `(${c.postalCode})` : ""}
+                      </option>
+                    ))}
+                    <option value="__OTHER__" className="bg-slate-900 text-cyan-400 font-bold">
+                      ✍️ Other / Type City &amp; Postal Code Manually...
+                    </option>
+                  </select>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <input
+                        type="text"
+                        required
+                        placeholder="Type your town or city"
+                        value={customCity}
+                        onChange={(e) => setCustomCity(e.target.value)}
+                        className="w-full bg-slate-950 text-slate-100 p-3 rounded-xl border border-cyan-500/60 focus:border-cyan-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Postal Code"
+                        value={postalCode}
+                        onChange={(e) => setPostalCode(e.target.value)}
+                        className="w-full bg-slate-950 text-slate-100 p-3 rounded-xl border border-slate-800 focus:border-cyan-400 outline-none font-mono text-center"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -319,7 +431,7 @@ export function CheckoutPage() {
               <label className="font-semibold text-slate-300">Courier Delivery Remarks (Optional)</label>
               <textarea
                 rows={2}
-                placeholder="Special instructions for courier driver (e.g. Call before delivery)"
+                placeholder="Special instructions for courier driver (e.g. Call before delivery, landmark)"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full bg-slate-950 text-slate-100 p-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none resize-none"
@@ -353,7 +465,7 @@ export function CheckoutPage() {
                 </div>
                 <div>
                   <div className="font-bold text-slate-100 text-xs">Cash on Delivery</div>
-                  <div className="text-[10px] text-slate-400">Pay cash upon delivery</div>
+                  <div className="text-[10px] text-emerald-400 font-medium">0% Gateway Fee</div>
                 </div>
               </button>
 
@@ -372,7 +484,7 @@ export function CheckoutPage() {
                 </div>
                 <div>
                   <div className="font-bold text-slate-100 text-xs">Bank Transfer</div>
-                  <div className="text-[10px] text-slate-400">Upload deposit slip</div>
+                  <div className="text-[10px] text-emerald-400 font-medium">0% Gateway Fee</div>
                 </div>
               </button>
 
@@ -402,9 +514,9 @@ export function CheckoutPage() {
                   )}
                 </div>
                 <div>
-                  <div className="font-bold text-slate-100 text-xs">PayHere Gateway</div>
-                  <div className="text-[10px] text-slate-400">
-                    {isPayHereLimitExceeded ? "Disabled (> Rs. 50,000)" : "Visa, Master, eZCash, KOKO"}
+                  <div className="font-bold text-slate-100 text-xs">Card / PayHere</div>
+                  <div className="text-[10px] text-cyan-400 font-medium">
+                    {isPayHereLimitExceeded ? "Disabled (> Rs. 50,000)" : "Visa, Master (+4% Gateway Fee)"}
                   </div>
                 </div>
               </button>
@@ -419,7 +531,7 @@ export function CheckoutPage() {
                     Online Card Payment Unavailable for Orders Over Rs. 50,000
                   </span>
                   <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                    Online payment gateway (PayHere Free Tier) supports payments up to <strong>LKR 50,000</strong> per transaction. Because your order total is <strong>{formatLKR(totalAmount)}</strong>, card payment is disabled. Please complete your order using <strong>Cash on Delivery (COD)</strong> or <strong>Direct Bank Transfer</strong>.
+                    Online payment gateway supports card transactions up to <strong>LKR 50,000</strong> per payment. Because your order total is <strong>{formatLKR(totalAmount)}</strong>, please complete your order using <strong>Cash on Delivery (COD)</strong> or <strong>Direct Bank Transfer</strong>.
                   </p>
                 </div>
               </div>
@@ -433,7 +545,7 @@ export function CheckoutPage() {
                   Cash on Delivery Order Notice
                 </div>
                 <p className="text-slate-400 leading-relaxed">
-                  No advance payment is required. You will pay the courier driver <strong className="text-slate-200">{formatLKR(totalAmount)}</strong> in cash when your parcel is delivered to {district}. Our team will call or message your phone number before dispatch.
+                  No advance payment is required. You will pay the courier driver <strong className="text-slate-200">{formatLKR(totalAmount)}</strong> in cash when your parcel is delivered to {district}. Our team will contact your phone before dispatch.
                 </p>
               </div>
             )}
@@ -506,15 +618,15 @@ export function CheckoutPage() {
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-200 text-xs flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-cyan-400" />
-                    <span>PayHere Sri Lanka Online Payment</span>
+                    <span>PayHere Sri Lanka Online Payment (Visa / Master)</span>
                   </span>
                   <span className="text-[10px] bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 px-2.5 py-0.5 rounded-full font-mono">
-                    Instant Webhook Sync
+                    +4% Gateway Fee
                   </span>
                 </div>
 
                 <p className="text-slate-400 text-xs leading-relaxed">
-                  You will be securely redirected to <strong>PayHere Payment Gateway</strong> to pay <strong className="text-cyan-400 font-bold">{formatLKR(totalAmount)}</strong> using Visa, MasterCard, KOKO PayLater, eZ Cash, mCash, Frimi, or Genie.
+                  You will be securely redirected to <strong>PayHere Payment Gateway</strong> to complete card payment of <strong className="text-cyan-400 font-bold">{formatLKR(totalAmount)}</strong> (Includes items Rs. {subtotal.toLocaleString()} + delivery Rs. 450 + 4% gateway processing Rs. {gatewayFee.toLocaleString()}).
                 </p>
 
                 <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
@@ -540,7 +652,7 @@ export function CheckoutPage() {
 
             {/* Items */}
             <div className="space-y-3 max-h-60 overflow-y-auto pr-1 divide-y divide-slate-800">
-              {items.map(({ product, quantity }) => {
+              {items.map(({ product, quantity, selectedColor, selectedVariant, warranty }) => {
                 const imgs = JSON.parse(product.images || "[]");
                 return (
                   <div key={product.id} className="pt-2 first:pt-0 flex items-center justify-between text-xs">
@@ -550,7 +662,11 @@ export function CheckoutPage() {
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-200 line-clamp-1 max-w-[180px]">{product.title}</h4>
-                        <span className="text-[10px] text-slate-400">Qty: {quantity}</span>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                          <span>Qty: {quantity}</span>
+                          {selectedColor && <span className="text-cyan-400">Color: {selectedColor}</span>}
+                          {selectedVariant && <span className="text-cyan-400">{selectedVariant}</span>}
+                        </div>
                       </div>
                     </div>
                     <span className="font-bold text-slate-200">{formatLKR(product.sellingPriceLkr * quantity)}</span>
@@ -560,22 +676,25 @@ export function CheckoutPage() {
             </div>
 
             {/* Totals */}
-            <div className="space-y-2 text-xs pt-4 border-t border-slate-800">
+            <div className="space-y-2.5 text-xs pt-4 border-t border-slate-800">
               <div className="flex justify-between text-slate-400">
                 <span>Subtotal</span>
                 <span className="font-semibold text-slate-200">{formatLKR(subtotal)}</span>
               </div>
 
               <div className="flex justify-between text-slate-400">
-                <span>District Shipping ({district})</span>
-                <span className="font-semibold text-slate-200">
-                  {shippingFee === 0 ? (
-                    <span className="text-emerald-400 font-bold">FREE</span>
-                  ) : (
-                    formatLKR(shippingFee)
-                  )}
-                </span>
+                <span>Islandwide Delivery Fee (Any City)</span>
+                <span className="font-semibold text-slate-200">{formatLKR(shippingFee)}</span>
               </div>
+
+              {isCardPayment && (
+                <div className="flex justify-between text-cyan-400">
+                  <span className="flex items-center gap-1">
+                    <span>Payment Gateway Fee (4%)</span>
+                  </span>
+                  <span className="font-bold font-mono">+{formatLKR(gatewayFee)}</span>
+                </div>
+              )}
 
               <div className="flex justify-between text-sm font-extrabold text-white pt-3 border-t border-slate-800">
                 <span>Total Amount (LKR)</span>
@@ -596,7 +715,7 @@ export function CheckoutPage() {
                 </div>
               ) : (
                 <>
-                  <span>Complete Order & Dispatch</span>
+                  <span>Complete Order &amp; Dispatch</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

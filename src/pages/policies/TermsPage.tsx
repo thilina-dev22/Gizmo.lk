@@ -85,9 +85,9 @@ export function TermsPage() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
-              <span className="font-bold text-cyan-400">1. Online Card / PayHere</span>
+              <span className="font-bold text-cyan-400">1. Online Card / PayHere (+4% Fee)</span>
               <p className="text-slate-400 text-[11px]">
-                Visa, MasterCard, and LankaQR processed via the Central Bank-approved <strong>PayHere Payment Gateway</strong> with 256-bit SSL encryption.
+                Visa, MasterCard, and LankaQR processed via Central Bank-approved <strong>PayHere Payment Gateway</strong> with 256-bit SSL encryption (+4% gateway processing fee applies).
               </p>
             </div>
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">

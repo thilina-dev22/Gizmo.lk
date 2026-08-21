@@ -355,9 +355,22 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
                   <span className="font-semibold">{formatLKR(order.subtotalLkr || order.totalLkr)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>Islandwide Shipping:</span>
-                  <span>{order.shippingFeeLkr === 0 ? "FREE" : formatLKR(order.shippingFeeLkr || 0)}</span>
+                  <span>Islandwide Delivery Fee:</span>
+                  <span>{formatLKR(450)}</span>
                 </div>
+                {order.paymentMethod === "PAYHERE" && (
+                  <div className="flex justify-between text-cyan-700 font-medium">
+                    <span>Payment Gateway Fee (4%):</span>
+                    <span>
+                      {formatLKR(
+                        Math.max(
+                          0,
+                          Number(order.totalLkr) - Number(order.subtotalLkr || 0) - 450
+                        ) || Math.round(Number(order.subtotalLkr || 0) * 0.04)
+                      )}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-2 border-t-2 border-slate-900 text-sm font-black text-slate-900">
                   <span>Grand Total:</span>
                   <span className="text-cyan-700 font-mono">{formatLKR(order.totalLkr)}</span>

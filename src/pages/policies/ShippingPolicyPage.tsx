@@ -64,10 +64,10 @@ export function ShippingPolicyPage() {
         <section className="space-y-3">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xs">1</span>
-            Standard Delivery Rates &amp; Free Shipping
+            Flat Islandwide Delivery Rates (Rs. 450 Any City)
           </h2>
           <p>
-            Delivery rates are automatically calculated during checkout based on your delivery district:
+            GizmoTek offers a standard flat delivery rate across <strong>every city and town in all 25 districts of Sri Lanka</strong>:
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-left border border-slate-800 rounded-xl overflow-hidden">
@@ -75,22 +75,16 @@ export function ShippingPolicyPage() {
                 <tr>
                   <th className="p-3 border-b border-slate-800">Destination Region</th>
                   <th className="p-3 border-b border-slate-800">Estimated Timeline</th>
-                  <th className="p-3 border-b border-slate-800">Shipping Rate</th>
-                  <th className="p-3 border-b border-slate-800">Free Shipping Threshold</th>
+                  <th className="p-3 border-b border-slate-800">Delivery Rate</th>
+                  <th className="p-3 border-b border-slate-800">Payment Modes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-slate-300">
                 <tr>
-                  <td className="p-3 font-semibold text-white">Colombo &amp; Gampaha Districts</td>
-                  <td className="p-3">1 - 2 Business Days</td>
-                  <td className="p-3 text-cyan-400 font-mono font-bold">Rs. 350</td>
-                  <td className="p-3 text-emerald-400 font-bold">Free on Orders ≥ Rs. 15,000</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-semibold text-white">All Other 23 Districts (Islandwide)</td>
-                  <td className="p-3">2 - 4 Business Days</td>
-                  <td className="p-3 text-cyan-400 font-mono font-bold">Rs. 500</td>
-                  <td className="p-3 text-emerald-400 font-bold">Free on Orders ≥ Rs. 15,000</td>
+                  <td className="p-3 font-semibold text-white">Any City in Sri Lanka (All 25 Districts)</td>
+                  <td className="p-3">2 - 4 Business Days (1-2 Days Metro)</td>
+                  <td className="p-3 text-cyan-400 font-mono font-bold">Rs. 450 (Flat Rate)</td>
+                  <td className="p-3 text-emerald-400 font-bold">Cash on Delivery, Bank Transfer, Online Card</td>
                 </tr>
               </tbody>
             </table>

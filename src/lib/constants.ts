@@ -37,6 +37,8 @@ export const CATEGORIES = [
   { id: "Car Gadgets", name: "Car Gadgets & Mounts" },
 ] as const;
 
+export const FLAT_DELIVERY_FEE_LKR = 450;
+export const PAYMENT_GATEWAY_FEE_PERCENT = 0.04; // 4% Processing fee for card & online payment gateway
 export const FREE_SHIPPING_THRESHOLD_LKR = 15000;
 
 export const BANK_ACCOUNTS = [

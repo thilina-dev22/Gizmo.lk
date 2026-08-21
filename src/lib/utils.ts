@@ -17,17 +17,18 @@ export function formatLKR(amount: number): string {
     .replace("LKR", "Rs.");
 }
 
-export function calculateShippingFee(district: string, subtotal: number): number {
-  if (subtotal >= FREE_SHIPPING_THRESHOLD_LKR) {
-    return 0;
-  }
+import { FLAT_DELIVERY_FEE_LKR, PAYMENT_GATEWAY_FEE_PERCENT } from "./constants";
 
-  const metroDistricts = ["Colombo", "Gampaha"];
-  if (metroDistricts.includes(district)) {
-    return 350;
-  }
+export function calculateShippingFee(_district?: string, _subtotal?: number): number {
+  // Flat delivery fee for any city across Sri Lanka is 450 LKR
+  return FLAT_DELIVERY_FEE_LKR;
+}
 
-  return 500;
+export function calculatePaymentGatewayFee(subtotal: number, paymentMethod: string): number {
+  if (paymentMethod === "PAYHERE" || paymentMethod === "CARD") {
+    return Math.round(subtotal * PAYMENT_GATEWAY_FEE_PERCENT);
+  }
+  return 0;
 }
 
 export function safeParseSpecs(specsInput: any): Record<string, string> {
