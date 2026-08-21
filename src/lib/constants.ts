@@ -31,6 +31,8 @@ export type District = (typeof SRI_LANKA_DISTRICTS)[number];
 export const CATEGORIES = [
   { id: "all", name: "All Products" },
   { id: "Smartphones", name: "Smartphones & Mobile" },
+  { id: "Chargers & Cables", name: "Chargers & Cables" },
+  { id: "Storage & Pen Drives", name: "Storage & Pen Drives" },
   { id: "Audio", name: "Audio & Wireless Earbuds" },
   { id: "Smartwatches", name: "Smartwatches & Bands" },
   { id: "Computer Accessories", name: "Computer & PC Gear" },
