@@ -249,7 +249,7 @@ function renderOrderEmailTemplate(order: any, isForAdmin: boolean = false) {
               <div style="background-color: #0b0f19; border-left: 4px solid #06b6d4; border-radius: 8px; padding: 14px; margin-top: 25px; font-size: 12px; color: #94a3b8; line-height: 1.5;">
                 🚚 <strong>Delivery Timeline:</strong> 1-2 business days for Colombo/Gampaha, 2-4 business days islandwide via official courier partners (Koombiyo, PromptX, Pronto).
                 <br/><br/>
-                🛡️ <strong>Warranty:</strong> All gadgets include GizmoTek 1-Year Hardware Warranty & 7-Day Replacement Guarantee.
+                🛡️ <strong>Guarantee:</strong> All gadgets include GizmoTek 7-Day 1-to-1 Replacement Guarantee for manufacturer defects.
               </div>
             </td>
           </tr>
@@ -258,7 +258,7 @@ function renderOrderEmailTemplate(order: any, isForAdmin: boolean = false) {
           <tr>
             <td style="padding: 20px 30px; background-color: #0b0f19; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
               <p style="margin: 0;">GizmoTek.lk Online Store | No. 128, Galle Road, Colombo 03, Sri Lanka</p>
-              <p style="margin: 4px 0 0 0;">Hotline: +94 77 123 4567 | Support: orders@gizmotek.lk</p>
+              <p style="margin: 4px 0 0 0;">Hotline / WhatsApp: +94 72 141 0369 | Support: orders@gizmotek.lk | support@gizmotek.lk</p>
             </td>
           </tr>
         </table>
@@ -297,7 +297,7 @@ function renderShippingEmailTemplate(order: any) {
                 <p style="margin: 4px 0 0 0; color: #94a3b8;">Please keep your phone available for the courier call.</p>
                 ${order.paymentMethod === 'COD' ? `<p style="margin: 8px 0 0 0; color: #fbbf24; font-weight: bold;">Amount Due on Delivery: Rs. ${Number(order.totalLkr).toLocaleString()} (Cash)</p>` : ''}
               </div>
-              <p style="font-size: 12px; color: #64748b;">If you have questions regarding delivery, contact us at +94 77 123 4567 or orders@gizmotek.lk.</p>
+              <p style="font-size: 12px; color: #64748b;">If you have questions regarding delivery, contact us at +94 72 141 0369 or orders@gizmotek.lk | support@gizmotek.lk.</p>
             </td>
           </tr>
         </table>
@@ -413,8 +413,8 @@ function renderContactConfirmationEmailTemplate({
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0 10px 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://wa.me/94771234567" target="_blank" style="display: inline-block; background-color: #10b981; color: #022c22; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">
-                      💬 Chat with Support on WhatsApp (+94 77 123 4567)
+                    <a href="https://wa.me/94721410369" target="_blank" style="display: inline-block; background-color: #10b981; color: #022c22; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">
+                      💬 Chat with Support on WhatsApp (+94 72 141 0369)
                     </a>
                   </td>
                 </tr>
@@ -427,7 +427,7 @@ function renderContactConfirmationEmailTemplate({
             <td style="padding: 20px 30px; background-color: #0b0f19; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
               <p style="margin: 0; font-weight: 600; color: #94a3b8;">GizmoTek Sri Lanka | Smart Tech &amp; Gadget Store</p>
               <p style="margin: 4px 0 0 0;">No. 128, Galle Road, Colombo 03, Sri Lanka</p>
-              <p style="margin: 4px 0 0 0;">Hotline / WhatsApp: +94 77 123 4567 | Email: support@gizmotek.lk</p>
+              <p style="margin: 4px 0 0 0;">Hotline / WhatsApp: +94 72 141 0369 | Email: orders@gizmotek.lk | support@gizmotek.lk</p>
               <p style="margin: 8px 0 0 0; color: #475569;">This is an automated acknowledgment confirming receipt of your message.</p>
             </td>
           </tr>

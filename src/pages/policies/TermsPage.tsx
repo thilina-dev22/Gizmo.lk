@@ -54,7 +54,7 @@ export function TermsPage() {
             <p><strong>Website:</strong> https://www.gizmotek.lk</p>
             <p><strong>Registered Address:</strong> No. 128, Galle Road, Colombo 03, Western Province, Sri Lanka</p>
             <p><strong>Contact Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
-            <p><strong>Customer Hotline:</strong> +94 77 123 4567</p>
+            <p><strong>Customer Hotline &amp; WhatsApp:</strong> +94 72 141 0369</p>
           </div>
         </section>
 

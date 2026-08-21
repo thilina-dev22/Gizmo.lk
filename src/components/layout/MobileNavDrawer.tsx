@@ -292,7 +292,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
             {/* Bottom Actions */}
             <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-800 space-y-2 text-xs">
               <a
-                href="https://wa.me/94771234567"
+                href="https://wa.me/94721410369"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl transition-colors shadow-sm"

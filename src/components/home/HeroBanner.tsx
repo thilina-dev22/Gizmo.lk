@@ -49,7 +49,7 @@ export function HeroBanner() {
               </div>
               <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                 <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Local Warranty</span>
+                <span>Quality Guarantee</span>
               </div>
             </div>
 

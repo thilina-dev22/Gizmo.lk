@@ -200,7 +200,7 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
                 </p>
                 <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
                   <p>No. 128, Galle Road, Colombo 03, Sri Lanka</p>
-                  <p>Hotline: +94 77 123 4567 | Email: orders@gizmotek.lk</p>
+                  <p>Hotline: +94 72 141 0369 | Email: orders@gizmotek.lk | support@gizmotek.lk</p>
                 </div>
               </div>
 
@@ -312,10 +312,10 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
               <div className="space-y-1 text-[11px] text-slate-500 max-w-sm">
                 <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
                   <ShieldCheck className="w-4 h-4 text-cyan-600" />
-                  <span>1-Year GizmoTek Hardware Warranty</span>
+                  <span>GizmoTek Replacement &amp; Quality Guarantee</span>
                 </div>
                 <p>
-                  Includes 7-Day 1-to-1 Replacement Guarantee for manufacturer defects. Keep this invoice for warranty verification.
+                  Includes 7-Day 1-to-1 Replacement Guarantee for manufacturer defects. Keep this invoice for customer verification.
                 </p>
               </div>
 
@@ -338,7 +338,7 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
             {/* Footer Note */}
             <div className="pt-4 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-1">
               <p>Thank you for shopping with GizmoTek Online Store (https://www.gizmotek.lk).</p>
-              <p>For inquiries, warranty claims, or parcel tracking: WhatsApp / Hotline: +94 77 123 4567 | orders@gizmotek.lk</p>
+              <p>For inquiries, order support, or parcel tracking: WhatsApp / Hotline: +94 72 141 0369 | orders@gizmotek.lk | support@gizmotek.lk</p>
             </div>
           </div>
 

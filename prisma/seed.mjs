@@ -623,7 +623,7 @@ async function main() {
     data: {
       orderNumber: "GZ-88219",
       customerName: "Kusal Perera",
-      customerPhone: "+94 77 123 4567",
+      customerPhone: "+94 72 141 0369",
       customerEmail: "kusal.p@example.lk",
       address: "No. 45, Galle Road",
       district: "Colombo",

@@ -41,7 +41,7 @@ export function ContactPage() {
 
     if (!accessKey) {
       setErrorMessage(
-        "Web3Forms Access Key is not configured. Please add VITE_WEB3FORMS_ACCESS_KEY in your .env configuration file, or contact us directly via WhatsApp (+94 77 123 4567)."
+        "Web3Forms Access Key is not configured. Please add VITE_WEB3FORMS_ACCESS_KEY in your .env configuration file, or contact us directly via WhatsApp (+94 72 141 0369)."
       );
       return;
     }
@@ -163,9 +163,9 @@ export function ContactPage() {
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-200">Direct Helpline &amp; WhatsApp</h4>
-                  <p className="text-slate-400 mt-0.5">+94 77 123 4567</p>
+                  <p className="text-slate-400 mt-0.5">+94 72 141 0369</p>
                   <a
-                    href="https://wa.me/94771234567"
+                    href="https://wa.me/94721410369"
                     target="_blank"
                     rel="noreferrer"
                     className="text-emerald-400 font-semibold hover:underline inline-block mt-1 text-[11px]"
@@ -205,7 +205,7 @@ export function ContactPage() {
               <span>Verified Sri Lankan E-Commerce Business</span>
             </div>
             <p className="text-slate-400 text-[11px] leading-relaxed">
-              GizmoTek is registered in Sri Lanka, operating with direct local warranty coverage and verified PayHere secure payment gateway integration.
+              GizmoTek is registered in Sri Lanka, operating with dedicated customer support and verified PayHere secure payment gateway integration.
             </p>
           </div>
         </div>
@@ -295,7 +295,7 @@ export function ContactPage() {
                       required
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 077 123 4567"
+                      placeholder="e.g. 072 141 0369"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 transition-colors"
                     />
                   </div>

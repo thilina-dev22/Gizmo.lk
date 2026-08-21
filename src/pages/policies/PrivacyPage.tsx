@@ -134,8 +134,8 @@ export function PrivacyPage() {
             If you wish to access, rectify, or request deletion of your stored customer records, please contact our Privacy &amp; Data Security Team:
           </p>
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-1 text-slate-300">
-            <p><strong>Email:</strong> privacy@gizmotek.lk | support@gizmotek.lk</p>
-            <p><strong>Hotline:</strong> +94 77 123 4567</p>
+            <p><strong>Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
+            <p><strong>Hotline &amp; WhatsApp:</strong> +94 72 141 0369</p>
             <p><strong>Address:</strong> GizmoTek Online Store, No. 128, Galle Road, Colombo 03, Sri Lanka</p>
           </div>
         </section>

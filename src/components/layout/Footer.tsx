@@ -46,7 +46,7 @@ export function Footer() {
             </div>
             <div>
               <h4 className="font-bold text-slate-200 text-xs">Quality Guarantee</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">1-Year Local warranty support</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">7-Day Replacement Guarantee</p>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Hotline / WhatsApp: +94 77 123 4567</span>
+              <span>Hotline / WhatsApp: +94 72 141 0369</span>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-amber-400 shrink-0" />
@@ -151,12 +151,12 @@ export function Footer() {
             </li>
             <li>
               <a
-                href="https://wa.me/94771234567"
+                href="https://wa.me/94721410369"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-emerald-400 transition-colors flex items-center gap-1"
               >
-                <span>WhatsApp Support (+94 77 123 4567)</span>
+                <span>WhatsApp Support (+94 72 141 0369)</span>
               </a>
             </li>
             <li className="pt-2">

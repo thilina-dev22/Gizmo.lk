@@ -154,7 +154,7 @@ export function ShippingPolicyPage() {
           </p>
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-1 text-slate-300">
             <p><strong>Fulfillment Warehouse:</strong> GizmoTek Logistics Hub, Colombo 03, Sri Lanka</p>
-            <p><strong>Hotline &amp; WhatsApp Tracking:</strong> +94 77 123 4567</p>
+            <p><strong>Hotline &amp; WhatsApp Tracking:</strong> +94 72 141 0369</p>
             <p><strong>Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
             <p><strong>Dispatch Times:</strong> Monday - Saturday (Orders placed before 2:00 PM are dispatched same-day)</p>
           </div>

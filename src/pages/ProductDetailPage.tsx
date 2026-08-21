@@ -328,13 +328,13 @@ export function ProductDetailPage() {
 
               {/* WhatsApp Direct Order Button */}
               <a
-                href={`https://wa.me/94771234567?text=${whatsappMessage}`}
+                href={`https://wa.me/94721410369?text=${whatsappMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-md transition-all text-xs"
               >
                 <ExternalLink className="w-4 h-4" />
-                <span>Order via WhatsApp Direct (+94 77 123 4567)</span>
+                <span>Order via WhatsApp Direct (+94 72 141 0369)</span>
               </a>
 
               {/* Sri Lanka Delivery Guarantee */}
@@ -349,7 +349,7 @@ export function ProductDetailPage() {
                 </div>
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>1-Yr Warranty</span>
+                  <span>7-Day Replacement</span>
                 </div>
               </div>
             </div>

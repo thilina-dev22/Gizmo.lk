@@ -147,7 +147,7 @@ export function OrderSuccessPage() {
           <span>Return to Homepage</span>
         </Link>
         <a
-          href="https://wa.me/94771234567"
+          href="https://wa.me/94721410369"
           target="_blank"
           rel="noreferrer"
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl text-xs transition-colors"

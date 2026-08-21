@@ -83,8 +83,8 @@ export const TRUST_BADGES = [
     icon: "Building2",
   },
   {
-    title: "1-Year Local Warranty",
-    desc: "100% genuine tech products with warranty support",
+    title: "Quality Guarantee",
+    desc: "100% genuine tech products with 7-day replacement support",
     icon: "ShieldCheck",
   },
 ];

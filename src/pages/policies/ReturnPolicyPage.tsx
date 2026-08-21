@@ -20,7 +20,7 @@ export function ReturnPolicyPage() {
           Return, Replacement &amp; Refund Policy
         </h1>
         <p className="text-xs text-slate-400">
-          Last Updated: February 2026 | Guaranteed 7-Day Replacement Guarantee &amp; 1-Year Local Warranty Support
+          Last Updated: February 2026 | Guaranteed 7-Day Replacement Guarantee &amp; Dedicated Customer Support
         </p>
       </div>
 
@@ -40,9 +40,9 @@ export function ReturnPolicyPage() {
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <h3 className="font-bold text-white text-sm">1-Year Warranty</h3>
+          <h3 className="font-bold text-white text-sm">Quality Guarantee</h3>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Full 12-month technical and repair warranty coverage for smartwatches, wireless audio, and electronic peripherals.
+            100% genuine tech products with dedicated customer support and manufacturer defect assistance.
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export function ReturnPolicyPage() {
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
               <span className="font-bold text-cyan-400">Step 1: Contact</span>
               <p className="text-slate-400 text-[11px]">
-                WhatsApp us at <strong>+94 77 123 4567</strong> or email <strong>support@gizmotek.lk</strong> with your order number and photos/video of the issue.
+                WhatsApp us at <strong>+94 72 141 0369</strong> or email <strong>support@gizmotek.lk</strong> with your order number and photos/video of the issue.
               </p>
             </div>
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
@@ -153,8 +153,8 @@ export function ReturnPolicyPage() {
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-1 text-slate-300">
             <p><strong>Returns Department:</strong> GizmoTek Technical Support &amp; RMA Center</p>
             <p><strong>Address:</strong> No. 128, Galle Road, Colombo 03, Sri Lanka</p>
-            <p><strong>Direct Helpline / WhatsApp:</strong> +94 77 123 4567</p>
-            <p><strong>Email:</strong> support@gizmotek.lk | orders@gizmotek.lk</p>
+            <p><strong>Direct Helpline / WhatsApp:</strong> +94 72 141 0369</p>
+            <p><strong>Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
             <p><strong>Operating Hours:</strong> Monday - Saturday (9:00 AM - 6:30 PM)</p>
           </div>
         </section>
