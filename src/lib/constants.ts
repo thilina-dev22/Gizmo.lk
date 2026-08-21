@@ -34,9 +34,10 @@ export const CATEGORIES = [
   { id: "Chargers & Cables", name: "Chargers & Cables" },
   { id: "Storage & Pen Drives", name: "Storage & Pen Drives" },
   { id: "Audio", name: "Audio & Wireless Earbuds" },
-  { id: "Smartwatches", name: "Smartwatches & Bands" },
+  { id: "Wearables", name: "Wearables & Smartwatches" },
   { id: "Computer Accessories", name: "Computer & PC Gear" },
   { id: "Car Gadgets", name: "Car Gadgets & Mounts" },
+  { id: "Outdoor & Gadgets", name: "Outdoor & Gadgets" },
 ] as const;
 
 export const FLAT_DELIVERY_FEE_LKR = 450;
