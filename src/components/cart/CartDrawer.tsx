@@ -115,11 +115,13 @@ export function CartDrawer() {
                   </button>
                 </div>
               ) : (
-                items.map(({ product, quantity }) => {
+                items.map((item) => {
+                  const { product, quantity, selectedColor, selectedVariant, warranty } = item;
+                  const itemKey = item.id || product.id;
                   const imgs = safeParseImages(product.images);
                   const thumb = imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
                   return (
-                    <div key={product.id} className="pt-3 first:pt-0 flex gap-3">
+                    <div key={itemKey} className="pt-3 first:pt-0 flex gap-3">
                       {/* Product Thumbnail */}
                       <div className="w-16 h-16 relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shrink-0">
                         <OptimizedImage src={thumb} alt={product.title} fill />
@@ -133,28 +135,47 @@ export function CartDrawer() {
                               {product.title}
                             </h4>
                             <button
-                              onClick={() => removeItem(product.id)}
+                              onClick={() => removeItem(itemKey)}
                               className="text-slate-500 hover:text-red-400 transition-colors p-1.5 min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
                               title="Remove item"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                          <span className="text-[11px] text-slate-400">{product.category}</span>
+
+                          {/* Variant / Color & Warranty Tag */}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-slate-400">{product.category}</span>
+                            {selectedColor && (
+                              <span className="text-[10px] text-cyan-300 bg-cyan-950/60 border border-cyan-500/20 px-1.5 py-0.2 rounded">
+                                Color: {selectedColor}
+                              </span>
+                            )}
+                            {selectedVariant && (
+                              <span className="text-[10px] text-slate-300 bg-slate-800 px-1.5 py-0.2 rounded font-mono">
+                                {selectedVariant}
+                              </span>
+                            )}
+                            {warranty && (
+                              <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded">
+                                🛡️ {warranty}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-between mt-2">
                           {/* Quantity control */}
                           <div className="flex items-center border border-slate-700/80 rounded-lg bg-slate-900/90 overflow-hidden">
                             <button
-                              onClick={() => updateQuantity(product.id, quantity - 1)}
+                              onClick={() => updateQuantity(itemKey, quantity - 1)}
                               className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
                             >
                               <Minus className="w-3.5 h-3.5" />
                             </button>
                             <span className="px-2.5 text-xs font-bold text-slate-100">{quantity}</span>
                             <button
-                              onClick={() => updateQuantity(product.id, quantity + 1)}
+                              onClick={() => updateQuantity(itemKey, quantity + 1)}
                               className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
                             >
                               <Plus className="w-3.5 h-3.5" />

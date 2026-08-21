@@ -136,10 +136,23 @@ function renderOrderEmailTemplate(order: any, isForAdmin: boolean = false) {
       const qty = item.quantity;
       const price = Number(item.unitPrice || 0);
       const total = price * qty;
+      
+      let warranty = '7-Day 1-to-1 Replacement';
+      let brand = '';
+      if (item.product?.specs) {
+        try {
+          const parsed = typeof item.product.specs === 'string' ? JSON.parse(item.product.specs) : item.product.specs;
+          if (parsed.Warranty || parsed.warranty) warranty = parsed.Warranty || parsed.warranty;
+          if (parsed.Brand || parsed.brand) brand = parsed.Brand || parsed.brand;
+        } catch {}
+      }
+
       return `
         <tr>
           <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; color: #f8fafc;">
-            <strong>${title}</strong>
+            <strong>${title}</strong> ${brand ? `<span style="font-size: 11px; color: #94a3b8;">(${brand})</span>` : ''}
+            <br/>
+            <span style="font-size: 11px; color: #10b981; font-weight: bold;">🛡️ Warranty: ${warranty}</span>
           </td>
           <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; text-align: center; color: #94a3b8;">x${qty}</td>
           <td style="padding: 10px 0; border-bottom: 1px solid #1e293b; text-align: right; color: #38bdf8; font-family: monospace;">Rs. ${total.toLocaleString()}</td>

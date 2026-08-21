@@ -17,6 +17,7 @@ import {
   Send,
   UserCheck,
   ChevronRight,
+  Check,
 } from "lucide-react";
 
 
@@ -32,6 +33,8 @@ export function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(FALLBACK_IMAGE);
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedVariant, setSelectedVariant] = useState<string>("");
 
   // Review Form & List State
   const [reviewsList, setReviewsList] = useState<any[]>([]);
@@ -57,6 +60,24 @@ export function ProductDetailPage() {
         setProduct(data.product);
         const imgs = safeParseImages(data.product?.images);
         setActiveImage(imgs[0] || FALLBACK_IMAGE);
+
+        // Auto-select initial color & variant if available
+        const parsedSpecs = safeParseSpecs(data.product?.specs);
+        const colorsList = (parsedSpecs["Colors"] || parsedSpecs["colors"] || parsedSpecs["Color"] || parsedSpecs["color"] || "")
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+        if (colorsList.length > 0) {
+          setSelectedColor(colorsList[0]);
+        }
+
+        const variantsList = (parsedSpecs["Variants"] || parsedSpecs["variants"] || parsedSpecs["Voltage"] || parsedSpecs["voltage"] || parsedSpecs["Options"] || parsedSpecs["options"] || "")
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+        if (variantsList.length > 0) {
+          setSelectedVariant(variantsList[0]);
+        }
       }
     } catch (err) {
       console.error("Fetch product error:", err);
@@ -77,12 +98,18 @@ export function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
-    if (product) addItem(product, quantity);
+    if (product) {
+      const parsedSpecs = safeParseSpecs(product.specs);
+      const warranty = parsedSpecs["Warranty"] || parsedSpecs["warranty"] || "7-Day Replacement Guarantee";
+      addItem(product, quantity, { selectedColor, selectedVariant, warranty });
+    }
   };
 
   const handleBuyNow = () => {
     if (product) {
-      addItem(product, quantity);
+      const parsedSpecs = safeParseSpecs(product.specs);
+      const warranty = parsedSpecs["Warranty"] || parsedSpecs["warranty"] || "7-Day Replacement Guarantee";
+      addItem(product, quantity, { selectedColor, selectedVariant, warranty });
       openCart();
       navigate("/checkout");
     }
@@ -148,8 +175,39 @@ export function ProductDetailPage() {
   const images: string[] = safeParseImages(product.images);
   const specs: Record<string, string> = safeParseSpecs(product.specs);
 
+  // Extract special attributes
+  const brand = specs["Brand"] || specs["brand"] || "";
+  const warranty = specs["Warranty"] || specs["warranty"] || "7-Day Replacement Guarantee";
+  const height = specs["Height"] || specs["height"] || "";
+  const width = specs["Width"] || specs["width"] || "";
+  const length = specs["Length"] || specs["length"] || "";
+  const weight = specs["Weight"] || specs["weight"] || "";
+  const hasDimensions = Boolean(height || width || length || weight || specs["Dimensions"] || specs["dimensions"]);
+  const dimensionsStr = specs["Dimensions"] || specs["dimensions"] || "";
+
+  const availableColors = (specs["Colors"] || specs["colors"] || specs["Color"] || specs["color"] || "")
+    .split(",")
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+
+  const availableVariants = (specs["Variants"] || specs["variants"] || specs["Voltage"] || specs["voltage"] || specs["Options"] || specs["options"] || "")
+    .split(",")
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+
+  const variantTitle = specs["VariantType"] || (specs["Voltage"] || specs["voltage"] ? "Voltage / Model" : "Options / Variations");
+
+  // Filter remaining specs for general table
+  const specialKeys = new Set([
+    "Brand", "brand", "Warranty", "warranty",
+    "Height", "height", "Width", "width", "Length", "length", "Weight", "weight", "Dimensions", "dimensions",
+    "Colors", "colors", "Color", "color",
+    "Variants", "variants", "Voltage", "voltage", "Options", "options", "VariantType"
+  ]);
+  const generalSpecs = Object.entries(specs).filter(([k]) => !specialKeys.has(k));
+
   const whatsappMessage = encodeURIComponent(
-    `Hi GizmoTek.lk! I want to order:\n*Product*: ${product.title}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmotek.lk/products/${product.id}`
+    `Hi GizmoTek.lk! I want to order:\n*Product*: ${product.title}\n*SKU*: ${product.sku}${selectedColor ? `\n*Color*: ${selectedColor}` : ""}${selectedVariant ? `\n*Option*: ${selectedVariant}` : ""}\n*Warranty*: ${warranty}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmotek.lk/products/${product.id}`
   );
 
   const displayRating = product.rating || 0;
@@ -181,7 +239,7 @@ export function ProductDetailPage() {
                 fill
                 priority
               />
-              <div className="absolute top-4 left-4 z-10 flex gap-2">
+              <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2">
                 {product.isBestSeller && (
                   <span className="bg-amber-500 text-slate-950 font-extrabold text-[10px] uppercase px-3 py-1 rounded-full shadow">
                     Best Seller
@@ -190,6 +248,11 @@ export function ProductDetailPage() {
                 <span className="bg-cyan-500/20 text-cyan-400 font-extrabold text-[10px] uppercase px-3 py-1 rounded-full border border-cyan-500/30">
                   {product.category}
                 </span>
+                {brand && (
+                  <span className="bg-slate-900/90 text-slate-200 font-bold text-[10px] uppercase px-3 py-1 rounded-full border border-slate-700">
+                    Brand: {brand}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -218,11 +281,18 @@ export function ProductDetailPage() {
           {/* Right: Specs & Quick Checkout Action (6 cols) */}
           <div className="lg:col-span-6 space-y-6 flex flex-col justify-between">
             <div className="space-y-4">
-              <div>
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">
-                  SKU: {product.sku}
-                </span>
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-white mt-1 leading-tight">
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest font-mono">
+                    SKU: {product.sku}
+                  </span>
+                  {/* Per-Product Verified Warranty Badge */}
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>{warranty}</span>
+                  </span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
                   {product.title}
                 </h1>
               </div>
@@ -257,7 +327,7 @@ export function ProductDetailPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 inline-block">
-                    In Stock & Ready to Dispatch
+                    In Stock &amp; Ready to Dispatch
                   </span>
                   <span className="text-[11px] text-slate-400 block mt-1">
                     Estimated Delivery: 2-4 Days
@@ -268,15 +338,116 @@ export function ProductDetailPage() {
               {/* Description */}
               <div className="text-slate-300 text-xs sm:text-sm leading-relaxed space-y-2">
                 <h4 className="font-bold text-slate-200 text-xs uppercase tracking-wider">Product Overview</h4>
-                <p>{product.description}</p>
+                <p className="whitespace-pre-line">{product.description}</p>
               </div>
 
-              {/* Specs Table */}
-              {Object.keys(specs).length > 0 && (
+              {/* Color Options Selector */}
+              {availableColors.length > 0 && (
+                <div className="space-y-2 pt-3 border-t border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-200 uppercase tracking-wider">Select Color:</span>
+                    <span className="text-cyan-400 font-semibold">{selectedColor || "None Selected"}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableColors.map((col: string) => {
+                      const isSelected = selectedColor === col;
+                      return (
+                        <button
+                          key={col}
+                          type="button"
+                          onClick={() => setSelectedColor(col)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isSelected
+                              ? "bg-cyan-500 text-slate-950 shadow-neon scale-105"
+                              : "bg-slate-900 text-slate-300 border border-slate-800 hover:border-slate-700"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
+                          <span>{col}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Variant / Voltage / Size Selector */}
+              {availableVariants.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-200 uppercase tracking-wider">Select {variantTitle}:</span>
+                    <span className="text-cyan-400 font-semibold">{selectedVariant || "None Selected"}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableVariants.map((v: string) => {
+                      const isSelected = selectedVariant === v;
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setSelectedVariant(v)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isSelected
+                              ? "bg-cyan-500 text-slate-950 shadow-neon scale-105"
+                              : "bg-slate-900 text-slate-300 border border-slate-800 hover:border-slate-700"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
+                          <span>{v}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Product Dimensions & Weight Card */}
+              {hasDimensions && (
+                <div className="space-y-2 pt-3 border-t border-slate-800">
+                  <h4 className="font-bold text-slate-200 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Product Dimensions &amp; Weight</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    {height && (
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                        <span className="text-[10px] text-slate-400 block uppercase">Height</span>
+                        <span className="font-bold text-white text-xs">{height}</span>
+                      </div>
+                    )}
+                    {width && (
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                        <span className="text-[10px] text-slate-400 block uppercase">Width</span>
+                        <span className="font-bold text-white text-xs">{width}</span>
+                      </div>
+                    )}
+                    {length && (
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                        <span className="text-[10px] text-slate-400 block uppercase">Length</span>
+                        <span className="font-bold text-white text-xs">{length}</span>
+                      </div>
+                    )}
+                    {weight && (
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                        <span className="text-[10px] text-slate-400 block uppercase">Weight</span>
+                        <span className="font-bold text-cyan-400 text-xs">{weight}</span>
+                      </div>
+                    )}
+                    {!height && !width && !length && dimensionsStr && (
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 col-span-2 text-center">
+                        <span className="text-[10px] text-slate-400 block uppercase">Dimensions</span>
+                        <span className="font-bold text-white text-xs">{dimensionsStr}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* General Tech Specs Table */}
+              {generalSpecs.length > 0 && (
                 <div className="space-y-2 pt-3 border-t border-slate-800">
                   <h4 className="font-bold text-slate-200 text-xs uppercase tracking-wider">Technical Specifications</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    {Object.entries(specs).map(([key, value]) => (
+                    {generalSpecs.map(([key, value]) => (
                       <div key={key} className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex justify-between">
                         <span className="text-slate-400">{key}:</span>
                         <span className="font-semibold text-slate-200">{String(value)}</span>
@@ -348,8 +519,8 @@ export function ProductDetailPage() {
                   <span>Cash on Delivery</span>
                 </div>
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>7-Day Replacement</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>{warranty}</span>
                 </div>
               </div>
             </div>

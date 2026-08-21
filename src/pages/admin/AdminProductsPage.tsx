@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Product } from "@/store/useCartStore";
 import { CATEGORIES } from "@/lib/constants";
-import { formatLKR, safeParseImages } from "@/lib/utils";
+import { formatLKR, safeParseImages, safeParseSpecs } from "@/lib/utils";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
 import {
   Plus,
@@ -42,6 +42,16 @@ export function AdminProductsPage() {
   const [additionalImages, setAdditionalImages] = useState("");
   const [description, setDescription] = useState("");
   const [specsText, setSpecsText] = useState("");
+  const [brand, setBrand] = useState("");
+  const [warranty, setWarranty] = useState("1 Year Limited Warranty");
+  const [customWarranty, setCustomWarranty] = useState("");
+  const [height, setHeight] = useState("");
+  const [width, setWidth] = useState("");
+  const [length, setLength] = useState("");
+  const [weight, setWeight] = useState("");
+  const [colors, setColors] = useState("");
+  const [variants, setVariants] = useState("");
+  const [variantType, setVariantType] = useState("Voltage / Model");
   const [supplierLink, setSupplierLink] = useState("");
   const [supplierNotes, setSupplierNotes] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
@@ -121,13 +131,43 @@ export function AdminProductsPage() {
       setImageUrl(imgs[0] || "");
       setAdditionalImages(imgs.slice(1).join("\n"));
       setDescription(product.description || "");
-      setSpecsText(
-        product.specs
-          ? typeof product.specs === "string"
-            ? product.specs
-            : JSON.stringify(product.specs, null, 2)
-          : ""
-      );
+      
+      const parsedSpecs = safeParseSpecs(product.specs);
+      setBrand(parsedSpecs["Brand"] || parsedSpecs["brand"] || "");
+      const w = parsedSpecs["Warranty"] || parsedSpecs["warranty"] || "1 Year Limited Warranty";
+      const presetWarranties = [
+        "1 Year Limited Warranty",
+        "6 Months Limited Warranty",
+        "3 Months Limited Warranty",
+        "7-Day 1-to-1 Replacement Guarantee",
+        "No Warranty",
+      ];
+      if (presetWarranties.includes(w)) {
+        setWarranty(w);
+        setCustomWarranty("");
+      } else {
+        setWarranty("Custom");
+        setCustomWarranty(w);
+      }
+
+      setHeight(parsedSpecs["Height"] || parsedSpecs["height"] || "");
+      setWidth(parsedSpecs["Width"] || parsedSpecs["width"] || "");
+      setLength(parsedSpecs["Length"] || parsedSpecs["length"] || "");
+      setWeight(parsedSpecs["Weight"] || parsedSpecs["weight"] || "");
+      setColors(parsedSpecs["Colors"] || parsedSpecs["colors"] || parsedSpecs["Color"] || parsedSpecs["color"] || "");
+      setVariants(parsedSpecs["Variants"] || parsedSpecs["variants"] || parsedSpecs["Voltage"] || parsedSpecs["voltage"] || parsedSpecs["Options"] || parsedSpecs["options"] || "");
+      setVariantType(parsedSpecs["VariantType"] || (parsedSpecs["Voltage"] ? "Voltage" : "Voltage / Model"));
+
+      // Filter remaining specs for the freeform specs textarea
+      const specialKeys = new Set([
+        "Brand", "brand", "Warranty", "warranty",
+        "Height", "height", "Width", "width", "Length", "length", "Weight", "weight", "Dimensions", "dimensions",
+        "Colors", "colors", "Color", "color",
+        "Variants", "variants", "Voltage", "voltage", "Options", "options", "VariantType"
+      ]);
+      const remainingSpecs = Object.entries(parsedSpecs).filter(([k]) => !specialKeys.has(k));
+      setSpecsText(remainingSpecs.map(([k, v]) => `${k}: ${v}`).join("\n"));
+
       setSupplierLink(product.supplierLink || "");
       setSupplierNotes(product.supplierNotes || "");
       setIsFeatured(product.isFeatured);
@@ -146,6 +186,16 @@ export function AdminProductsPage() {
       setAdditionalImages("");
       setDescription("");
       setSpecsText("");
+      setBrand("");
+      setWarranty("1 Year Limited Warranty");
+      setCustomWarranty("");
+      setHeight("");
+      setWidth("");
+      setLength("");
+      setWeight("");
+      setColors("");
+      setVariants("");
+      setVariantType("Voltage / Model");
       setSupplierLink("");
       setSupplierNotes("");
       setIsFeatured(false);
@@ -167,6 +217,41 @@ export function AdminProductsPage() {
         .filter(Boolean);
       const allImages = imageUrl ? [imageUrl, ...extraImgs] : extraImgs;
 
+      // Construct comprehensive specs JSON
+      const specsObj: Record<string, string> = {};
+      if (brand.trim()) specsObj["Brand"] = brand.trim();
+      const finalWarranty = warranty === "Custom" ? customWarranty.trim() : warranty;
+      if (finalWarranty) specsObj["Warranty"] = finalWarranty;
+      if (height.trim()) specsObj["Height"] = height.trim();
+      if (width.trim()) specsObj["Width"] = width.trim();
+      if (length.trim()) specsObj["Length"] = length.trim();
+      if (weight.trim()) specsObj["Weight"] = weight.trim();
+      if (height.trim() && width.trim() && length.trim()) {
+        specsObj["Dimensions"] = `${length.trim()} x ${width.trim()} x ${height.trim()}`;
+      }
+      if (colors.trim()) specsObj["Colors"] = colors.trim();
+      if (variants.trim()) {
+        specsObj["Variants"] = variants.trim();
+        specsObj["VariantType"] = variantType.trim() || "Voltage / Model";
+      }
+
+      // Add extra key-value pairs from specsText
+      if (specsText.trim()) {
+        try {
+          const raw = JSON.parse(specsText);
+          Object.assign(specsObj, raw);
+        } catch {
+          specsText.split("\n").forEach((line) => {
+            const parts = line.split(":");
+            if (parts.length >= 2) {
+              const k = parts[0].trim();
+              const v = parts.slice(1).join(":").trim();
+              if (k && v) specsObj[k] = v;
+            }
+          });
+        }
+      }
+
       const payload = {
         title,
         category,
@@ -176,7 +261,7 @@ export function AdminProductsPage() {
         stock: Number(stock),
         images: allImages,
         description,
-        specs: specsText,
+        specs: JSON.stringify(specsObj),
         supplierLink,
         supplierNotes,
         isFeatured,
@@ -633,15 +718,141 @@ export function AdminProductsPage() {
                   />
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Brand Name</label>
+                    <input
+                      type="text"
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      placeholder="e.g. Power last, Ivon, Anker"
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Warranty Coverage *</label>
+                    <select
+                      value={warranty}
+                      onChange={(e) => setWarranty(e.target.value)}
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none text-xs cursor-pointer"
+                    >
+                      <option value="1 Year Limited Warranty">1 Year Limited Warranty</option>
+                      <option value="6 Months Limited Warranty">6 Months Limited Warranty</option>
+                      <option value="3 Months Limited Warranty">3 Months Limited Warranty</option>
+                      <option value="7-Day 1-to-1 Replacement Guarantee">7-Day 1-to-1 Replacement Guarantee</option>
+                      <option value="No Warranty">No Warranty (As-is Wholesale)</option>
+                      <option value="Custom">Custom Warranty Period...</option>
+                    </select>
+                  </div>
+                </div>
+
+                {warranty === "Custom" && (
+                  <div className="space-y-1">
+                    <label className="font-semibold text-cyan-400">Custom Warranty Text *</label>
+                    <input
+                      type="text"
+                      required
+                      value={customWarranty}
+                      onChange={(e) => setCustomWarranty(e.target.value)}
+                      placeholder="e.g. 2 Years Manufacturer Warranty"
+                      className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-cyan-500/50 outline-none text-xs"
+                    />
+                  </div>
+                )}
+
+                {/* Product Dimensions & Weight */}
+                <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2">
+                  <span className="font-bold text-slate-300 text-[11px] uppercase tracking-wider block">
+                    Product Dimensions &amp; Weight (Optional)
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Length (cm)</label>
+                      <input
+                        type="text"
+                        value={length}
+                        onChange={(e) => setLength(e.target.value)}
+                        placeholder="e.g. 10 cm"
+                        className="w-full bg-slate-900 text-slate-100 p-2 rounded-lg border border-slate-800 outline-none text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Width (cm)</label>
+                      <input
+                        type="text"
+                        value={width}
+                        onChange={(e) => setWidth(e.target.value)}
+                        placeholder="e.g. 6 cm"
+                        className="w-full bg-slate-900 text-slate-100 p-2 rounded-lg border border-slate-800 outline-none text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Height (cm)</label>
+                      <input
+                        type="text"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                        placeholder="e.g. 4 cm"
+                        className="w-full bg-slate-900 text-slate-100 p-2 rounded-lg border border-slate-800 outline-none text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">Weight (g/kg)</label>
+                      <input
+                        type="text"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        placeholder="e.g. 250 g"
+                        className="w-full bg-slate-900 text-slate-100 p-2 rounded-lg border border-slate-800 outline-none text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Colors & Options Variants */}
+                <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2">
+                  <span className="font-bold text-slate-300 text-[11px] uppercase tracking-wider block">
+                    Selectable Colors &amp; Variations (Optional)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">
+                        Available Colors <span className="text-slate-500">(Comma-separated)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={colors}
+                        onChange={(e) => setColors(e.target.value)}
+                        placeholder="e.g. White, Black, Navy Blue"
+                        className="w-full bg-slate-900 text-slate-100 p-2 rounded-lg border border-slate-800 outline-none text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-400 block mb-0.5">
+                        Variant / Options <span className="text-slate-500">(e.g. 100V, 220V or 1m, 2m)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={variants}
+                        onChange={(e) => setVariants(e.target.value)}
+                        placeholder="e.g. 100V, 220V"
+                        className="w-full bg-slate-900 text-slate-100 p-2 rounded-lg border border-slate-800 outline-none text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-300">
-                    Key Tech Specs & Features <span className="text-slate-500 font-normal">(e.g. Battery: 24h, Bluetooth: 5.3)</span>
+                    Extra Specifications <span className="text-slate-500 font-normal">(One per line, e.g. Up Time: 5-6 Hours)</span>
                   </label>
                   <textarea
                     rows={2}
                     value={specsText}
                     onChange={(e) => setSpecsText(e.target.value)}
-                    placeholder="Bluetooth 5.3, Active Noise Cancellation, 24h Playtime, IPX5 Waterproof"
+                    placeholder="Up Time: 5-6 Hours&#10;Battery: Lithium-Ion 10000mAh"
                     className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none resize-none text-xs"
                   />
                 </div>

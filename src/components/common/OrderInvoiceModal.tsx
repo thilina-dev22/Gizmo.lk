@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { formatLKR } from "@/lib/utils";
+import { formatLKR, safeParseSpecs } from "@/lib/utils";
 import { Printer, Download, X, ArrowLeft, ShieldCheck, Truck } from "lucide-react";
 
 interface OrderInvoiceModalProps {
@@ -278,23 +278,53 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {order.items && order.items.length > 0 ? (
-                      order.items.map((item: any, idx: number) => (
-                        <tr key={idx} className="text-slate-800">
-                          <td className="p-3 font-semibold text-slate-900">
-                            {item.product?.title || "Tech Product"}
-                            {item.product?.sku && (
-                              <span className="block text-[10px] text-slate-500 font-mono">
-                                SKU: {item.product.sku}
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-3 text-center font-bold">{item.quantity}</td>
-                          <td className="p-3 text-right text-slate-600">{formatLKR(item.unitPrice)}</td>
-                          <td className="p-3 text-right font-bold text-slate-900">
-                            {formatLKR(item.unitPrice * item.quantity)}
-                          </td>
-                        </tr>
-                      ))
+                      order.items.map((item: any, idx: number) => {
+                        const itemSpecs = safeParseSpecs(item.product?.specs);
+                        const itemWarranty = item.warranty || itemSpecs["Warranty"] || itemSpecs["warranty"] || "7-Day Replacement Guarantee";
+                        const itemBrand = itemSpecs["Brand"] || itemSpecs["brand"];
+                        const itemColor = item.selectedColor || itemSpecs["SelectedColor"];
+                        const itemVariant = item.selectedVariant || itemSpecs["SelectedVariant"];
+
+                        return (
+                          <tr key={idx} className="text-slate-800">
+                            <td className="p-3 font-semibold text-slate-900">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{item.product?.title || "Tech Product"}</span>
+                                {itemBrand && (
+                                  <span className="text-[9px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-normal">
+                                    {itemBrand}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {/* Variations & Options */}
+                              {(itemColor || itemVariant) && (
+                                <div className="text-[10px] text-cyan-700 font-medium mt-0.5 flex items-center gap-2">
+                                  {itemColor && <span>Color: <strong>{itemColor}</strong></span>}
+                                  {itemVariant && <span>Option: <strong>{itemVariant}</strong></span>}
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {item.product?.sku && (
+                                  <span className="text-[10px] text-slate-500 font-mono">
+                                    SKU: {item.product.sku}
+                                  </span>
+                                )}
+                                {/* Item-Specific Warranty Tag */}
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                  🛡️ Warranty: {itemWarranty}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center font-bold">{item.quantity}</td>
+                            <td className="p-3 text-right text-slate-600">{formatLKR(item.unitPrice)}</td>
+                            <td className="p-3 text-right font-bold text-slate-900">
+                              {formatLKR(item.unitPrice * item.quantity)}
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
                         <td colSpan={4} className="p-4 text-center text-slate-400">
@@ -312,10 +342,10 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
               <div className="space-y-1 text-[11px] text-slate-500 max-w-sm">
                 <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
                   <ShieldCheck className="w-4 h-4 text-cyan-600" />
-                  <span>GizmoTek Replacement &amp; Quality Guarantee</span>
+                  <span>Quality Guarantee &amp; Warranty Verification</span>
                 </div>
                 <p>
-                  Includes 7-Day 1-to-1 Replacement Guarantee for manufacturer defects. Keep this invoice for customer verification.
+                  Official receipt for purchase verification. Each product includes its designated warranty coverage specified in the item details above.
                 </p>
               </div>
 
