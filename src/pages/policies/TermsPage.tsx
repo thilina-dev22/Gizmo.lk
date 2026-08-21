@@ -99,7 +99,7 @@ export function TermsPage() {
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
               <span className="font-bold text-amber-400">3. Bank Transfer</span>
               <p className="text-slate-400 text-[11px]">
-                Direct bank transfer or cash deposit to our corporate accounts (Commercial Bank, Sampath Bank, Bank of Ceylon).
+                Direct bank transfer or cash deposit to our official bank account (HNB Bank - Hatton National Bank).
               </p>
             </div>
           </div>

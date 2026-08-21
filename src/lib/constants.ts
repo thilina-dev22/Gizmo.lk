@@ -41,28 +41,12 @@ export const FREE_SHIPPING_THRESHOLD_LKR = 15000;
 
 export const BANK_ACCOUNTS = [
   {
-    bankName: "Commercial Bank of Ceylon",
-    accountName: "GizmoTek LK (Pvt) Ltd",
-    accountNumber: "8009-1234-5678",
-    branch: "Kollupitiya Branch (005)",
-    swiftCode: "CCEYLKX",
-    logoColor: "bg-blue-600",
-  },
-  {
-    bankName: "Sampath Bank",
-    accountName: "GizmoTek LK (Pvt) Ltd",
-    accountNumber: "1004-5566-7788",
-    branch: "City Office Branch (001)",
-    swiftCode: "SAMPLKX",
-    logoColor: "bg-amber-600",
-  },
-  {
-    bankName: "Bank of Ceylon (BOC)",
-    accountName: "GizmoTek LK (Pvt) Ltd",
-    accountNumber: "0007-7123-9840",
-    branch: "Corporate Branch (002)",
-    swiftCode: "BCEYLKX",
-    logoColor: "bg-emerald-600",
+    bankName: "HNB Bank (Hatton National Bank)",
+    accountName: "Thushara L G T",
+    accountNumber: "082020343118",
+    branch: "Kaduwela Branch",
+    swiftCode: "HBLILKLX",
+    logoColor: "bg-amber-500",
   },
 ];
 

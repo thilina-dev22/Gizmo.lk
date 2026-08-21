@@ -36,7 +36,7 @@ export function Footer() {
             </div>
             <div>
               <h4 className="font-bold text-slate-200 text-xs">Direct Bank Deposit</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">Commercial, Sampath & BOC slips</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">HNB Bank direct slip transfer</p>
             </div>
           </div>
 
@@ -130,6 +130,11 @@ export function Footer() {
             <li>
               <Link to="/shipping-policy" className="hover:text-cyan-400 transition-colors">
                 Shipping &amp; Delivery Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/faq" className="hover:text-cyan-400 transition-colors">
+                FAQ &amp; Help Center
               </Link>
             </li>
             <li>

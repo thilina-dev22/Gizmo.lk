@@ -19,6 +19,7 @@ const PrivacyPage = lazy(() => import("./pages/policies/PrivacyPage").then((m) =
 const ReturnPolicyPage = lazy(() => import("./pages/policies/ReturnPolicyPage").then((m) => ({ default: m.ReturnPolicyPage })));
 const ShippingPolicyPage = lazy(() => import("./pages/policies/ShippingPolicyPage").then((m) => ({ default: m.ShippingPolicyPage })));
 const ContactPage = lazy(() => import("./pages/policies/ContactPage").then((m) => ({ default: m.ContactPage })));
+const FAQPage = lazy(() => import("./pages/policies/FAQPage").then((m) => ({ default: m.FAQPage })));
 
 // Admin Pages
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout").then((m) => ({ default: m.AdminLayout })));
@@ -91,6 +92,8 @@ export function App() {
             <Route path="/delivery-policy" element={<ShippingPolicyPage />} />
             <Route path="/contact-us" element={<ContactPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/faqs" element={<FAQPage />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />

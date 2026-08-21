@@ -279,6 +279,13 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                     Shipping Policy
                   </Link>
                   <Link
+                    to="/faq"
+                    onClick={onClose}
+                    className="p-1.5 text-slate-400 hover:text-cyan-400"
+                  >
+                    FAQ &amp; Help
+                  </Link>
+                  <Link
                     to="/contact"
                     onClick={onClose}
                     className="p-1.5 text-slate-400 hover:text-cyan-400 col-span-2"

@@ -4,11 +4,13 @@ import { HeroBanner } from "@/components/home/HeroBanner";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Product } from "@/store/useCartStore";
-import { Sparkles, ArrowRight, Truck, Banknote, Building2, HelpCircle, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Truck, Banknote, Building2, HelpCircle, CheckCircle2, ChevronDown } from "lucide-react";
+import { FAQ_DATA } from "@/data/faqData";
 
 export function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openFaq, setOpenFaq] = useState<string | null>("delivery-time");
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -131,7 +133,7 @@ export function HomePage() {
               </div>
               <h3 className="text-base font-bold text-white">Bank Transfer Slip Upload</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Prefer bank deposit or online banking? Deposit into Commercial Bank, Sampath Bank, or BOC, upload your slip screenshot at checkout, and get instant order confirmation.
+                Prefer bank deposit or online banking? Transfer or deposit into our official HNB Bank account, upload your slip screenshot at checkout, and get instant order confirmation.
               </p>
               <div className="pt-2 text-[11px] font-semibold text-amber-400 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -143,36 +145,65 @@ export function HomePage() {
       </section>
 
       {/* Sri Lanka FAQ Section */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
-        <div className="text-center space-y-2 mb-8">
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 space-y-6">
+        <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-1 text-cyan-400 font-bold text-xs uppercase tracking-wider">
             <HelpCircle className="w-4 h-4" />
             <span>Got Questions?</span>
           </div>
-          <h2 className="text-2xl font-extrabold text-white">Frequently Asked Questions</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Frequently Asked Questions</h2>
+          <p className="text-xs text-slate-400 max-w-lg mx-auto">
+            Quick answers about shipping times, Cash on Delivery, order tracking, returns, and HNB bank payments.
+          </p>
         </div>
 
-        <div className="space-y-4 text-xs sm:text-sm">
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-            <h4 className="font-bold text-slate-200 text-sm">How do I place an order via Cash on Delivery?</h4>
-            <p className="text-slate-400 leading-relaxed">
-              Add your desired products to the shopping cart, click &quot;Proceed to Checkout&quot;, select your Sri Lankan District & City, choose &quot;Cash on Delivery (COD)&quot; as your payment method, and submit. You will receive a confirmation call or WhatsApp message before dispatch.
-            </p>
-          </div>
+        <div className="space-y-3">
+          {FAQ_DATA.slice(0, 6).map((faq) => {
+            const isOpen = openFaq === faq.id;
+            return (
+              <div
+                key={faq.id}
+                className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors hover:border-slate-700"
+              >
+                <button
+                  onClick={() => setOpenFaq(isOpen ? null : faq.id)}
+                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md hidden sm:inline">
+                      {faq.category}
+                    </span>
+                    <h4 className="font-bold text-white text-xs sm:text-sm">{faq.question}</h4>
+                  </div>
+                  <div
+                    className={`w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center shrink-0 transition-transform duration-200 ${
+                      isOpen ? "rotate-180 bg-cyan-500/20 text-cyan-400" : ""
+                    }`}
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </div>
+                </button>
 
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-            <h4 className="font-bold text-slate-200 text-sm">How long does islandwide delivery take?</h4>
-            <p className="text-slate-400 leading-relaxed">
-              Deliveries within Colombo and Gampaha metro areas take 1 to 2 business days. Deliveries to outstation districts (Kandy, Galle, Jaffna, Kurunegala, Matara, etc.) take 2 to 4 business days.
-            </p>
-          </div>
+                {isOpen && (
+                  <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800/80">
+                    <div className="whitespace-pre-line bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 mt-2">
+                      {faq.answer}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-            <h4 className="font-bold text-slate-200 text-sm">What happens after I upload my bank deposit slip?</h4>
-            <p className="text-slate-400 leading-relaxed">
-              Our accounts admin team verifies uploaded slips against our Commercial Bank / Sampath Bank statement within 1-2 hours. Once verified, your order status updates to &quot;VERIFIED&quot; and is packed for dispatch.
-            </p>
-          </div>
+        <div className="text-center pt-2">
+          <Link
+            to="/faq"
+            className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 hover:text-cyan-300 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-cyan-500/30 px-5 py-2.5 rounded-xl transition-all"
+          >
+            <span>View All FAQs &amp; Help Topics</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </section>
 
