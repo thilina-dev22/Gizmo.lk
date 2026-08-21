@@ -199,7 +199,7 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
                   Premier Tech &amp; Electronics Online Store | Sri Lanka
                 </p>
                 <div className="text-[10px] text-slate-500 mt-1 space-y-0.5">
-                  <p>No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+                  <p>Online E-Commerce Store | Southern Province, Sri Lanka</p>
                   <p>Hotline: +94 72 141 0369 | Email: orders@gizmotek.lk | support@gizmotek.lk</p>
                 </div>
               </div>

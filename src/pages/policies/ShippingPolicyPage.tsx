@@ -153,7 +153,7 @@ export function ShippingPolicyPage() {
             You can check your order status at any time by contacting our delivery support desk with your Order Number (e.g. <code className="text-cyan-400 bg-slate-900 px-1 py-0.5 rounded">GZ-12345</code>):
           </p>
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-1 text-slate-300">
-            <p><strong>Fulfillment Warehouse:</strong> GizmoTek Logistics Hub, Colombo 03, Sri Lanka</p>
+            <p><strong>Fulfillment Operations:</strong> GizmoTek Online Logistics Hub, Southern Province, Sri Lanka (Islandwide Dispatch)</p>
             <p><strong>Hotline &amp; WhatsApp Tracking:</strong> +94 72 141 0369</p>
             <p><strong>Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
             <p><strong>Dispatch Times:</strong> Monday - Saturday (Orders placed before 2:00 PM are dispatched same-day)</p>

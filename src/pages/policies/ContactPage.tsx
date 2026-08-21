@@ -152,8 +152,8 @@ export function ContactPage() {
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-200">Head Office &amp; Service Hub</h4>
-                  <p className="text-slate-400 mt-0.5">No. 128, Galle Road, Colombo 03, Western Province, Sri Lanka</p>
+                  <h4 className="font-bold text-slate-200">Online Store Operations</h4>
+                  <p className="text-slate-400 mt-0.5">Operating from Southern Province, Sri Lanka (Islandwide Courier Dispatch)</p>
                 </div>
               </div>
 

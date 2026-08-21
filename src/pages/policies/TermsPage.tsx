@@ -52,7 +52,7 @@ export function TermsPage() {
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-1 text-slate-300">
             <p><strong>Business Name:</strong> GizmoTek Online Store</p>
             <p><strong>Website:</strong> https://www.gizmotek.lk</p>
-            <p><strong>Registered Address:</strong> No. 128, Galle Road, Colombo 03, Western Province, Sri Lanka</p>
+            <p><strong>Business Model:</strong> Dedicated Online E-Commerce Store (Operating from Southern Province, Sri Lanka)</p>
             <p><strong>Contact Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
             <p><strong>Customer Hotline &amp; WhatsApp:</strong> +94 72 141 0369</p>
           </div>

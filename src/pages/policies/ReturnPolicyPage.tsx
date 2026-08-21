@@ -117,7 +117,7 @@ export function ReturnPolicyPage() {
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
               <span className="font-bold text-cyan-400">Step 3: Courier Pickup</span>
               <p className="text-slate-400 text-[11px]">
-                We schedule our courier partner to collect the item from your location or you may drop it at our Colombo 03 service hub.
+                We schedule our courier partner to collect the item directly from your doorstep anywhere in Sri Lanka.
               </p>
             </div>
             <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
@@ -151,8 +151,8 @@ export function ReturnPolicyPage() {
             Returns &amp; Technical Support Center
           </h2>
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-1 text-slate-300">
-            <p><strong>Returns Department:</strong> GizmoTek Technical Support &amp; RMA Center</p>
-            <p><strong>Address:</strong> No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+            <p><strong>Returns Department:</strong> GizmoTek RMA &amp; Customer Returns Coordination</p>
+            <p><strong>Operational Hub:</strong> Online Operations, Southern Province, Sri Lanka (Islandwide Courier Exchange)</p>
             <p><strong>Direct Helpline / WhatsApp:</strong> +94 72 141 0369</p>
             <p><strong>Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
             <p><strong>Operating Hours:</strong> Monday - Saturday (9:00 AM - 6:30 PM)</p>

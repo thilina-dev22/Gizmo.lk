@@ -257,7 +257,7 @@ function renderOrderEmailTemplate(order: any, isForAdmin: boolean = false) {
           <!-- Footer -->
           <tr>
             <td style="padding: 20px 30px; background-color: #0b0f19; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
-              <p style="margin: 0;">GizmoTek.lk Online Store | No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+              <p style="margin: 0;">GizmoTek.lk Online Store | Operating from Southern Province, Sri Lanka (Islandwide Delivery)</p>
               <p style="margin: 4px 0 0 0;">Hotline / WhatsApp: +94 72 141 0369 | Support: orders@gizmotek.lk | support@gizmotek.lk</p>
             </td>
           </tr>
@@ -426,7 +426,7 @@ function renderContactConfirmationEmailTemplate({
           <tr>
             <td style="padding: 20px 30px; background-color: #0b0f19; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
               <p style="margin: 0; font-weight: 600; color: #94a3b8;">GizmoTek Sri Lanka | Smart Tech &amp; Gadget Store</p>
-              <p style="margin: 4px 0 0 0;">No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+              <p style="margin: 4px 0 0 0;">Online E-Commerce Operations | Southern Province, Sri Lanka (Islandwide Delivery)</p>
               <p style="margin: 4px 0 0 0;">Hotline / WhatsApp: +94 72 141 0369 | Email: orders@gizmotek.lk | support@gizmotek.lk</p>
               <p style="margin: 8px 0 0 0; color: #475569;">This is an automated acknowledgment confirming receipt of your message.</p>
             </td>

@@ -63,7 +63,7 @@ export function Footer() {
           <div className="space-y-2 text-slate-300">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>No. 128, Galle Road, Colombo 03, Sri Lanka</span>
+              <span>Online Store | Southern Province, Sri Lanka (Islandwide Delivery)</span>
             </div>
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-emerald-400 shrink-0" />

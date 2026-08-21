@@ -136,7 +136,7 @@ export function PrivacyPage() {
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-1 text-slate-300">
             <p><strong>Email:</strong> orders@gizmotek.lk | support@gizmotek.lk</p>
             <p><strong>Hotline &amp; WhatsApp:</strong> +94 72 141 0369</p>
-            <p><strong>Address:</strong> GizmoTek Online Store, No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+            <p><strong>Operation Base:</strong> GizmoTek Online E-Commerce Store, Southern Province, Sri Lanka</p>
           </div>
         </section>
       </div>
