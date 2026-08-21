@@ -23,6 +23,7 @@ export function ContactPage() {
   const [message, setMessage] = useState("");
   const [botcheck, setBotcheck] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -48,6 +49,7 @@ export function ContactPage() {
     setSubmitting(true);
 
     try {
+      // 1. Submit to Web3Forms to notify the store official email
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
@@ -69,6 +71,31 @@ export function ContactPage() {
       const data = await response.json();
 
       if (data.success) {
+        // 2. Dispatch automated customer confirmation email if customer email was provided
+        if (email.trim()) {
+          const userEmail = email.trim();
+          setSubmittedEmail(userEmail);
+          try {
+            await fetch("/api/contact-confirm", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                name: name.trim(),
+                phone: phone.trim(),
+                email: userEmail,
+                subject,
+                message: message.trim(),
+              }),
+            });
+          } catch (confirmErr) {
+            console.warn("Could not dispatch customer confirmation email:", confirmErr);
+          }
+        } else {
+          setSubmittedEmail("");
+        }
+
         setSubmitted(true);
         setName("");
         setPhone("");
@@ -198,17 +225,24 @@ export function ContactPage() {
                 <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
                   <CheckCircle2 className="w-7 h-7" />
                 </div>
-                <div className="space-y-1.5">
-                  <h4 className="font-bold text-white text-base">Message Sent Successfully!</h4>
+                <div className="space-y-2">
+                  <h4 className="font-bold text-white text-base">Inquiry Submitted Successfully!</h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
                     Thank you for reaching out to GizmoTek. Our representative will review your inquiry and contact you via WhatsApp or Email shortly.
                   </p>
+                  {submittedEmail && (
+                    <div className="mt-3 p-3 bg-cyan-950/30 border border-cyan-500/20 rounded-xl inline-flex items-center gap-2 text-xs text-cyan-300">
+                      <Mail className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>An inquiry confirmation receipt was sent to <strong>{submittedEmail}</strong></span>
+                    </div>
+                  )}
                 </div>
                 <div className="pt-2">
                   <button
                     onClick={() => {
                       setSubmitted(false);
                       setErrorMessage(null);
+                      setSubmittedEmail("");
                     }}
                     className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors inline-flex items-center gap-2"
                   >

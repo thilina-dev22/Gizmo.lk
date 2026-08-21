@@ -309,7 +309,139 @@ function renderShippingEmailTemplate(order: any) {
   `;
 }
 
+function renderContactConfirmationEmailTemplate({
+  name,
+  email,
+  phone,
+  subject,
+  message,
+}: {
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}) {
+  const formattedDate = new Date().toLocaleDateString('en-LK', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const escapedMessage = (message || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br/>');
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Inquiry Received - GizmoTek Sri Lanka</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0b0f19; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+          <!-- Header Banner -->
+          <tr>
+            <td style="padding: 26px 30px; background: linear-gradient(135deg, #0e7490 0%, #0369a1 100%); text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: 1px;">
+                GIZMOTEK<span style="font-size: 14px; background: #0b0f19; padding: 2px 6px; border-radius: 4px; margin-left: 6px; color: #38bdf8;">.LK</span>
+              </h1>
+              <p style="margin: 6px 0 0 0; color: #e0f2fe; font-size: 13px; font-weight: 500;">
+                ✨ We've Received Your Inquiry!
+              </p>
+            </td>
+          </tr>
+
+          <!-- Main Content Body -->
+          <tr>
+            <td style="padding: 30px 30px 20px 30px;">
+              <p style="margin-top: 0; font-size: 16px; font-weight: 600; color: #f8fafc;">
+                Dear ${name},
+              </p>
+              <p style="font-size: 14px; line-height: 1.6; color: #94a3b8; margin: 8px 0 20px 0;">
+                Thank you for contacting <strong>GizmoTek.lk</strong>! This email confirms that your inquiry regarding <strong style="color: #38bdf8;">"${subject}"</strong> has been received by our customer support desk.
+              </p>
+
+              <!-- Inquiry Summary Box -->
+              <div style="background-color: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 14px 0; color: #38bdf8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;">
+                  📋 Summary of Your Submission
+                </h3>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; line-height: 1.8;">
+                  <tr>
+                    <td style="color: #94a3b8; width: 35%; padding-bottom: 6px;">Topic / Category:</td>
+                    <td style="text-align: right; color: #f8fafc; font-weight: 600; padding-bottom: 6px;">${subject}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #94a3b8; padding-bottom: 6px;">Contact Phone / WhatsApp:</td>
+                    <td style="text-align: right; color: #f8fafc; font-weight: 600; padding-bottom: 6px;">${phone}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #94a3b8; padding-bottom: 6px;">Contact Email:</td>
+                    <td style="text-align: right; color: #f8fafc; font-weight: 600; padding-bottom: 6px;">${email}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #94a3b8; padding-bottom: 6px;">Date &amp; Time:</td>
+                    <td style="text-align: right; color: #94a3b8; font-size: 12px; padding-bottom: 6px;">${formattedDate}</td>
+                  </tr>
+                </table>
+
+                <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #334155;">
+                  <p style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Your Message:</p>
+                  <div style="background-color: #0f172a; border-radius: 8px; padding: 12px; color: #e2e8f0; font-size: 13px; line-height: 1.5; font-style: italic; border-left: 3px solid #06b6d4;">
+                    "${escapedMessage}"
+                  </div>
+                </div>
+              </div>
+
+              <!-- What happens next -->
+              <div style="background-color: #0b1329; border-left: 4px solid #10b981; border-radius: 8px; padding: 14px 16px; margin: 20px 0; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                <strong style="color: #10b981;">⚡ What Happens Next?</strong><br/>
+                Our customer care team is reviewing your message. A dedicated representative will contact you directly via WhatsApp (<strong style="color: #ffffff;">${phone}</strong>) or this email address within <strong>2 to 4 business hours</strong>.
+              </div>
+
+              <!-- Direct WhatsApp Quick Action Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0 10px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="https://wa.me/94771234567" target="_blank" style="display: inline-block; background-color: #10b981; color: #022c22; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">
+                      💬 Chat with Support on WhatsApp (+94 77 123 4567)
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer Information -->
+          <tr>
+            <td style="padding: 20px 30px; background-color: #0b0f19; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b;">
+              <p style="margin: 0; font-weight: 600; color: #94a3b8;">GizmoTek Sri Lanka | Smart Tech &amp; Gadget Store</p>
+              <p style="margin: 4px 0 0 0;">No. 128, Galle Road, Colombo 03, Sri Lanka</p>
+              <p style="margin: 4px 0 0 0;">Hotline / WhatsApp: +94 77 123 4567 | Email: support@gizmotek.lk</p>
+              <p style="margin: 8px 0 0 0; color: #475569;">This is an automated acknowledgment confirming receipt of your message.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
 const app = express();
+
 
 // Global Middleware
 app.use(cors({ origin: true, credentials: true }));
@@ -1337,6 +1469,44 @@ apiRouter.post('/upload-slip', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'No slip file or image data attached' });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to process bank slip image' });
+  }
+});
+
+// ==========================================
+// 7. CONTACT FORM CONFIRMATION EMAIL
+// ==========================================
+
+apiRouter.post('/contact-confirm', async (req, res) => {
+  try {
+    const { name, email, phone, subject, message } = req.body || {};
+
+    if (!name || !phone || !message) {
+      return res.status(400).json({ error: 'Missing required contact inquiry fields (name, phone, message)' });
+    }
+
+    // 1. If customer email provided, send automated acknowledgment email
+    if (email && typeof email === 'string' && email.trim() && email.includes('@')) {
+      const customerEmail = email.trim();
+      const customerSubject = `Inquiry Received: [${subject || 'General Inquiry'}] - GizmoTek Customer Care`;
+      const customerHtml = renderContactConfirmationEmailTemplate({
+        name: name.trim(),
+        email: customerEmail,
+        phone: phone.trim(),
+        subject: subject || 'General Inquiry',
+        message: message.trim(),
+      });
+
+      sendEmail({
+        to: customerEmail,
+        subject: customerSubject,
+        html: customerHtml,
+      }).catch((err) => console.error('Customer inquiry confirmation email error:', err));
+    }
+
+    return res.json({ success: true, message: 'Contact confirmation received and dispatched' });
+  } catch (error: any) {
+    console.error('Contact confirmation error:', error);
+    return res.status(500).json({ error: 'Failed to process contact confirmation email', detail: error?.message });
   }
 });
 
