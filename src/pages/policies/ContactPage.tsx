@@ -1,6 +1,19 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Phone, Mail, MapPin, Clock, Send, MessageSquare, CheckCircle2, ChevronRight, Building2, ShieldCheck } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  Send,
+  MessageSquare,
+  CheckCircle2,
+  ChevronRight,
+  ShieldCheck,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 
 export function ContactPage() {
   const [name, setName] = useState("");
@@ -8,20 +21,72 @@ export function ContactPage() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("General Inquiry");
   const [message, setMessage] = useState("");
+  const [botcheck, setBotcheck] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    setErrorMessage(null);
+
+    // If bot fills honeypot, silently pretend success
+    if (botcheck) {
       setSubmitted(true);
-      setName("");
-      setPhone("");
-      setEmail("");
-      setMessage("");
-    }, 600);
+      return;
+    }
+
+    const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY?.trim();
+
+    if (!accessKey) {
+      setErrorMessage(
+        "Web3Forms Access Key is not configured. Please add VITE_WEB3FORMS_ACCESS_KEY in your .env configuration file, or contact us directly via WhatsApp (+94 77 123 4567)."
+      );
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: accessKey,
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim() || "Not provided",
+          subject: `[GizmoTek Inquiry] ${subject} - ${name.trim()}`,
+          message: message.trim(),
+          from_name: "GizmoTek Customer Inquiry",
+          replyto: email.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitted(true);
+        setName("");
+        setPhone("");
+        setEmail("");
+        setMessage("");
+        setSubject("General Inquiry");
+      } else {
+        setErrorMessage(
+          data.message || "Failed to submit your message. Please try again or reach out on WhatsApp."
+        );
+      }
+    } catch (err: any) {
+      setErrorMessage(
+        "A network error occurred while submitting your message. Please check your internet connection or reach out on WhatsApp."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -129,23 +194,53 @@ export function ContactPage() {
             </div>
 
             {submitted ? (
-              <div className="p-6 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6" />
+              <div className="p-8 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+                  <CheckCircle2 className="w-7 h-7" />
                 </div>
-                <h4 className="font-bold text-white text-sm">Message Sent Successfully!</h4>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Thank you for reaching out to GizmoTek. Our representative will contact you via WhatsApp or Email shortly.
-                </p>
-                <button
-                  onClick={() => setSubmitted(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
-                >
-                  Send Another Message
-                </button>
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-white text-base">Message Sent Successfully!</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                    Thank you for reaching out to GizmoTek. Our representative will review your inquiry and contact you via WhatsApp or Email shortly.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      setSubmitted(false);
+                      setErrorMessage(null);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors inline-flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Send Another Message
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                {/* Honeypot Spam Protection (Hidden from legitimate users) */}
+                <input
+                  type="checkbox"
+                  name="botcheck"
+                  checked={!!botcheck}
+                  onChange={(e) => setBotcheck(e.target.checked ? "checked" : "")}
+                  className="hidden"
+                  style={{ display: "none" }}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+
+                {errorMessage && (
+                  <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 flex items-start gap-3">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-rose-300">Unable to submit inquiry</p>
+                      <p className="text-[11px] text-rose-400/90 mt-0.5">{errorMessage}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-slate-300 font-medium">Your Name *</label>
@@ -215,10 +310,19 @@ export function ContactPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/10"
                 >
-                  <Send className="w-4 h-4" />
-                  <span>{submitting ? "Sending Inquiry..." : "Submit Inquiry to Support Team"}</span>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Sending Inquiry...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Submit Inquiry to Support Team</span>
+                    </>
+                  )}
                 </button>
               </form>
             )}
@@ -228,3 +332,4 @@ export function ContactPage() {
     </div>
   );
 }
+
