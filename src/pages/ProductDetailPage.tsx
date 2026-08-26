@@ -366,6 +366,7 @@ export function ProductDetailPage() {
               onTouchEnd={handleTouchEnd}
             >
               <OptimizedImage
+                key={currentImage}
                 src={currentImage}
                 alt={`${product.title} - Image ${activeImageIndex + 1}`}
                 fill

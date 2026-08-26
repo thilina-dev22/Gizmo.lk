@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -12,8 +12,17 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
 const DEFAULT_FALLBACK =
   'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop';
 
+function formatSrc(url: string, fallback: string): string {
+  if (!url) return fallback;
+  if (url.includes('images.unsplash.com') && !url.includes('auto=format')) {
+    return `${url}${url.includes('?') ? '&' : '?'}auto=format&fit=crop&q=80`;
+  }
+  return url;
+}
+
 /**
- * High-performance image component replacing Next.js Image:
+ * High-performance image component:
+ * - Reactive to dynamic src prop changes
  * - Native lazy loading and asynchronous decoding
  * - Fallback handling on image failure
  * - Automatic WebP format transformation for Unsplash CDN assets
@@ -28,16 +37,16 @@ export function OptimizedImage({
   className = '',
   ...props
 }: OptimizedImageProps) {
-  const [imgSrc, setImgSrc] = useState(() => {
-    if (!src) return fallbackSrc;
-    // Optimize Unsplash images for WebP format and compression
-    if (src.includes('images.unsplash.com') && !src.includes('auto=format')) {
-      return `${src}${src.includes('?') ? '&' : '?'}auto=format&fit=crop&q=80`;
-    }
-    return src;
-  });
+  const [imgSrc, setImgSrc] = useState(() => formatSrc(src, fallbackSrc));
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  // Sync state whenever src changes
+  useEffect(() => {
+    setImgSrc(formatSrc(src, fallbackSrc));
+    setIsLoaded(false);
+    setHasError(false);
+  }, [src, fallbackSrc]);
 
   const handleError = () => {
     if (!hasError) {
