@@ -5,6 +5,7 @@ import { Product } from "@/store/useCartStore";
 import { CATEGORIES } from "@/lib/constants";
 import { formatLKR } from "@/lib/utils";
 import { Filter, SlidersHorizontal, Search, RefreshCw } from "lucide-react";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -67,13 +68,58 @@ export function ProductsPage() {
     }
   };
 
-
   const filteredProducts = products.filter(
     (p) => p.sellingPriceLkr <= maxPrice
   );
 
+  const pageTitle = search
+    ? `Search results for "${search}" | GizmoTek.lk`
+    : category !== "all"
+    ? `Buy ${category} Online in Sri Lanka | GizmoTek.lk`
+    : "All Tech Products & Electronics in Sri Lanka | GizmoTek.lk";
+
+  const pageDescription = category !== "all"
+    ? `Shop top-rated ${category} in Sri Lanka. Guaranteed authentic products with Islandwide Cash on Delivery (COD) & 2-4 day delivery at GizmoTek.lk.`
+    : "Explore 100+ trending tech products, wireless earbuds, smartwatches, power banks & PC gear with islandwide delivery across Sri Lanka.";
+
+  const collectionJsonLd = [
+    {
+      "@type": "CollectionPage",
+      "@id": `https://gizmotek.lk/products${category !== "all" ? `?category=${encodeURIComponent(category)}` : ""}#collection`,
+      "name": pageTitle,
+      "description": pageDescription,
+      "url": `https://gizmotek.lk/products${category !== "all" ? `?category=${encodeURIComponent(category)}` : ""}`,
+      "numberOfItems": filteredProducts.length,
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://gizmotek.lk/",
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": category !== "all" ? category : "Products",
+          "item": `https://gizmotek.lk/products${category !== "all" ? `?category=${encodeURIComponent(category)}` : ""}`,
+        },
+      ],
+    },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <SEOHead
+        title={pageTitle}
+        description={pageDescription}
+        keywords={`${category}, buy ${category} online Sri Lanka, electronics Sri Lanka, gadgets Colombo, GizmoTek.lk`}
+        canonical={`https://gizmotek.lk/products${category !== "all" ? `?category=${encodeURIComponent(category)}` : ""}`}
+        jsonLd={collectionJsonLd}
+      />
+
       {/* Header Breadcrumb & Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>

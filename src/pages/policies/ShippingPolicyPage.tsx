@@ -2,10 +2,17 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Truck, MapPin, CheckCircle2, ChevronRight, Clock, ShieldCheck, Banknote } from "lucide-react";
 import { KoombiyoLogo, PromptXLogo, ProntoLogo, FardarLogo } from "@/components/common/CourierLogos";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function ShippingPolicyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8 text-slate-300">
+      <SEOHead
+        title="Islandwide Shipping & Delivery Policy | GizmoTek.lk Sri Lanka"
+        description="Fast 2-4 business day islandwide courier delivery across all 25 districts of Sri Lanka. Flat shipping rate of Rs. 450 with prompt courier dispatch & tracking."
+        canonical="https://gizmotek.lk/shipping-policy"
+      />
+
       {/* Breadcrumb Header */}
       <div className="space-y-3 border-b border-slate-800 pb-6">
         <div className="flex items-center gap-2 text-xs text-slate-500">

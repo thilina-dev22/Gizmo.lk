@@ -1,10 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Lock, ChevronRight, Eye, Database, Server } from "lucide-react";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function PrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8 text-slate-300">
+      <SEOHead
+        title="Privacy & Data Protection Policy | GizmoTek.lk Sri Lanka"
+        description="Learn how GizmoTek.lk protects your personal data, secure payment transactions, and customer confidentiality under Sri Lanka Data Protection standards."
+        canonical="https://gizmotek.lk/privacy-policy"
+      />
+
       {/* Breadcrumb Header */}
       <div className="space-y-3 border-b border-slate-800 pb-6">
         <div className="flex items-center gap-2 text-xs text-slate-500">

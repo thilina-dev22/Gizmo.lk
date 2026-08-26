@@ -19,8 +19,7 @@ import {
   ChevronRight,
   Check,
 } from "lucide-react";
-
-
+import { SEOHead } from "@/components/common/SEOHead";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
 
@@ -213,8 +212,106 @@ export function ProductDetailPage() {
   const displayRating = product.rating || 0;
   const displayCount = product.reviewCount || 0;
 
+  const productJsonLd = [
+    {
+      "@type": "Product",
+      "@id": `https://gizmotek.lk/products/${product.slug || product.id}#product`,
+      "name": product.title,
+      "image": images.length > 0 ? images : [FALLBACK_IMAGE],
+      "description": product.description || `${product.title} available with islandwide delivery across Sri Lanka at GizmoTek.lk`,
+      "sku": product.sku,
+      "brand": {
+        "@type": "Brand",
+        "name": brand || "GizmoTek",
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": `https://gizmotek.lk/products/${product.slug || product.id}`,
+        "priceCurrency": "LKR",
+        "price": product.sellingPriceLkr,
+        "priceValidUntil": "2027-12-31",
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "GizmoTek.lk",
+          "url": "https://gizmotek.lk",
+        },
+        "shippingDetails": {
+          "@type": "OfferShippingDetails",
+          "shippingRate": {
+            "@type": "MonetaryAmount",
+            "value": "450",
+            "currency": "LKR",
+          },
+          "shippingDestination": {
+            "@type": "DefinedRegion",
+            "addressCountry": "LK",
+          },
+          "deliveryTime": {
+            "@type": "ShippingDeliveryTime",
+            "businessDays": {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            },
+            "transitTime": {
+              "@type": "QuantitativeValue",
+              "minValue": 2,
+              "maxValue": 4,
+              "unitCode": "DAY",
+            },
+          },
+        },
+      },
+      ...(displayRating > 0 && displayCount > 0
+        ? {
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": displayRating.toFixed(1),
+              "reviewCount": displayCount,
+              "bestRating": "5",
+              "worstRating": "1",
+            },
+          }
+        : {}),
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://gizmotek.lk/",
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": product.category || "Products",
+          "item": `https://gizmotek.lk/products?category=${encodeURIComponent(product.category || "")}`,
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": product.title,
+          "item": `https://gizmotek.lk/products/${product.slug || product.id}`,
+        },
+      ],
+    },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12">
+      <SEOHead
+        title={`${product.title} - Price in Sri Lanka | GizmoTek.lk`}
+        description={`Buy ${product.title} online for Rs. ${product.sellingPriceLkr.toLocaleString()} in Sri Lanka. ${product.description ? product.description.slice(0, 140) + '...' : '100% genuine quality with Islandwide Cash on Delivery (COD) & warranty.'}`}
+        keywords={`${product.title}, ${product.title} price Sri Lanka, ${product.category} Sri Lanka, buy ${product.title} Colombo, GizmoTek.lk`}
+        canonical={`https://gizmotek.lk/products/${product.slug || product.id}`}
+        ogImage={activeImage || (images.length > 0 ? images[0] : FALLBACK_IMAGE)}
+        ogType="product"
+        jsonLd={productJsonLd}
+      />
+
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-xs text-slate-400">
         <Link to="/" className="hover:text-cyan-400">Home</Link>

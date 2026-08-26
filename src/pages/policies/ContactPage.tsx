@@ -14,6 +14,7 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function ContactPage() {
   const [name, setName] = useState("");
@@ -60,43 +61,33 @@ export function ContactPage() {
           access_key: accessKey,
           name: name.trim(),
           phone: phone.trim(),
-          email: email.trim() || "Not provided",
-          subject: `[GizmoTek Inquiry] ${subject} - ${name.trim()}`,
+          email: email.trim() || "not-provided@gizmotek.lk",
+          subject: `GizmoTek Inquiry: ${subject}`,
           message: message.trim(),
-          from_name: "GizmoTek Customer Inquiry",
-          replyto: email.trim() || undefined,
+          from_name: "GizmoTek Customer Care Portal",
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        // 2. Dispatch automated customer confirmation email if customer email was provided
+        // 2. Dispatch automated confirmation email if customer provided an email
         if (email.trim()) {
-          const userEmail = email.trim();
-          setSubmittedEmail(userEmail);
-          try {
-            await fetch("/api/contact-confirm", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                name: name.trim(),
-                phone: phone.trim(),
-                email: userEmail,
-                subject,
-                message: message.trim(),
-              }),
-            });
-          } catch (confirmErr) {
-            console.warn("Could not dispatch customer confirmation email:", confirmErr);
-          }
-        } else {
-          setSubmittedEmail("");
+          fetch("/api/contact/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: name.trim(),
+              phone: phone.trim(),
+              email: email.trim(),
+              subject,
+              message: message.trim(),
+            }),
+          }).catch((err) => console.warn("Contact auto-confirmation email error:", err));
         }
 
         setSubmitted(true);
+        setSubmittedEmail(email.trim());
         setName("");
         setPhone("");
         setEmail("");
@@ -116,8 +107,38 @@ export function ContactPage() {
     }
   };
 
+  const contactSchema = {
+    "@type": "ContactPage",
+    "@id": "https://gizmotek.lk/contact-us#contact",
+    "name": "Contact GizmoTek Customer Care",
+    "url": "https://gizmotek.lk/contact-us",
+    "mainEntity": {
+      "@type": "Organization",
+      "name": "GizmoTek.lk",
+      "telephone": "+94721410369",
+      "email": "support@gizmotek.lk",
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "telephone": "+94721410369",
+          "contactType": "customer service",
+          "areaServed": "LK",
+          "availableLanguage": ["English", "Sinhala"],
+        },
+      ],
+    },
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-10 text-slate-300">
+      <SEOHead
+        title="Contact Us & WhatsApp Customer Care | GizmoTek.lk Sri Lanka"
+        description="Get in touch with GizmoTek.lk customer support for order tracking, technical support, warranty inquiries, or WhatsApp direct ordering (+94 72 141 0369)."
+        keywords="contact GizmoTek, WhatsApp order gadgets Sri Lanka, GizmoTek customer care, phone number GizmoTek"
+        canonical="https://gizmotek.lk/contact-us"
+        jsonLd={contactSchema}
+      />
+
       {/* Breadcrumb Header */}
       <div className="space-y-3 border-b border-slate-800 pb-6">
         <div className="flex items-center gap-2 text-xs text-slate-500">

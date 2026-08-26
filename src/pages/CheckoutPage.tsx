@@ -26,6 +26,7 @@ import {
   Edit3,
   List,
 } from "lucide-react";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -250,6 +251,7 @@ export function CheckoutPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <SEOHead title="Secure Checkout | GizmoTek.lk" noIndex={true} />
       {/* Back button */}
       <div className="mb-6">
         <Link

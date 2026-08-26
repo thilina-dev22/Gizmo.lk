@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GizmoLogo } from "@/components/logo/GizmoLogo";
 import { Lock, User, KeyRound, ShieldAlert, ArrowRight, CheckCircle2 } from "lucide-react";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ export function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <SEOHead title="Admin Login | GizmoTek" noIndex={true} />
+
       {/* Glow background effects */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>

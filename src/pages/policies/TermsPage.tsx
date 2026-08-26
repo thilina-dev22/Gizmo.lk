@@ -1,10 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, FileText, ChevronRight, Scale, AlertCircle } from "lucide-react";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function TermsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8 text-slate-300">
+      <SEOHead
+        title="Terms & Conditions | GizmoTek.lk Sri Lanka"
+        description="Official terms of service, ordering policies, warranty conditions, and legal guidelines for GizmoTek Online Store Sri Lanka."
+        canonical="https://gizmotek.lk/terms-and-conditions"
+      />
+
       {/* Breadcrumb Header */}
       <div className="space-y-3 border-b border-slate-800 pb-6">
         <div className="flex items-center gap-2 text-xs text-slate-500">

@@ -1,0 +1,11 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin
+Disallow: /api/admin/
+Disallow: /checkout/success
+Disallow: /checkout/success*
+
+# Sitemaps
+Sitemap: https://gizmotek.lk/sitemap.xml

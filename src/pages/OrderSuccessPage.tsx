@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { formatLKR } from "@/lib/utils";
 import { CheckCircle2, Truck, Phone, Home, Building2, Printer, FileText, Download } from "lucide-react";
 import { OrderInvoiceModal } from "@/components/common/OrderInvoiceModal";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function OrderSuccessPage() {
   const [searchParams] = useSearchParams();
@@ -35,6 +36,8 @@ export function OrderSuccessPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-8">
+      <SEOHead title="Order Confirmed | GizmoTek.lk" noIndex={true} />
+
       {/* Animated Success Badge */}
       <div className="w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-lg shadow-emerald-950/50">
         <CheckCircle2 className="w-10 h-10 animate-bounce" />

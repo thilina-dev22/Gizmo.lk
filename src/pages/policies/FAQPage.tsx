@@ -15,6 +15,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { FAQ_DATA, FAQ_CATEGORIES, FAQItem } from "@/data/faqData";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function FAQPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,8 +46,28 @@ export function FAQPage() {
     });
   }, [searchQuery, activeCategory]);
 
+  const faqSchema = {
+    "@type": "FAQPage",
+    "mainEntity": FAQ_DATA.map((faq) => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer,
+      },
+    })),
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8 text-slate-300">
+      <SEOHead
+        title="Frequently Asked Questions (FAQ) | GizmoTek.lk Sri Lanka"
+        description="Find answers about delivery times (2-4 business days), Cash on Delivery (COD), bank transfers, warranty replacements, and returns at GizmoTek.lk Sri Lanka."
+        keywords="GizmoTek FAQ, delivery time Sri Lanka, cash on delivery questions, return policy Sri Lanka, tech gadgets FAQ"
+        canonical="https://gizmotek.lk/faq"
+        jsonLd={faqSchema}
+      />
+
       {/* Breadcrumb Header */}
       <div className="space-y-3 border-b border-slate-800 pb-6">
         <div className="flex items-center gap-2 text-xs text-slate-500">

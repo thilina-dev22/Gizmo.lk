@@ -1649,6 +1649,96 @@ apiRouter.post('/contact-confirm', async (req, res) => {
   }
 });
 
+// ==========================================
+// DYNAMIC SITEMAP.XML & ROBOTS.TXT (SEO)
+// ==========================================
+
+apiRouter.get('/sitemap.xml', async (req, res) => {
+  try {
+    const products = await prisma.product.findMany({
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        images: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const BASE_URL = 'https://gizmotek.lk';
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    const STATIC_ROUTES = [
+      { url: '/', changefreq: 'daily', priority: '1.0' },
+      { url: '/products', changefreq: 'daily', priority: '0.9' },
+      { url: '/faq', changefreq: 'weekly', priority: '0.7' },
+      { url: '/contact-us', changefreq: 'monthly', priority: '0.6' },
+      { url: '/shipping-policy', changefreq: 'monthly', priority: '0.5' },
+      { url: '/return-policy', changefreq: 'monthly', priority: '0.5' },
+      { url: '/terms-and-conditions', changefreq: 'monthly', priority: '0.5' },
+      { url: '/privacy-policy', changefreq: 'monthly', priority: '0.5' },
+    ];
+
+    const CATEGORIES = [
+      'Smartphones',
+      'Chargers & Cables',
+      'Storage & Pen Drives',
+      'Audio',
+      'Wearables',
+      'Computer Accessories',
+      'Outdoor & Gadgets',
+    ];
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
+
+    for (const route of STATIC_ROUTES) {
+      xml += `  <url>\n    <loc>${BASE_URL}${route.url}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority}</priority>\n  </url>\n`;
+    }
+
+    for (const cat of CATEGORIES) {
+      xml += `  <url>\n    <loc>${BASE_URL}/products?category=${encodeURIComponent(cat)}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.85</priority>\n  </url>\n`;
+    }
+
+    for (const prod of products) {
+      const productUrl = `${BASE_URL}/products/${prod.slug || prod.id}`;
+      const lastmod = prod.updatedAt ? new Date(prod.updatedAt).toISOString().split('T')[0] : currentDate;
+
+      let imageUrl = '';
+      try {
+        if (prod.images) {
+          const parsed = typeof prod.images === 'string' ? JSON.parse(prod.images) : prod.images;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            imageUrl = parsed[0];
+          }
+        }
+      } catch {}
+
+      xml += `  <url>\n    <loc>${productUrl}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.80</priority>`;
+      if (imageUrl) {
+        xml += `\n    <image:image>\n      <image:loc>${imageUrl.replace(/&/g, '&amp;')}</image:loc>\n      <image:title>${(prod.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</image:title>\n    </image:image>`;
+      }
+      xml += `\n  </url>\n`;
+    }
+
+    xml += `</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.header('Cache-Control', 'public, max-age=3600, s-maxage=14400');
+    return res.send(xml);
+  } catch (error: any) {
+    console.error('Sitemap generation error:', error);
+    return res.status(500).send('Error generating sitemap');
+  }
+});
+
+apiRouter.get('/robots.txt', (req, res) => {
+  const robots = `# https://www.robotstxt.org/robotstxt.html\nUser-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /admin\nDisallow: /api/admin/\nDisallow: /checkout/success\nDisallow: /checkout/success*\n\n# Sitemaps\nSitemap: https://gizmotek.lk/sitemap.xml\n`;
+  res.header('Content-Type', 'text/plain');
+  res.header('Cache-Control', 'public, max-age=86400');
+  return res.send(robots);
+});
+
 // Mount the API Router to BOTH '/api' and '/'
 app.use('/api', apiRouter);
 app.use('/', apiRouter);

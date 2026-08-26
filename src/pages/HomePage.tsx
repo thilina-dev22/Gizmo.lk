@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { Product } from "@/store/useCartStore";
 import { Sparkles, ArrowRight, Truck, Banknote, Building2, HelpCircle, CheckCircle2, ChevronDown } from "lucide-react";
 import { FAQ_DATA } from "@/data/faqData";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -28,8 +29,29 @@ export function HomePage() {
       setLoading(false);
     }
   };
+
+  const homeFaqJsonLd = {
+    "@type": "FAQPage",
+    "mainEntity": FAQ_DATA.map((faq) => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer,
+      },
+    })),
+  };
+
   return (
     <div className="space-y-12 pb-16">
+      <SEOHead
+        title="GizmoTek.lk | Buy Electronics, Smartwatches & Tech Gadgets Sri Lanka"
+        description="Shop genuine wireless Bluetooth earbuds, smartwatches, power banks, fast chargers, cables & PC accessories online in Sri Lanka. Islandwide Cash on Delivery (COD) & fast 2-4 day doorstep delivery."
+        keywords="buy electronics online Sri Lanka, smart watch price Sri Lanka, wireless earbuds Colombo, iPhone charger Sri Lanka, power bank Kandy, cash on delivery gadgets Sri Lanka, GizmoTek.lk"
+        canonical="https://gizmotek.lk/"
+        jsonLd={homeFaqJsonLd}
+      />
+
       {/* Hero Banner */}
       <HeroBanner />
 

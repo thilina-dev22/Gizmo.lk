@@ -1,10 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { RefreshCw, RotateCcw, CheckCircle2, ChevronRight, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
+import { SEOHead } from "@/components/common/SEOHead";
 
 export function ReturnPolicyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-8 text-slate-300">
+      <SEOHead
+        title="Return, Replacement & Refund Policy | GizmoTek.lk Sri Lanka"
+        description="Comprehensive 7-day 1-to-1 replacement guarantee for manufacturing defects, clear return guidelines, and refund support at GizmoTek.lk."
+        canonical="https://gizmotek.lk/return-policy"
+      />
+
       {/* Breadcrumb Header */}
       <div className="space-y-3 border-b border-slate-800 pb-6">
         <div className="flex items-center gap-2 text-xs text-slate-500">
