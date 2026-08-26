@@ -624,6 +624,66 @@ apiRouter.get('/products/:id', async (req, res) => {
   }
 });
 
+// Dynamic Social Share Preview Route for WhatsApp / Facebook / Twitter crawlers
+apiRouter.get('/share/:slug', async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [{ id: slug.trim() }, { slug: slug.trim() }],
+      },
+    });
+
+    if (!product) {
+      return res.redirect('/');
+    }
+
+    let images: string[] = [];
+    try {
+      images = JSON.parse(product.images || '[]');
+    } catch {}
+    const mainImage = images[0] || 'https://gizmotek.lk/images/og-banner.jpg';
+    const cleanTitle = product.title.replace(/"/g, '&quot;');
+    const cleanDesc = (product.description || `Buy ${product.title} in Sri Lanka with Islandwide Cash on Delivery (COD)`).replace(/"/g, '&quot;').slice(0, 250);
+    const productUrl = `https://gizmotek.lk/products/${product.slug || product.id}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${cleanTitle} | GizmoTek.lk</title>
+  <meta name="description" content="${cleanDesc}">
+  <meta property="og:type" content="product">
+  <meta property="og:site_name" content="GizmoTek.lk">
+  <meta property="og:title" content="${cleanTitle} - Rs. ${product.sellingPriceLkr.toLocaleString()}">
+  <meta property="og:description" content="${cleanDesc}">
+  <meta property="og:image" content="${mainImage}">
+  <meta property="og:image:secure_url" content="${mainImage}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="800">
+  <meta property="og:image:height" content="800">
+  <meta property="og:url" content="${productUrl}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${cleanTitle}">
+  <meta name="twitter:description" content="${cleanDesc}">
+  <meta name="twitter:image" content="${mainImage}">
+  <meta http-equiv="refresh" content="0;url=${productUrl}">
+</head>
+<body style="background:#020617;color:#fff;font-family:sans-serif;text-align:center;padding:40px;">
+  <h1>${cleanTitle}</h1>
+  <p>Price: Rs. ${product.sellingPriceLkr.toLocaleString()}</p>
+  <img src="${mainImage}" style="max-width:300px;border-radius:12px;" alt="${cleanTitle}">
+  <p><a href="${productUrl}" style="color:#06b6d4;">Click here to view on GizmoTek.lk</a></p>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch {
+    return res.redirect('/');
+  }
+});
+
 apiRouter.post('/products', adminAuthMiddleware, async (req, res) => {
   try {
     const {

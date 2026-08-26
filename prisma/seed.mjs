@@ -3113,192 +3113,135 @@ const SINHALA_NAMES = [
   'Zeena Fernando'
 ];
 
-const REVIEW_TEMPLATES_BY_CATEGORY = {
-  Audio: [
-    {
-      comment: "Superb bass quality and clear vocals! Tested on my phone and audio latency is very low. Delivery rider from Koombiyo brought it safely to Kandy in 2 days. Highly recommended!",
-      rating: 5,
-    },
-    {
-      comment: "Good battery backup. Used it for almost 15 hours on a single charge during travel. Cash on Delivery made it very easy and trustworthy.",
-      rating: 5,
-    },
-    {
-      comment: "Noise isolation is very impressive for this price point. Mic quality during WhatsApp calls is crystal clear. 100% genuine product.",
-      rating: 5,
-    },
-    {
-      comment: "Nicely packaged with warranty. Sounds much better than cheap replicas found in local shops. Fast delivery to Colombo.",
-      rating: 4,
-    },
-    {
-      comment: "Comfortable in-ear fit, doesn't fall off while running or gym workouts. Connected immediately with Bluetooth 5.3.",
-      rating: 5,
-    },
-    {
-      comment: "Touch controls on the earbuds work seamlessly for volume and answering calls. Bass is punchy and treble is balanced.",
-      rating: 5,
-    },
-    {
-      comment: "Battery case has a sleek metallic finish and charges rapidly with Type-C. Very satisfied with GizmoTek customer care.",
-      rating: 5,
-    },
-    {
-      comment: "Gaming latency mode works great for PUBG and Free Fire. Zero audio lag detected.",
-      rating: 5,
-    },
-    {
-      comment: "Great soundstage and loud volume without any distortion at maximum volume. Worth every rupee.",
-      rating: 4,
-    },
-    {
-      comment: "Received the package within 48 hours in Galle. Genuine sealed box with manual and spare ear tips.",
-      rating: 5,
-    },
+const CONTEXTUAL_REVIEW_POOLS = {
+  ROUTER_UPS: [
+    { comment: "Super reliable power backup for my SLT Fibre router! Ran for over 5.5 hours during the power cut with zero disconnection. Must-have for work from home.", rating: 5 },
+    { comment: "Very easy plug-and-play setup for Dialog 4G router. Automatically switches to battery without rebooting the router or dropping Zoom calls.", rating: 5 },
+    { comment: "Essential gadget for remote work during power cuts in Sri Lanka. Delivered in 2 days to Kandy. High quality build.", rating: 5 },
+    { comment: "Working flawlessly with my Hikvision CCTV camera setup. Solid peace of mind during voltage fluctuations.", rating: 5 },
+    { comment: "Self-replaceable battery design is great for longevity. Quality matches the description 100%.", rating: 4 },
+    { comment: "Tested backup runtime on Mobitel router and gave over 5 hours easily. Fast Islandwide COD delivery.", rating: 5 },
   ],
-  Wearables: [
-    {
-      comment: "Stunning HD screen and touch response is very smooth! Battery easily lasts 4-5 days with regular use. Very satisfied with GizmoTek service.",
-      rating: 5,
-    },
-    {
-      comment: "Bought this as a gift and the presentation box with interchangeable straps was top quality. Delivered to Gampaha in less than 48 hours.",
-      rating: 5,
-    },
-    {
-      comment: "Step tracking, heart rate, and call notifications work seamlessly with the companion app on Android and iPhone. Great value for money.",
-      rating: 5,
-    },
-    {
-      comment: "Build quality is solid and feels premium on the wrist. Looks identical to high-end smartwatches.",
-      rating: 4,
-    },
-    {
-      comment: "Very stylish watch, premium magnetic charging dock included. Prompt customer support on WhatsApp when I asked about setup.",
-      rating: 5,
-    },
-    {
-      comment: "Bluetooth call feature is very clear and the speaker is loud enough when driving. High quality metal bezel.",
-      rating: 5,
-    },
-    {
-      comment: "Custom watch faces are awesome and sync quickly from the mobile app. Definitely ordering another for my brother.",
-      rating: 5,
-    },
-    {
-      comment: "Strap quality is soft and comfortable for daily office wear. Battery standby time exceeded my expectations.",
-      rating: 4,
-    },
-    {
-      comment: "Bright AMOLED-like display visible even under direct sunlight in Colombo. 10/10 purchase.",
-      rating: 5,
-    },
-    {
-      comment: "The gift set packaging looked super luxurious. Delivery rider called ahead and COD payment was hassle-free.",
-      rating: 5,
-    },
+  CAMERA_REMOTE: [
+    { comment: "Pairs instantly with my iPhone and Samsung phone via Bluetooth. Zero shutter lag when clicking photos!", rating: 5 },
+    { comment: "Very compact and lightweight on keychain. Makes taking family group photos and solo vlog videos so easy without running for timers.", rating: 5 },
+    { comment: "Button is tactile and battery lasted for thousands of clicks on a single CR2032 cell. Super convenient.", rating: 5 },
+    { comment: "Super handy for tripod shots and landscape photography. Cash on Delivery was seamless to Galle.", rating: 5 },
+    { comment: "Works up to 10 meters distance reliably without disconnecting. Great little camera accessory for mobile photography.", rating: 4 },
+    { comment: "No extra apps needed, paired directly in phone Bluetooth settings in 3 seconds. 10/10 purchase.", rating: 5 },
   ],
-  "Chargers & Cables": [
-    {
-      comment: "Super fast charging! The digital LED display is accurate and shows live wattage while charging. Heavy-duty braided cable.",
-      rating: 5,
-    },
-    {
-      comment: "No overheating issues with my phone. Charges my iPhone from 20% to 80% in around 35 minutes. Very reliable build.",
-      rating: 5,
-    },
-    {
-      comment: "Sturdy reinforced connectors. Usually cheap cables break near the neck, but this one has strong rubber strain relief.",
-      rating: 5,
-    },
-    {
-      comment: "Item arrived in factory sealed packaging with warranty. Fast delivery to Galle.",
-      rating: 5,
-    },
-    {
-      comment: "Extremely handy 3-in-1 multi cable for charging both Type-C, Lightning, and Micro-USB devices at the office.",
-      rating: 4,
-    },
-    {
-      comment: "Tested with 65W PD laptop and charges at full rated speed without any voltage drop.",
-      rating: 5,
-    },
-    {
-      comment: "Compact UK 3-pin adapter that fits firmly in standard Sri Lankan wall sockets. Highly recommend.",
-      rating: 5,
-    },
-    {
-      comment: "Thick silicone wire that doesn't tangle in bags. Fast data transfer rates when connecting to PC.",
-      rating: 4,
-    },
+  SMARTWATCH_GIFT_SET: [
+    { comment: "Bought this gift set for my wife and she absolutely loved the luxury presentation box and matching bracelets!", rating: 5 },
+    { comment: "The interchangeable straps are high quality and easy to switch for casual and office outfits. Display is bright and vivid.", rating: 5 },
+    { comment: "Stunning presentation box with accessories. Bluetooth calling and step counter work flawlessly with the mobile app.", rating: 5 },
+    { comment: "Top gift item in Sri Lanka for birthdays and anniversaries. Fast delivery within 48 hours to Colombo.", rating: 5 },
+    { comment: "Battery backup easily lasts 4-5 days. Looks far more expensive than its actual price.", rating: 4 },
+    { comment: "Bright 2.02-inch HD screen and responsive touch. Magnetic charger is very convenient.", rating: 5 },
   ],
-  "Storage & Pen Drives": [
-    {
-      comment: "Tested read and write speeds on PC and speed is consistent. Dual OTG connector makes transferring phone photos super quick.",
-      rating: 5,
-    },
-    {
-      comment: "Solid metal body, very durable and compact on keychain. Genuine storage capacity verified with H2testw.",
-      rating: 5,
-    },
-    {
-      comment: "Great pen drive for vehicle audio and backup storage. Received in Kurunegala within 3 days via COD.",
-      rating: 5,
-    },
-    {
-      comment: "Fast transfer speeds for 4K video files. Dual USB-A and Type-C interface is super convenient.",
-      rating: 5,
-    },
-    {
-      comment: "Waterproof and shockproof metal casing. Reliable flash memory chip inside.",
-      rating: 4,
-    },
+  SMARTWATCH: [
+    { comment: "Crisp HD display with smooth touch response. Custom watch faces look awesome on the wrist.", rating: 5 },
+    { comment: "Bluetooth call quality is loud and clear even when driving. Heart rate and sleep tracking sensors are accurate.", rating: 5 },
+    { comment: "Solid metal dial and rugged strap. Magnetic fast charger snaps firmly in place.", rating: 5 },
+    { comment: "Battery easily gives 4+ days of active use. Synchronizes notifications smoothly with WhatsApp and Messenger.", rating: 4 },
+    { comment: "Very premium build quality. Customer service was super helpful on WhatsApp when guiding app setup.", rating: 5 },
+    { comment: "Display is easily visible outdoors in bright sunlight. Accurate step and workout counter.", rating: 5 },
   ],
-  "Computer Accessories": [
-    {
-      comment: "Very ergonomic design and clicks are smooth with no double-click issues. RGB lighting looks awesome on the desk.",
-      rating: 5,
-    },
-    {
-      comment: "Plug and play worked instantly on Windows 11 without any driver hassle. Highly recommended for office and gaming.",
-      rating: 5,
-    },
-    {
-      comment: "High precision tracking on wooden desk even without mouse pad. Excellent value for this price.",
-      rating: 4,
-    },
-    {
-      comment: "Durable braided cable and solid optical sensor. DPI switch is responsive during FPS games.",
-      rating: 5,
-    },
-    {
-      comment: "Comfortable thumb grip that reduces wrist fatigue after 8 hours of coding and office tasks.",
-      rating: 5,
-    },
+  EARBUDS_ANC: [
+    { comment: "Active Noise Cancellation works surprisingly well for traffic and fan noise. Deep punchy bass!", rating: 5 },
+    { comment: "Microphone clarity during WhatsApp and office phone calls is crystal clear without background muffled sound.", rating: 5 },
+    { comment: "Low latency gaming mode is great for PUBG and FreeFire. Zero audio lag detected.", rating: 5 },
+    { comment: "Battery case charges rapidly with Type-C and earbuds give 6+ hours of non-stop music on a single charge.", rating: 5 },
+    { comment: "Ergonomic in-ear fit with comfortable silicone tips that stay secure during gym workouts.", rating: 4 },
+    { comment: "Audio quality and soundstage rival earbuds twice this price. Fast delivery to Kandy.", rating: 5 },
   ],
-  DEFAULT: [
-    {
-      comment: "Product arrived in pristine condition within 2 days. Works exactly as described on the website. Excellent service by GizmoTek!",
-      rating: 5,
-    },
-    {
-      comment: "Quality is genuinely great and packaging was secure with bubble wrap. Cash on Delivery was seamless.",
-      rating: 5,
-    },
-    {
-      comment: "Value for money tech item in Sri Lanka. Customer support was very helpful on WhatsApp.",
-      rating: 4,
-    },
-    {
-      comment: "Very satisfied with my purchase. Will definitely order more gadgets from GizmoTek.lk.",
-      rating: 5,
-    },
-    {
-      comment: "Premium build, looks and feels much more expensive than its actual price. Islandwide delivery is top notch.",
-      rating: 5,
-    },
+  POWER_BANK: [
+    { comment: "Genuine high-capacity power bank. Charged my smartphone 4 full times on a single charge during a trip to Nuwara Eliya.", rating: 5 },
+    { comment: "Sleek transparent aesthetic with futuristic digital LED percentage readout. Looks awesome on desk.", rating: 5 },
+    { comment: "Fast charges two devices simultaneously without heating up. Essential travel companion in Sri Lanka.", rating: 5 },
+    { comment: "Heavy-duty build with multi-protection circuit. Very satisfied with GizmoTek islandwide delivery.", rating: 4 },
+    { comment: "Supports Type-C PD fast input and output. Recharges the power bank itself super fast.", rating: 5 },
+  ],
+  CHARGER_ADAPTER: [
+    { comment: "Super fast charging! Charges my phone from 15% to 80% in around 35 minutes without heating up.", rating: 5 },
+    { comment: "Solid UK 3-pin plug fits firmly in standard Sri Lankan wall sockets without loose sparking.", rating: 5 },
+    { comment: "Dual port Type-C and USB-A is super convenient for charging phone and smartwatch together.", rating: 5 },
+    { comment: "Tested at full rated fast charging wattage. Compact and lightweight for office and travel.", rating: 4 },
+    { comment: "No overheating issues with my phone. Genuine build quality with surge protection.", rating: 5 },
+  ],
+  CABLE: [
+    { comment: "Heavy-duty braided nylon sleeve that doesn't bend or break at the neck joints. Very durable!", rating: 5 },
+    { comment: "Supports super fast charging and fast PC data transfers with stable voltage output.", rating: 5 },
+    { comment: "Smart LED indicator light is very useful in dark rooms at night. High quality connectors.", rating: 5 },
+    { comment: "3-in-1 multi connector charges both iPhone and Android devices easily at my office desk.", rating: 4 },
+    { comment: "Thick silicone wire that doesn't tangle in backpack. Arrived in sealed blister pack.", rating: 5 },
+  ],
+  STORAGE_PENDRIVE: [
+    { comment: "Tested read and write transfer speeds on PC and speed is consistent and fast for 4K video files.", rating: 5 },
+    { comment: "Genuine flash storage capacity verified with H2testw tool. Capless metal body looks great on keychain.", rating: 5 },
+    { comment: "Dual OTG Type-C and USB-A makes transferring phone photos to laptop effortless without cables.", rating: 5 },
+    { comment: "Compact, sturdy waterproof metal casing. Arrived in sealed blister pack with warranty.", rating: 4 },
+    { comment: "Great pen drive for vehicle audio and backup storage. Received in Kurunegala within 3 days via COD.", rating: 5 },
+  ],
+  MOUSE_KEYBOARD: [
+    { comment: "Ergonomic shape fits comfortably in the palm for long 8+ hour gaming and coding sessions.", rating: 5 },
+    { comment: "Optical sensor tracks accurately on wooden desk surfaces without jitter. Tactile smooth clicks.", rating: 5 },
+    { comment: "Vibrant RGB lighting modes look stunning on the desk setup. Plug and play on Windows 11 with zero drivers.", rating: 5 },
+    { comment: "Responsive DPI selector switch is very handy when switching between Photoshop design and FPS games.", rating: 4 },
+    { comment: "Durable braided cable and solid optical sensor. High value for money.", rating: 5 },
+  ],
+  CAR_ACCESSORY: [
+    { comment: "Snugs firmly into the 12V car socket without wobbling on bumpy Sri Lankan roads. Fast charges two phones.", rating: 5 },
+    { comment: "Bluetooth FM audio transmission is clean without static buzz or audio noise through car speakers.", rating: 5 },
+    { comment: "Compact metal finish with ambient LED ring light that looks modern on the car dashboard.", rating: 5 },
+    { comment: "Charges phone rapidly while running Google Maps navigation and Spotify together.", rating: 4 },
+  ],
+  GENERIC_TECH: [
+    { comment: "Product arrived in pristine condition within 2 days. Works exactly as described on the website. Excellent service by GizmoTek!", rating: 5 },
+    { comment: "Quality is genuinely great and packaging was secure with bubble wrap. Cash on Delivery was seamless.", rating: 5 },
+    { comment: "Value for money tech item in Sri Lanka. Customer support was very helpful on WhatsApp.", rating: 4 },
+    { comment: "Very satisfied with my purchase. Will definitely order more gadgets from GizmoTek.lk.", rating: 5 },
+    { comment: "Premium build, looks and feels much more expensive than its actual price. Islandwide delivery is top notch.", rating: 5 },
   ],
 };
+
+function getSpecificReviewPool(item) {
+  const text = `${item.title} ${item.description} ${item.category} ${item.specs || ''}`.toLowerCase();
+  
+  if (text.includes('router') || text.includes('fibre') || text.includes('fiber') || text.includes('cctv') || text.includes('power bank adapter')) {
+    return CONTEXTUAL_REVIEW_POOLS.ROUTER_UPS;
+  }
+  if (text.includes('shutter') || text.includes('self-timer') || text.includes('camera remote') || text.includes('plokama') || text.includes('selfie')) {
+    return CONTEXTUAL_REVIEW_POOLS.CAMERA_REMOTE;
+  }
+  if (text.includes('gift set') || text.includes('jewelry') || text.includes('6-in-1') || text.includes('a58 plus') || text.includes('womens smart watch')) {
+    return CONTEXTUAL_REVIEW_POOLS.SMARTWATCH_GIFT_SET;
+  }
+  if (text.includes('smartwatch') || text.includes('smart watch') || text.includes('ultra 2') || text.includes('wrist watch') || text.includes('fitness band')) {
+    return CONTEXTUAL_REVIEW_POOLS.SMARTWATCH;
+  }
+  if (text.includes('earbud') || text.includes('earphone') || text.includes('headphone') || text.includes('anc') || text.includes('tws') || text.includes('cyberbass') || text.includes('speaker') || text.includes('soundbar')) {
+    return CONTEXTUAL_REVIEW_POOLS.EARBUDS_ANC;
+  }
+  if (text.includes('power bank') || text.includes('20000mah') || text.includes('10000mah') || text.includes('powerbank') || text.includes('battery pack')) {
+    return CONTEXTUAL_REVIEW_POOLS.POWER_BANK;
+  }
+  if (text.includes('charger') || text.includes('adapter') || text.includes('35w') || text.includes('65w') || text.includes('20w') || text.includes('gan') || text.includes('wall charger')) {
+    return CONTEXTUAL_REVIEW_POOLS.CHARGER_ADAPTER;
+  }
+  if (text.includes('cable') || text.includes('wire') || text.includes('type-c') || text.includes('lightning') || text.includes('3-in-1') || text.includes('cord')) {
+    return CONTEXTUAL_REVIEW_POOLS.CABLE;
+  }
+  if (text.includes('pen drive') || text.includes('flash drive') || text.includes('kingston') || text.includes('usb 3') || text.includes('otg') || text.includes('32gb') || text.includes('64gb') || text.includes('128gb') || text.includes('flash memory')) {
+    return CONTEXTUAL_REVIEW_POOLS.STORAGE_PENDRIVE;
+  }
+  if (text.includes('mouse') || text.includes('keyboard') || text.includes('dpi') || text.includes('gaming mouse') || text.includes('rgb mouse') || text.includes('keypad')) {
+    return CONTEXTUAL_REVIEW_POOLS.MOUSE_KEYBOARD;
+  }
+  if (text.includes('car') || text.includes('vehicle') || text.includes('fm transmitter') || text.includes('car mount') || text.includes('car charger')) {
+    return CONTEXTUAL_REVIEW_POOLS.CAR_ACCESSORY;
+  }
+  return CONTEXTUAL_REVIEW_POOLS.GENERIC_TECH;
+}
 
 function getRandomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -3311,7 +3254,7 @@ function getRandomDateWithinLast60Days() {
 }
 
 async function main() {
-  console.log("🌟 Cleaning all data and seeding GizmoTek.lk with 100% verified products & Sinhala reviews...");
+  console.log("🌟 Cleaning all data and seeding GizmoTek.lk with 100% verified products & contextual Sinhala reviews...");
 
   // Delete all existing items, orders, reviews, and products
   await prisma.orderItem.deleteMany({});
@@ -3325,20 +3268,14 @@ async function main() {
 
   let totalReviewsCreated = 0;
 
-  // Insert real products and generate authentic Sinhala reviews with natural organic distribution
+  // Insert real products and generate highly contextual Sinhala reviews matching each specific product
   for (const item of realProducts) {
     const createdProduct = await prisma.product.create({
       data: item,
     });
 
-    // Select reviews pool
-    let pool = REVIEW_TEMPLATES_BY_CATEGORY.DEFAULT;
-    for (const [catKey, templates] of Object.entries(REVIEW_TEMPLATES_BY_CATEGORY)) {
-      if (item.category.toLowerCase().includes(catKey.toLowerCase())) {
-        pool = templates;
-        break;
-      }
-    }
+    // Select specific contextual reviews pool for this exact product
+    const pool = getSpecificReviewPool(item);
 
     // Natural, organic distribution of review counts (1 to 12 reviews per product)
     let reviewCount;
@@ -3367,7 +3304,7 @@ async function main() {
       }
       usedNames.add(authorName);
 
-      const template = getRandomItem(pool);
+      const template = pool[i % pool.length] || getRandomItem(pool);
       const createdAt = getRandomDateWithinLast60Days();
 
       await prisma.review.create({
@@ -3398,7 +3335,7 @@ async function main() {
     });
   }
 
-  console.log(`✅ Database successfully initialized with ${realProducts.length} real products and ${totalReviewsCreated} Sinhala customer reviews (varying naturally from 1 to 12 reviews per product)!`);
+  console.log(`✅ Database successfully initialized with ${realProducts.length} real products and ${totalReviewsCreated} 100% contextualized Sinhala customer reviews!`);
 }
 
 main()
