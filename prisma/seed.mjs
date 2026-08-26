@@ -3016,6 +3016,38 @@ export const realProducts = [
     isFeatured: true,
     isBestSeller: true,
   },
+  {
+    title: "A58 Plus Luxury Women's 6-in-1 Smartwatch & Fashion Jewelry Gift Set (2.02\" HD Display)",
+    slug: "a58-plus-womens-smart-watch-luxury-gift-set",
+    description: "Elegant 6-in-1 women's smartwatch and luxury fashion gift set featuring a vibrant 2.02-inch HD full-touch display, 49mm modern curved square dial, and NFC smart functionality. Comes bundled in a premium presentation gift box complete with multiple interchangeable silicone and designer metal bracelet straps, matching fashion accessories, and a magnetic fast-charging dock. Perfect for casual wear, office elegance, or a stunning gift.",
+    category: "Wearables",
+    sellingPriceLkr: 4250,
+    costPriceLkr: 2869,
+    sku: "3-A58-PLUS-SMART-WATCH-SET",
+    stock: 133,
+    images: JSON.stringify([
+      "https://fochant-prod.s3.ap-southeast-1.amazonaws.com/testfolder/product_image/64d60987fa8821b6fabdfb1e2bc5f70c.webp",
+      "https://fochant-prod.s3.ap-southeast-1.amazonaws.com/testfolder/product_image/85e6ca53bc6184c5f4df763ec700d635.webp",
+      "https://fochant-prod.s3.ap-southeast-1.amazonaws.com/testfolder/product_image/544a79ec69c40b448a90b38f038fa9eb.webp",
+    ]),
+    specs: JSON.stringify({
+      "Display": "2.02-inch High-Definition Full-Touch Big Screen LCD (240x296 Resolution)",
+      "Dial Size": "49mm Rose Gold / Metallic Modern Square Bezel",
+      "Set Contents": "6-in-1 Gift Box (Smartwatch + Multiple Silicone & Metal Straps + Fashion Jewelry + Charger)",
+      "Smart Functions": "Bluetooth Calling, NFC, Notifications, Music Control, Heart Rate & Fitness Tracking",
+      "Strap System": "Quick-Release Interchangeable Silicone & Designer Metal Bracelet Bands",
+      "Packaging": "Deluxe Velvet-Lined Presentation Gift Box",
+      "Charging": "Magnetic Wireless Fast Charging Dock",
+      "Warranty": "Checking Warranty (3 Days)",
+      "Dimensions": "1.2 cm (H) x 4 cm (W) x 25 cm (L)",
+      "Weight": "45 g (Watch Body)",
+      "Compatibility": "Universal (Android 5.0+ and iOS 9.0+ Smartphones)",
+    }),
+    supplierLink: "https://fochantdropshipping.com/seller-products-detail/3-A58-PLUS-SMART-WATCH-SET",
+    supplierNotes: "Supplier: Aryans Pvt Ltd (Rating: 4.9). Fochant Dropshipping Price: Rs. 2,869.20. Margin: Rs. 1,380.80.",
+    isFeatured: true,
+    isBestSeller: true,
+  },
 ];
 
 async function main() {
