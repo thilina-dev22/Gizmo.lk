@@ -460,18 +460,76 @@ function renderContactConfirmationEmailTemplate({
 
 const app = express();
 
+// Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
 
 // Global Middleware
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 
-// Multer memory storage for bank slip uploads
+// Multer memory storage for bank slip uploads (Strict 5MB cap & MIME validation)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPG, PNG, WebP) are allowed for bank slips.'));
+    }
+  },
 });
+
+// In-Memory Rate Limiting for Abuse Prevention
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function createRateLimiter(maxRequests: number, windowMs: number, keyPrefix: string) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+    const key = `${keyPrefix}:${clientIp}`;
+    const now = Date.now();
+
+    const record = rateLimitMap.get(key);
+    if (!record || now > record.resetTime) {
+      rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
+
+    if (record.count >= maxRequests) {
+      return res.status(429).json({
+        error: 'Too many requests. Please slow down and try again in a few moments.',
+      });
+    }
+
+    record.count += 1;
+    next();
+  };
+}
+
+const loginLimiter = createRateLimiter(5, 15 * 60 * 1000, 'login'); // 5 attempts per 15 min
+const reviewLimiter = createRateLimiter(10, 60 * 60 * 1000, 'review'); // 10 reviews per hour
+const orderLimiter = createRateLimiter(30, 60 * 60 * 1000, 'order'); // 30 orders per hour
+const contactLimiter = createRateLimiter(10, 60 * 60 * 1000, 'contact'); // 10 contacts per hour
+
+// Input Sanitization Helper
+function sanitizeText(input: any, maxLength: number = 500): string {
+  if (!input || typeof input !== 'string') return '';
+  return input
+    .replace(/[<>]/g, '') // Strip HTML tags to eliminate XSS injection
+    .trim()
+    .slice(0, maxLength);
+}
 
 // Admin Auth Middleware
 const adminAuthMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -754,7 +812,7 @@ apiRouter.get('/orders/:id', async (req, res) => {
   }
 });
 
-apiRouter.post('/orders', async (req, res) => {
+apiRouter.post('/orders', orderLimiter, async (req, res) => {
   try {
     const {
       customerName,
@@ -769,7 +827,14 @@ apiRouter.post('/orders', async (req, res) => {
       notes,
     } = req.body;
 
-    if (!customerName || !customerPhone || !address || !district || !items || items.length === 0) {
+    const sanitizedName = sanitizeText(customerName, 80);
+    const sanitizedPhone = sanitizeText(customerPhone, 20).replace(/[^0-9+]/g, '');
+    const sanitizedAddress = sanitizeText(address, 200);
+    const sanitizedDistrict = sanitizeText(district, 50);
+    const sanitizedCity = sanitizeText(city, 80);
+    const sanitizedNotes = sanitizeText(notes, 300);
+
+    if (!sanitizedName || !sanitizedPhone || !sanitizedAddress || !sanitizedDistrict || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Missing required order details' });
     }
 
@@ -1061,11 +1126,14 @@ apiRouter.get('/reviews', async (req, res) => {
   }
 });
 
-apiRouter.post('/reviews', async (req, res) => {
+apiRouter.post('/reviews', reviewLimiter, async (req, res) => {
   try {
     const { productId, authorName, rating, comment } = req.body;
 
-    if (!productId || !authorName || !rating || !comment) {
+    const sanitizedAuthor = sanitizeText(authorName, 60);
+    const sanitizedComment = sanitizeText(comment, 600);
+
+    if (!productId || !sanitizedAuthor || !rating || !sanitizedComment) {
       return res.status(400).json({ error: 'Missing required review fields' });
     }
 
@@ -1076,10 +1144,10 @@ apiRouter.post('/reviews', async (req, res) => {
 
     const review = await prisma.review.create({
       data: {
-        productId,
-        authorName: authorName.trim(),
+        productId: String(productId).trim(),
+        authorName: sanitizedAuthor,
         rating: numRating,
-        comment: comment.trim(),
+        comment: sanitizedComment,
         isApproved: false,
       },
     });
@@ -1087,7 +1155,7 @@ apiRouter.post('/reviews', async (req, res) => {
     return res.status(201).json({ success: true, review });
   } catch (error: any) {
     console.error('Error creating review:', error);
-    return res.status(500).json({ error: 'Failed to submit review', detail: error?.message });
+    return res.status(500).json({ error: 'Failed to submit review' });
   }
 });
 
@@ -1095,7 +1163,7 @@ apiRouter.post('/reviews', async (req, res) => {
 // 4. ADMIN
 // ==========================================
 
-apiRouter.post('/admin/login', (req, res) => {
+apiRouter.post('/admin/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
 
   const validUsername = process.env.ADMIN_USERNAME || 'admin';
@@ -1118,6 +1186,10 @@ apiRouter.post('/admin/login', (req, res) => {
   }
 
   return res.status(401).json({ error: 'Invalid admin credentials' });
+});
+
+apiRouter.get('/admin/check-auth', adminAuthMiddleware, (req, res) => {
+  return res.json({ success: true, authenticated: true, role: 'admin' });
 });
 
 apiRouter.post('/admin/logout', (req, res) => {
@@ -1615,24 +1687,29 @@ apiRouter.post('/upload-slip', upload.single('file'), (req, res) => {
 // 7. CONTACT FORM CONFIRMATION EMAIL
 // ==========================================
 
-apiRouter.post('/contact-confirm', async (req, res) => {
+const handleContactConfirm = async (req: express.Request, res: express.Response) => {
   try {
     const { name, email, phone, subject, message } = req.body || {};
 
-    if (!name || !phone || !message) {
+    const sanitizedName = sanitizeText(name, 80);
+    const sanitizedPhone = sanitizeText(phone, 20).replace(/[^0-9+]/g, '');
+    const sanitizedSubject = sanitizeText(subject, 100) || 'General Inquiry';
+    const sanitizedMessage = sanitizeText(message, 1000);
+
+    if (!sanitizedName || !sanitizedPhone || !sanitizedMessage) {
       return res.status(400).json({ error: 'Missing required contact inquiry fields (name, phone, message)' });
     }
 
-    // 1. If customer email provided, send automated acknowledgment email
-    if (email && typeof email === 'string' && email.trim() && email.includes('@')) {
-      const customerEmail = email.trim();
-      const customerSubject = `Inquiry Received: [${subject || 'General Inquiry'}] - GizmoTek Customer Care`;
+    // If customer email provided and valid, send automated acknowledgment email
+    if (email && typeof email === 'string' && email.trim() && email.includes('@') && email.includes('.')) {
+      const customerEmail = sanitizeText(email, 120);
+      const customerSubject = `Inquiry Received: [${sanitizedSubject}] - GizmoTek Customer Care`;
       const customerHtml = renderContactConfirmationEmailTemplate({
-        name: name.trim(),
+        name: sanitizedName,
         email: customerEmail,
-        phone: phone.trim(),
-        subject: subject || 'General Inquiry',
-        message: message.trim(),
+        phone: sanitizedPhone,
+        subject: sanitizedSubject,
+        message: sanitizedMessage,
       });
 
       sendEmail({
@@ -1645,9 +1722,12 @@ apiRouter.post('/contact-confirm', async (req, res) => {
     return res.json({ success: true, message: 'Contact confirmation received and dispatched' });
   } catch (error: any) {
     console.error('Contact confirmation error:', error);
-    return res.status(500).json({ error: 'Failed to process contact confirmation email', detail: error?.message });
+    return res.status(500).json({ error: 'Failed to process contact confirmation email' });
   }
-});
+};
+
+apiRouter.post('/contact-confirm', contactLimiter, handleContactConfirm);
+apiRouter.post('/contact/confirm', contactLimiter, handleContactConfirm);
 
 // ==========================================
 // DYNAMIC SITEMAP.XML & ROBOTS.TXT (SEO)

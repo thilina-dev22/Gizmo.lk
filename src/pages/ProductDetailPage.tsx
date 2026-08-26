@@ -17,6 +17,7 @@ import {
   Send,
   UserCheck,
   ChevronRight,
+  ChevronLeft,
   Check,
 } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
@@ -30,7 +31,8 @@ export function ProductDetailPage() {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeImage, setActiveImage] = useState(FALLBACK_IMAGE);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedVariant, setSelectedVariant] = useState<string>("");
@@ -172,6 +174,34 @@ export function ProductDetailPage() {
   }
 
   const images: string[] = safeParseImages(product.images);
+  const currentImage = images[activeImageIndex] || images[0] || FALLBACK_IMAGE;
+
+  const handleNextImage = () => {
+    if (images.length <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrevImage = () => {
+    if (images.length <= 1) return;
+    setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+    if (diff > 35) {
+      handleNextImage();
+    } else if (diff < -35) {
+      handlePrevImage();
+    }
+    setTouchStartX(null);
+  };
+
   const specs: Record<string, string> = safeParseSpecs(product.specs);
 
   // Extract special attributes
@@ -307,7 +337,7 @@ export function ProductDetailPage() {
         description={`Buy ${product.title} online for Rs. ${product.sellingPriceLkr.toLocaleString()} in Sri Lanka. ${product.description ? product.description.slice(0, 140) + '...' : '100% genuine quality with Islandwide Cash on Delivery (COD) & warranty.'}`}
         keywords={`${product.title}, ${product.title} price Sri Lanka, ${product.category} Sri Lanka, buy ${product.title} Colombo, GizmoTek.lk`}
         canonical={`https://gizmotek.lk/products/${product.slug || product.id}`}
-        ogImage={activeImage || (images.length > 0 ? images[0] : FALLBACK_IMAGE)}
+        ogImage={currentImage || (images.length > 0 ? images[0] : FALLBACK_IMAGE)}
         ogType="product"
         jsonLd={productJsonLd}
       />
@@ -329,14 +359,22 @@ export function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Left: Gallery (6 cols) */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="relative h-96 sm:h-[450px] w-full rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl">
+            <div
+              className="relative h-96 sm:h-[450px] w-full rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl group select-none cursor-pointer"
+              onClick={handleNextImage}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
               <OptimizedImage
-                src={activeImage}
-                alt={product.title}
+                src={currentImage}
+                alt={`${product.title} - Image ${activeImageIndex + 1}`}
                 fill
                 priority
+                className="group-hover:scale-105 transition-transform duration-300"
               />
-              <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2">
+
+              {/* Badges Overlay */}
+              <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2 pointer-events-none">
                 {product.isBestSeller && (
                   <span className="bg-amber-500 text-slate-950 font-extrabold text-[10px] uppercase px-3 py-1 rounded-full shadow">
                     Best Seller
@@ -351,6 +389,40 @@ export function ProductDetailPage() {
                   </span>
                 )}
               </div>
+
+              {/* Interactive Navigation Arrows for Multi-image Products */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrevImage();
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-950/75 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700 shadow-xl backdrop-blur-md opacity-90 hover:opacity-100 hover:border-cyan-400 transition-all z-20"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-cyan-300" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNextImage();
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-950/75 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700 shadow-xl backdrop-blur-md opacity-90 hover:opacity-100 hover:border-cyan-400 transition-all z-20"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="w-5 h-5 text-cyan-300" />
+                  </button>
+
+                  {/* Counter Badge */}
+                  <div className="absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md border border-slate-700/80 px-3 py-1 rounded-full text-[11px] font-mono font-bold text-cyan-300 z-10 pointer-events-none">
+                    {activeImageIndex + 1} / {images.length}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Thumbnail Selector */}
@@ -359,14 +431,20 @@ export function ProductDetailPage() {
                 {images.map((imgUrl, i) => (
                   <button
                     key={i}
-                    onClick={() => setActiveImage(imgUrl)}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIndex(i);
+                    }}
                     className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                      activeImage === imgUrl ? "border-cyan-400 scale-105" : "border-slate-800 opacity-60 hover:opacity-100"
+                      activeImageIndex === i
+                        ? "border-cyan-400 scale-105 shadow-lg shadow-cyan-950"
+                        : "border-slate-800 opacity-60 hover:opacity-100"
                     }`}
                   >
                     <OptimizedImage
                       src={imgUrl}
-                      alt={`${product.title} thumb ${i}`}
+                      alt={`${product.title} thumb ${i + 1}`}
                       fill
                     />
                   </button>

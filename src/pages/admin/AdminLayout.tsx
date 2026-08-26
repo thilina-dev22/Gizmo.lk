@@ -1,17 +1,51 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { GizmoLogo } from "@/components/logo/GizmoLogo";
-import { LayoutDashboard, Package, ShoppingCart, Download, LogOut, MessageSquare, Store } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Download, LogOut, MessageSquare, Store, Loader2 } from "lucide-react";
 import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
 import { SEOHead } from "@/components/common/SEOHead";
 
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [checkingAuth, setCheckingAuth] = useState(location.pathname !== "/admin/login");
+
+  // Verify admin session on mount
+  useEffect(() => {
+    if (location.pathname === "/admin/login") return;
+
+    let isMounted = true;
+    fetch("/api/admin/check-auth")
+      .then((res) => {
+        if (!res.ok) {
+          navigate("/admin/login", { replace: true });
+        } else if (isMounted) {
+          setCheckingAuth(false);
+        }
+      })
+      .catch(() => {
+        navigate("/admin/login", { replace: true });
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname]);
 
   // Hide topbar and sub-nav on admin login page
   if (location.pathname === "/admin/login") {
     return <div className="min-h-screen bg-slate-950 text-slate-100"><Outlet /></div>;
+  }
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+          <span className="text-xs text-slate-400 font-semibold tracking-wider uppercase">Verifying Admin Session...</span>
+        </div>
+      </div>
+    );
   }
 
   const isOverviewActive = location.pathname === "/admin" || location.pathname === "/admin/";

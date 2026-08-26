@@ -53,7 +53,7 @@ export function HomePage() {
       />
 
       {/* Hero Banner */}
-      <HeroBanner />
+      <HeroBanner featuredProduct={featuredProducts.length > 0 ? featuredProducts[0] : null} />
 
       {/* Category Grid */}
       <CategoryGrid />

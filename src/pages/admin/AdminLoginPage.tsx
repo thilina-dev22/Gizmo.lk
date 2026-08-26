@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GizmoLogo } from "@/components/logo/GizmoLogo";
 import { Lock, User, KeyRound, ShieldAlert, ArrowRight, CheckCircle2 } from "lucide-react";
@@ -10,6 +10,16 @@ export function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/check-auth")
+      .then((res) => {
+        if (res.ok) {
+          navigate("/admin", { replace: true });
+        }
+      })
+      .catch(() => {});
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
