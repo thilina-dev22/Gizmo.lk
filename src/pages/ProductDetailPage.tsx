@@ -360,7 +360,7 @@ export function ProductDetailPage() {
           {/* Left: Gallery (6 cols) */}
           <div className="lg:col-span-6 space-y-4">
             <div
-              className="relative h-96 sm:h-[450px] w-full rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl group select-none cursor-pointer"
+              className="relative h-72 sm:h-96 md:h-[450px] w-full rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl group select-none cursor-pointer"
               onClick={handleNextImage}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
@@ -375,7 +375,7 @@ export function ProductDetailPage() {
               />
 
               {/* Badges Overlay */}
-              <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2 pointer-events-none">
+              <div className="absolute top-3.5 left-3.5 sm:top-4 sm:left-4 z-10 flex flex-wrap gap-2 pointer-events-none">
                 {product.isBestSeller && (
                   <span className="bg-amber-500 text-slate-950 font-extrabold text-[10px] uppercase px-3 py-1 rounded-full shadow">
                     Best Seller
@@ -400,7 +400,7 @@ export function ProductDetailPage() {
                       e.stopPropagation();
                       handlePrevImage();
                     }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-950/75 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700 shadow-xl backdrop-blur-md opacity-90 hover:opacity-100 hover:border-cyan-400 transition-all z-20"
+                    className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700 shadow-xl backdrop-blur-md opacity-90 hover:opacity-100 hover:border-cyan-400 transition-all z-20"
                     aria-label="Previous image"
                   >
                     <ChevronLeft className="w-5 h-5 text-cyan-300" />
@@ -412,23 +412,23 @@ export function ProductDetailPage() {
                       e.stopPropagation();
                       handleNextImage();
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-950/75 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700 shadow-xl backdrop-blur-md opacity-90 hover:opacity-100 hover:border-cyan-400 transition-all z-20"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white flex items-center justify-center border border-slate-700 shadow-xl backdrop-blur-md opacity-90 hover:opacity-100 hover:border-cyan-400 transition-all z-20"
                     aria-label="Next image"
                   >
                     <ChevronRight className="w-5 h-5 text-cyan-300" />
                   </button>
 
                   {/* Counter Badge */}
-                  <div className="absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md border border-slate-700/80 px-3 py-1 rounded-full text-[11px] font-mono font-bold text-cyan-300 z-10 pointer-events-none">
+                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 bg-slate-950/85 backdrop-blur-md border border-slate-700/80 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-bold text-cyan-300 z-10 pointer-events-none">
                     {activeImageIndex + 1} / {images.length}
                   </div>
                 </>
               )}
             </div>
 
-            {/* Thumbnail Selector */}
+            {/* Thumbnail Selector - Clean padding, no cut-off/capping */}
             {images.length > 1 && (
-              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-2 px-1 scrollbar-thin">
                 {images.map((imgUrl, i) => (
                   <button
                     key={i}
@@ -437,10 +437,10 @@ export function ProductDetailPage() {
                       e.stopPropagation();
                       setActiveImageIndex(i);
                     }}
-                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer bg-slate-900 ${
                       activeImageIndex === i
-                        ? "border-cyan-400 scale-105 shadow-lg shadow-cyan-950"
-                        : "border-slate-800 opacity-60 hover:opacity-100"
+                        ? "border-cyan-400 ring-2 ring-cyan-400/50 shadow-lg shadow-cyan-950"
+                        : "border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700"
                     }`}
                   >
                     <OptimizedImage
