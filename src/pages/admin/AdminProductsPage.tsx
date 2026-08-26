@@ -505,7 +505,7 @@ export function AdminProductsPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            to={`/products/${product.id}`}
+                            to={`/products/${product.slug || product.id}`}
                             target="_blank"
                             rel="noreferrer"
                             className="px-2.5 py-1 text-cyan-400 hover:text-cyan-300 bg-slate-950 hover:bg-slate-800 rounded-lg border border-slate-800 flex items-center gap-1 text-[11px] font-semibold transition-colors"

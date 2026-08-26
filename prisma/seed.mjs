@@ -3090,7 +3090,27 @@ const SINHALA_NAMES = [
   'Asanka Jayasuriya',
   'Buddhika Ranasinghe',
   'Vimukthi Mendis',
-  'Chinthaka Hettiarachchi'
+  'Chinthaka Hettiarachchi',
+  'Gimhani Ranatunga',
+  'Kavindu Senarath',
+  'Maneesha Karunarathne',
+  'Niroshan Pieris',
+  'Sewwandi Pathirana',
+  'Umesh Tharaka',
+  'Achini Wijeratne',
+  'Bhanuka Rajapaksa',
+  'Harsha Jayawardana',
+  'Indika Prasanna',
+  'Kanishka Lokuge',
+  'Methmali Somarathne',
+  'Nadeesha Guruge',
+  'Prabath Subasinghe',
+  'Ravindu Edirisinghe',
+  'Sudarshana De Silva',
+  'Tanya Nanayakkara',
+  'Udara Vithanage',
+  'Yasiru Attanayake',
+  'Zeena Fernando'
 ];
 
 const REVIEW_TEMPLATES_BY_CATEGORY = {
@@ -3115,6 +3135,26 @@ const REVIEW_TEMPLATES_BY_CATEGORY = {
       comment: "Comfortable in-ear fit, doesn't fall off while running or gym workouts. Connected immediately with Bluetooth 5.3.",
       rating: 5,
     },
+    {
+      comment: "Touch controls on the earbuds work seamlessly for volume and answering calls. Bass is punchy and treble is balanced.",
+      rating: 5,
+    },
+    {
+      comment: "Battery case has a sleek metallic finish and charges rapidly with Type-C. Very satisfied with GizmoTek customer care.",
+      rating: 5,
+    },
+    {
+      comment: "Gaming latency mode works great for PUBG and Free Fire. Zero audio lag detected.",
+      rating: 5,
+    },
+    {
+      comment: "Great soundstage and loud volume without any distortion at maximum volume. Worth every rupee.",
+      rating: 4,
+    },
+    {
+      comment: "Received the package within 48 hours in Galle. Genuine sealed box with manual and spare ear tips.",
+      rating: 5,
+    },
   ],
   Wearables: [
     {
@@ -3135,6 +3175,26 @@ const REVIEW_TEMPLATES_BY_CATEGORY = {
     },
     {
       comment: "Very stylish watch, premium magnetic charging dock included. Prompt customer support on WhatsApp when I asked about setup.",
+      rating: 5,
+    },
+    {
+      comment: "Bluetooth call feature is very clear and the speaker is loud enough when driving. High quality metal bezel.",
+      rating: 5,
+    },
+    {
+      comment: "Custom watch faces are awesome and sync quickly from the mobile app. Definitely ordering another for my brother.",
+      rating: 5,
+    },
+    {
+      comment: "Strap quality is soft and comfortable for daily office wear. Battery standby time exceeded my expectations.",
+      rating: 4,
+    },
+    {
+      comment: "Bright AMOLED-like display visible even under direct sunlight in Colombo. 10/10 purchase.",
+      rating: 5,
+    },
+    {
+      comment: "The gift set packaging looked super luxurious. Delivery rider called ahead and COD payment was hassle-free.",
       rating: 5,
     },
   ],
@@ -3159,6 +3219,18 @@ const REVIEW_TEMPLATES_BY_CATEGORY = {
       comment: "Extremely handy 3-in-1 multi cable for charging both Type-C, Lightning, and Micro-USB devices at the office.",
       rating: 4,
     },
+    {
+      comment: "Tested with 65W PD laptop and charges at full rated speed without any voltage drop.",
+      rating: 5,
+    },
+    {
+      comment: "Compact UK 3-pin adapter that fits firmly in standard Sri Lankan wall sockets. Highly recommend.",
+      rating: 5,
+    },
+    {
+      comment: "Thick silicone wire that doesn't tangle in bags. Fast data transfer rates when connecting to PC.",
+      rating: 4,
+    },
   ],
   "Storage & Pen Drives": [
     {
@@ -3173,6 +3245,14 @@ const REVIEW_TEMPLATES_BY_CATEGORY = {
       comment: "Great pen drive for vehicle audio and backup storage. Received in Kurunegala within 3 days via COD.",
       rating: 5,
     },
+    {
+      comment: "Fast transfer speeds for 4K video files. Dual USB-A and Type-C interface is super convenient.",
+      rating: 5,
+    },
+    {
+      comment: "Waterproof and shockproof metal casing. Reliable flash memory chip inside.",
+      rating: 4,
+    },
   ],
   "Computer Accessories": [
     {
@@ -3186,6 +3266,14 @@ const REVIEW_TEMPLATES_BY_CATEGORY = {
     {
       comment: "High precision tracking on wooden desk even without mouse pad. Excellent value for this price.",
       rating: 4,
+    },
+    {
+      comment: "Durable braided cable and solid optical sensor. DPI switch is responsive during FPS games.",
+      rating: 5,
+    },
+    {
+      comment: "Comfortable thumb grip that reduces wrist fatigue after 8 hours of coding and office tasks.",
+      rating: 5,
     },
   ],
   DEFAULT: [
@@ -3203,6 +3291,10 @@ const REVIEW_TEMPLATES_BY_CATEGORY = {
     },
     {
       comment: "Very satisfied with my purchase. Will definitely order more gadgets from GizmoTek.lk.",
+      rating: 5,
+    },
+    {
+      comment: "Premium build, looks and feels much more expensive than its actual price. Islandwide delivery is top notch.",
       rating: 5,
     },
   ],
@@ -3233,7 +3325,7 @@ async function main() {
 
   let totalReviewsCreated = 0;
 
-  // Insert real products and generate authentic Sinhala reviews
+  // Insert real products and generate authentic Sinhala reviews with natural organic distribution
   for (const item of realProducts) {
     const createdProduct = await prisma.product.create({
       data: item,
@@ -3248,13 +3340,29 @@ async function main() {
       }
     }
 
-    const reviewCount = Math.floor(Math.random() * 3) + 2; // 2, 3, or 4 reviews
+    // Natural, organic distribution of review counts (1 to 12 reviews per product)
+    let reviewCount;
+    if (item.isBestSeller && item.isFeatured) {
+      reviewCount = Math.floor(Math.random() * 5) + 8; // 8 to 12 reviews
+    } else if (item.isBestSeller || item.isFeatured) {
+      reviewCount = Math.floor(Math.random() * 4) + 5; // 5 to 8 reviews
+    } else {
+      const roll = Math.random();
+      if (roll < 0.20) {
+        reviewCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 reviews
+      } else if (roll < 0.65) {
+        reviewCount = Math.floor(Math.random() * 3) + 3; // 3 to 5 reviews
+      } else {
+        reviewCount = Math.floor(Math.random() * 3) + 6; // 6 to 8 reviews
+      }
+    }
+
     const usedNames = new Set();
     const reviewRatings = [];
 
     for (let i = 0; i < reviewCount; i++) {
       let authorName = getRandomItem(SINHALA_NAMES);
-      while (usedNames.has(authorName)) {
+      while (usedNames.has(authorName) && usedNames.size < SINHALA_NAMES.length) {
         authorName = getRandomItem(SINHALA_NAMES);
       }
       usedNames.add(authorName);
@@ -3290,7 +3398,7 @@ async function main() {
     });
   }
 
-  console.log(`✅ Database successfully initialized with ${realProducts.length} real products and ${totalReviewsCreated} Sinhala customer reviews!`);
+  console.log(`✅ Database successfully initialized with ${realProducts.length} real products and ${totalReviewsCreated} Sinhala customer reviews (varying naturally from 1 to 12 reviews per product)!`);
 }
 
 main()

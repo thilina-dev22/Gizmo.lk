@@ -95,7 +95,7 @@ export function QuickViewModal() {
                 </button>
 
                 <Link
-                  to={`/products/${quickViewProduct.id}`}
+                  to={`/products/${quickViewProduct.slug || quickViewProduct.id}`}
                   onClick={() => setQuickViewProduct(null)}
                   className="w-full flex items-center justify-center gap-1.5 bg-slate-950 hover:bg-slate-850 text-slate-300 font-semibold py-2.5 rounded-xl border border-slate-800 text-xs"
                 >

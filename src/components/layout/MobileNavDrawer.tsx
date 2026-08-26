@@ -162,7 +162,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                         return (
                           <Link
                             key={product.id}
-                            to={`/products/${product.id}`}
+                            to={`/products/${product.slug || product.id}`}
                             onClick={() => {
                               setShowSearchDropdown(false);
                               onClose();

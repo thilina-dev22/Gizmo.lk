@@ -162,7 +162,7 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
                     return (
                       <Link
                         key={product.id}
-                        to={`/products/${product.id}`}
+                        to={`/products/${product.slug || product.id}`}
                         onClick={() => setShowSearchDropdown(false)}
                         className="flex items-center gap-3 p-3 hover:bg-slate-800/80 transition-colors group"
                       >
@@ -295,7 +295,7 @@ export function Navbar({ onOpenMobileNav }: NavbarProps) {
                     return (
                       <Link
                         key={product.id}
-                        to={`/products/${product.id}`}
+                        to={`/products/${product.slug || product.id}`}
                         onClick={() => {
                           setShowSearchDropdown(false);
                           setIsMobileSearchOpen(false);

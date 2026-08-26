@@ -19,6 +19,10 @@ import {
   ChevronRight,
   ChevronLeft,
   Check,
+  Share2,
+  Copy,
+  Mail,
+  MessageCircle,
 } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 
@@ -36,6 +40,7 @@ export function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedVariant, setSelectedVariant] = useState<string>("");
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Review Form & List State
   const [reviewsList, setReviewsList] = useState<any[]>([]);
@@ -59,8 +64,12 @@ export function ProductDetailPage() {
       const data = await res.json();
       if (data.product) {
         setProduct(data.product);
-        const imgs = safeParseImages(data.product?.images);
-        setActiveImage(imgs[0] || FALLBACK_IMAGE);
+        setActiveImageIndex(0);
+
+        // Auto-update browser URL to clean slug if accessed via ID or mismatch
+        if (data.product.slug && id !== data.product.slug) {
+          window.history.replaceState(null, '', `/products/${data.product.slug}`);
+        }
 
         // Auto-select initial color & variant if available
         const parsedSpecs = safeParseSpecs(data.product?.specs);
@@ -236,7 +245,7 @@ export function ProductDetailPage() {
   const generalSpecs = Object.entries(specs).filter(([k]) => !specialKeys.has(k));
 
   const whatsappMessage = encodeURIComponent(
-    `Hi GizmoTek.lk! I want to order:\n*Product*: ${product.title}\n*SKU*: ${product.sku}${selectedColor ? `\n*Color*: ${selectedColor}` : ""}${selectedVariant ? `\n*Option*: ${selectedVariant}` : ""}\n*Warranty*: ${warranty}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmotek.lk/products/${product.id}`
+    `Hi GizmoTek.lk! I want to order:\n*Product*: ${product.title}\n*SKU*: ${product.sku}${selectedColor ? `\n*Color*: ${selectedColor}` : ""}${selectedVariant ? `\n*Option*: ${selectedVariant}` : ""}\n*Warranty*: ${warranty}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmotek.lk/products/${product.slug || product.id}`
   );
 
   const displayRating = product.rating || 0;
@@ -683,6 +692,95 @@ export function ProductDetailPage() {
                 <ExternalLink className="w-4 h-4" />
                 <span>Order via WhatsApp Direct (+94 72 141 0369)</span>
               </a>
+
+              {/* Product Share Widget */}
+              <div className="pt-3 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Share This Gadget:</span>
+                  </span>
+                  {copiedLink && (
+                    <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1 animate-pulse">
+                      <Check className="w-3 h-3" />
+                      <span>Link copied to clipboard!</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* WhatsApp Share */}
+                  <a
+                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${product.title} on GizmoTek Sri Lanka:\nhttps://gizmotek.lk/products/${product.slug || product.id}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 bg-emerald-950/70 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105"
+                    title="Share on WhatsApp"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
+
+                  {/* Copy Link */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/products/${product.slug || product.id}`;
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(shareUrl);
+                      } else {
+                        const input = document.createElement("input");
+                        input.value = shareUrl;
+                        document.body.appendChild(input);
+                        input.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(input);
+                      }
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2500);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      copiedLink
+                        ? "bg-emerald-500 text-slate-950 border-emerald-400 font-bold"
+                        : "bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-700 hover:border-cyan-400 hover:text-cyan-300"
+                    }`}
+                    title="Copy Link"
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
+                  </button>
+
+                  {/* Email Share */}
+                  <a
+                    href={`mailto:?subject=${encodeURIComponent(`${product.title} - GizmoTek Sri Lanka`)}&body=${encodeURIComponent(`Hi,\n\nI found this tech product on GizmoTek.lk:\n${product.title}\nPrice: Rs. ${product.sellingPriceLkr.toLocaleString()}\n\nCheck it out here: https://gizmotek.lk/products/${product.slug || product.id}`)}`}
+                    className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-700 hover:border-slate-600 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                    title="Share via Email"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Email</span>
+                  </a>
+
+                  {/* Native Mobile Share (iOS / Android) */}
+                  {typeof navigator !== "undefined" && "share" in navigator && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.share) {
+                          navigator.share({
+                            title: product.title,
+                            text: `Check out ${product.title} on GizmoTek Sri Lanka!`,
+                            url: `https://gizmotek.lk/products/${product.slug || product.id}`,
+                          }).catch(() => {});
+                        }
+                      }}
+                      className="flex sm:hidden items-center gap-1.5 bg-cyan-950/60 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>More</span>
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {/* Sri Lanka Delivery Guarantee */}
               <div className="grid grid-cols-3 gap-2 pt-2 text-[11px] text-slate-400">

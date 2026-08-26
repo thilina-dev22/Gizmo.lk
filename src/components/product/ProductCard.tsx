@@ -51,7 +51,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Product Image Box */}
       <div className="relative h-40 sm:h-52 w-full bg-slate-950 overflow-hidden">
-        <Link to={`/products/${product.id}`} className="block w-full h-full">
+        <Link to={`/products/${product.slug || product.id}`} className="block w-full h-full">
           <OptimizedImage
             src={initialImage}
             alt={product.title}
@@ -78,7 +78,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-0.5 sm:mb-1">
             {product.category}
           </span>
-          <Link to={`/products/${product.id}`}>
+          <Link to={`/products/${product.slug || product.id}`}>
             <h3 className="text-xs font-bold text-slate-100 group-hover:text-cyan-400 transition-colors line-clamp-2 leading-snug">
               {product.title}
             </h3>
