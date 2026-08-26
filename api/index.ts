@@ -1111,9 +1111,23 @@ apiRouter.get('/reviews', async (req, res) => {
   }
 
   try {
+    const cleanId = productId.trim();
+    // Resolve product ID whether passed as UUID or as slug
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [
+          { id: cleanId },
+          { slug: cleanId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    const targetProductId = product ? product.id : cleanId;
+
     const reviews = await prisma.review.findMany({
       where: {
-        productId,
+        productId: targetProductId,
         isApproved: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -1122,7 +1136,7 @@ apiRouter.get('/reviews', async (req, res) => {
     return res.json({ reviews: reviews || [] });
   } catch (error: any) {
     console.error('Error fetching reviews:', error);
-    return res.status(500).json({ error: 'Failed to fetch reviews', detail: error?.message });
+    return res.status(500).json({ error: 'Failed to fetch reviews' });
   }
 });
 
@@ -1137,6 +1151,20 @@ apiRouter.post('/reviews', reviewLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Missing required review fields' });
     }
 
+    const cleanId = String(productId).trim();
+    // Resolve product ID whether passed as UUID or as slug
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [
+          { id: cleanId },
+          { slug: cleanId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    const targetProductId = product ? product.id : cleanId;
+
     const numRating = parseInt(String(rating), 10);
     if (isNaN(numRating) || numRating < 1 || numRating > 5) {
       return res.status(400).json({ error: 'Rating must be between 1 and 5' });
@@ -1144,7 +1172,7 @@ apiRouter.post('/reviews', reviewLimiter, async (req, res) => {
 
     const review = await prisma.review.create({
       data: {
-        productId: String(productId).trim(),
+        productId: targetProductId,
         authorName: sanitizedAuthor,
         rating: numRating,
         comment: sanitizedComment,

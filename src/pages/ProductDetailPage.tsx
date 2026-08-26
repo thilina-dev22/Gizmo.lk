@@ -88,6 +88,9 @@ export function ProductDetailPage() {
         if (variantsList.length > 0) {
           setSelectedVariant(variantsList[0]);
         }
+
+        // Fetch reviews with resolved product ID
+        fetchReviews(data.product.id);
       }
     } catch (err) {
       console.error("Fetch product error:", err);
@@ -96,9 +99,11 @@ export function ProductDetailPage() {
     }
   };
 
-  const fetchReviews = async () => {
+  const fetchReviews = async (productIdOrSlug?: string) => {
+    const target = productIdOrSlug || product?.id || id;
+    if (!target) return;
     try {
-      const res = await fetch(`/api/reviews?productId=${id}`);
+      const res = await fetch(`/api/reviews?productId=${encodeURIComponent(target)}`);
       const data = await res.json();
       setReviewsList(data.reviews || []);
     } catch (err) {
