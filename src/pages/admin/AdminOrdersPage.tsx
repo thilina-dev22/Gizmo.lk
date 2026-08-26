@@ -289,7 +289,7 @@ export function AdminOrdersPage() {
         <a
           href="/api/admin/export-orders"
           download
-          className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-colors"
+          className="inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 hover:border-emerald-400 font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-colors"
         >
           <Download className="w-4 h-4" />
           <span>Export Courier CSV (Koombiyo / PromptX)</span>

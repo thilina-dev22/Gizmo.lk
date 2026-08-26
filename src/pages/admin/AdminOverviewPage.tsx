@@ -191,7 +191,7 @@ export function AdminOverviewPage() {
         <a
           href="/api/admin/export-orders"
           download
-          className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-colors"
+          className="inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-850 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 hover:border-emerald-400 font-bold px-4 py-2.5 rounded-xl text-xs shadow-md transition-colors"
         >
           <Download className="w-4 h-4" />
           <span>Export Courier CSV</span>
@@ -205,7 +205,7 @@ export function AdminOverviewPage() {
             <Calendar className="w-4 h-4 text-cyan-400 shrink-0" />
             <span>Time Period:</span>
             <strong className="text-cyan-400 font-bold">{datePresetLabels[datePreset]}</strong>
-            <span className="text-slate-500 text-[11px]">
+            <span className="text-slate-400 text-[11px]">
               ({filteredOrders.length} order{filteredOrders.length !== 1 ? "s" : ""} in scope)
             </span>
           </div>
@@ -339,28 +339,28 @@ export function AdminOverviewPage() {
       {/* Secondary Metrics Strip (AOV, Profit Margin, Delivery Rate) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-xs">
         <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
-          <span className="text-slate-400 text-[11px] block">Average Order Value (AOV)</span>
+          <span className="text-slate-300 text-[11px] block font-medium">Average Order Value (AOV)</span>
           <strong className="text-base sm:text-lg font-extrabold text-cyan-300 font-mono">
             {formatLKR(averageOrderValueLkr)}
           </strong>
-          <span className="text-[10px] text-slate-500 block">Per completed transaction</span>
+          <span className="text-[10px] text-slate-400 block">Per completed transaction</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1">
-          <span className="text-slate-400 text-[11px] block">Est. Gross Margin Profit</span>
+          <span className="text-slate-300 text-[11px] block font-medium">Est. Gross Margin Profit</span>
           <strong className="text-base sm:text-lg font-extrabold text-emerald-400 font-mono">
             +{formatLKR(estimatedGrossProfitLkr)}
           </strong>
-          <span className="text-[10px] text-slate-500 block">Revenue minus unit cost price</span>
+          <span className="text-[10px] text-slate-400 block">Revenue minus unit cost price</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1 col-span-2 sm:col-span-1">
-          <span className="text-slate-400 text-[11px] block">Order Status Ratio</span>
+          <span className="text-slate-300 text-[11px] block font-medium">Order Status Ratio</span>
           <div className="flex items-center gap-3 font-semibold text-xs pt-0.5">
             <span className="text-emerald-400">✓ {deliveredCount} Delivered</span>
             <span className="text-rose-400">✕ {cancelledCount} Cancelled</span>
           </div>
-          <span className="text-[10px] text-slate-500 block">Within selected time range</span>
+          <span className="text-[10px] text-slate-400 block">Within selected time range</span>
         </div>
       </div>
 
@@ -369,12 +369,12 @@ export function AdminOverviewPage() {
         {/* Recent Orders (8 cols) */}
         <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2">
+            <h2 className="font-bold text-white text-sm flex items-center gap-2">
               <span>Recent Orders in Selected Window</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
                 {filteredOrders.length}
               </span>
-            </h3>
+            </h2>
             <Link
               to="/admin/orders"
               className="text-xs font-bold text-cyan-400 hover:underline flex items-center gap-1"
@@ -398,7 +398,7 @@ export function AdminOverviewPage() {
               <tbody className="divide-y divide-slate-800 text-slate-300">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td colSpan={5} className="p-6 text-center text-slate-400">
                       No orders found in {datePresetLabels[datePreset]}.
                     </td>
                   </tr>
@@ -411,7 +411,7 @@ export function AdminOverviewPage() {
                       <tr key={order.id} className="hover:bg-slate-850 transition-colors">
                         <td className="p-3">
                           <div className="font-mono font-bold text-cyan-400">{order.orderNumber}</div>
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-slate-400">
                             {new Date(order.createdAt).toLocaleDateString("en-LK", {
                               month: "short",
                               day: "numeric",
@@ -466,7 +466,7 @@ export function AdminOverviewPage() {
         {/* Top Tech Inventory (4 cols) */}
         <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h3 className="font-bold text-white text-sm">Top Tech Inventory</h3>
+            <h2 className="font-bold text-white text-sm">Top Tech Inventory</h2>
             <Link to="/admin/products" className="text-xs text-cyan-400 hover:underline">
               Manage
             </Link>
@@ -481,7 +481,7 @@ export function AdminOverviewPage() {
                   className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex justify-between items-center text-xs"
                 >
                   <div className="max-w-[65%]">
-                    <h4 className="font-bold text-slate-200 line-clamp-1">{product.title}</h4>
+                    <h3 className="font-bold text-slate-200 line-clamp-1">{product.title}</h3>
                     <span className="text-[10px] text-slate-400">
                       Cost: {formatLKR(product.costPriceLkr)} | Stock: {product.stock}
                     </span>

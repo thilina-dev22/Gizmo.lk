@@ -85,7 +85,7 @@ export function AdminLayout() {
             <a
               href="/api/admin/export-orders"
               download
-              className="hidden md:inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-md"
+              className="hidden md:inline-flex items-center gap-1.5 bg-slate-950 hover:bg-slate-850 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 hover:border-emerald-400 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-md"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export Courier CSV</span>

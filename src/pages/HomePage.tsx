@@ -45,7 +45,7 @@ export function HomePage() {
   return (
     <div className="space-y-12 pb-16">
       <SEOHead
-        title="GizmoTek.lk | Buy Electronics, Smartwatches & Tech Gadgets Sri Lanka"
+        title="GizmoTek.lk | Tech Gadgets & Electronics Sri Lanka"
         description="Shop genuine wireless Bluetooth earbuds, smartwatches, power banks, fast chargers, cables & PC accessories online in Sri Lanka. Islandwide Cash on Delivery (COD) & fast 2-4 day doorstep delivery."
         keywords="buy electronics online Sri Lanka, smart watch price Sri Lanka, wireless earbuds Colombo, iPhone charger Sri Lanka, power bank Kandy, cash on delivery gadgets Sri Lanka, GizmoTek.lk"
         canonical="https://gizmotek.lk/"
