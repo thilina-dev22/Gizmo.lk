@@ -1819,6 +1819,78 @@ apiRouter.get('/robots.txt', (req, res) => {
   return res.send(robots);
 });
 
+// GOOGLE MERCHANT CENTER PRODUCT FEED (RSS 2.0 XML)
+const handleGoogleMerchantFeed = async (req: express.Request, res: express.Response) => {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const BASE_URL = 'https://gizmotek.lk';
+
+    const escapeXml = (unsafe: any) => {
+      if (!unsafe) return '';
+      return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n  <channel>\n    <title>GizmoTek.lk Product Feed</title>\n    <link>${BASE_URL}</link>\n    <description>Sri Lanka's premier online store for tech gadgets, smartwatches, wireless earbuds &amp; accessories.</description>\n`;
+
+    for (const product of products) {
+      let images: string[] = [];
+      try {
+        if (product.images) {
+          const parsed = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+          if (Array.isArray(parsed)) images = parsed;
+        }
+      } catch {}
+
+      const primaryImage = images[0] || 'https://gizmotek.lk/favicon.svg';
+      const productUrl = `${BASE_URL}/products/${product.slug || product.id}`;
+      const cleanDesc = product.description
+        ? product.description.replace(/<[^>]*>?/gm, '').trim()
+        : `${product.title} available with islandwide delivery across Sri Lanka at GizmoTek.lk`;
+
+      let brand = 'GizmoTek';
+      if (product.specs) {
+        try {
+          const parsedSpecs = typeof product.specs === 'string' ? JSON.parse(product.specs) : product.specs;
+          if (parsedSpecs['Brand'] || parsedSpecs['brand']) {
+            brand = parsedSpecs['Brand'] || parsedSpecs['brand'];
+          }
+        } catch {}
+      }
+
+      xml += `    <item>\n      <g:id>${escapeXml(product.sku || product.id)}</g:id>\n      <g:title>${escapeXml(product.title)}</g:title>\n      <g:description>${escapeXml(cleanDesc.slice(0, 5000))}</g:description>\n      <g:link>${escapeXml(productUrl)}</g:link>\n      <g:image_link>${escapeXml(primaryImage)}</g:image_link>\n`;
+
+      for (let i = 1; i < Math.min(images.length, 10); i++) {
+        if (images[i]) {
+          xml += `      <g:additional_image_link>${escapeXml(images[i])}</g:additional_image_link>\n`;
+        }
+      }
+
+      xml += `      <g:condition>new</g:condition>\n      <g:availability>${product.stock > 0 ? 'in_stock' : 'out_of_stock'}</g:availability>\n      <g:price>${product.sellingPriceLkr.toFixed(2)} LKR</g:price>\n      <g:brand>${escapeXml(brand)}</g:brand>\n      <g:product_type>${escapeXml(product.category || 'Electronics')}</g:product_type>\n      <g:identifier_exists>no</g:identifier_exists>\n      <g:shipping>\n        <g:country>LK</g:country>\n        <g:service>Islandwide Courier Delivery</g:service>\n        <g:price>450.00 LKR</g:price>\n      </g:shipping>\n    </item>\n`;
+    }
+
+    xml += `  </channel>\n</rss>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.header('Cache-Control', 'public, max-age=3600, s-maxage=14400');
+    return res.send(xml);
+  } catch (error: any) {
+    console.error('Google Merchant Feed error:', error);
+    return res.status(500).send('Error generating Google Merchant feed');
+  }
+};
+
+apiRouter.get('/feed.xml', handleGoogleMerchantFeed);
+apiRouter.get('/google-merchant-feed.xml', handleGoogleMerchantFeed);
+apiRouter.get('/api/google-merchant-feed.xml', handleGoogleMerchantFeed);
+
 // Mount the API Router to BOTH '/api' and '/'
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
