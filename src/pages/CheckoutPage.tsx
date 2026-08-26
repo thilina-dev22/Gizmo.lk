@@ -7,6 +7,7 @@ import {
   BANK_ACCOUNTS,
   FLAT_DELIVERY_FEE_LKR,
   PAYMENT_GATEWAY_FEE_PERCENT,
+  IS_PAYMENT_GATEWAY_ENABLED,
 } from "@/lib/constants";
 import { formatLKR, calculateShippingFee, calculatePaymentGatewayFee } from "@/lib/utils";
 import { getCitiesForDistrict, CityInfo } from "@/data/sriLankaCities";
@@ -65,6 +66,7 @@ export function CheckoutPage() {
   const gatewayFee = calculatePaymentGatewayFee(subtotal, paymentMethod);
   const totalAmount = subtotal + shippingFee + gatewayFee;
   const isPayHereLimitExceeded = totalAmount > 50000;
+  const isPayHereAvailable = IS_PAYMENT_GATEWAY_ENABLED && !isPayHereLimitExceeded;
 
   // Handle District Change
   const handleDistrictChange = (newDistrict: District) => {
@@ -138,6 +140,11 @@ export function CheckoutPage() {
 
     if (paymentMethod === "BANK_TRANSFER" && !slipPreviewUrl) {
       setErrorMsg("Please attach your bank deposit slip screenshot before completing your order.");
+      return;
+    }
+
+    if (paymentMethod === "PAYHERE" && !IS_PAYMENT_GATEWAY_ENABLED) {
+      setErrorMsg("Online card payment is temporarily unavailable. Please choose Cash on Delivery or Bank Transfer.");
       return;
     }
 
@@ -492,24 +499,29 @@ export function CheckoutPage() {
 
               <button
                 type="button"
-                disabled={isPayHereLimitExceeded}
+                disabled={!isPayHereAvailable}
                 onClick={() => {
-                  if (!isPayHereLimitExceeded) setPaymentMethod("PAYHERE");
+                  if (isPayHereAvailable) setPaymentMethod("PAYHERE");
                 }}
-                className={`p-4 rounded-2xl border text-left transition-all space-y-2 relative cursor-pointer ${
-                  isPayHereLimitExceeded
+                className={`p-4 rounded-2xl border text-left transition-all space-y-2 relative ${
+                  !isPayHereAvailable
                     ? "bg-slate-950/40 border-slate-800/60 opacity-60 cursor-not-allowed"
                     : paymentMethod === "PAYHERE"
-                    ? "bg-cyan-950/40 border-cyan-400 shadow-neon"
-                    : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                    ? "bg-cyan-950/40 border-cyan-400 shadow-neon cursor-pointer"
+                    : "bg-slate-950 border-slate-800 hover:border-slate-700 cursor-pointer"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <CreditCard className={`w-5 h-5 ${paymentMethod === "PAYHERE" ? "text-cyan-400" : "text-slate-400"}`} />
-                  {paymentMethod === "PAYHERE" && !isPayHereLimitExceeded && (
+                  <CreditCard className={`w-5 h-5 ${paymentMethod === "PAYHERE" && isPayHereAvailable ? "text-cyan-400" : "text-slate-400"}`} />
+                  {paymentMethod === "PAYHERE" && isPayHereAvailable && (
                     <CheckCircle2 className="w-4 h-4 text-cyan-400" />
                   )}
-                  {isPayHereLimitExceeded && (
+                  {!IS_PAYMENT_GATEWAY_ENABLED && (
+                    <span className="text-[9px] bg-amber-500/15 text-amber-300/90 px-2 py-0.5 rounded border border-amber-500/30 font-semibold">
+                      Under Review
+                    </span>
+                  )}
+                  {IS_PAYMENT_GATEWAY_ENABLED && isPayHereLimitExceeded && (
                     <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30 font-semibold">
                       Over 50k Limit
                     </span>
@@ -518,14 +530,32 @@ export function CheckoutPage() {
                 <div>
                   <div className="font-bold text-slate-100 text-xs">Card / PayHere</div>
                   <div className="text-[10px] text-cyan-400 font-medium">
-                    {isPayHereLimitExceeded ? "Disabled (> Rs. 50,000)" : "Visa, Master (+4% Gateway Fee)"}
+                    {!IS_PAYMENT_GATEWAY_ENABLED
+                      ? "Temporarily Disabled (Bank Review)"
+                      : isPayHereLimitExceeded
+                      ? "Disabled (> Rs. 50,000)"
+                      : "Visa, Master (+4% Gateway Fee)"}
                   </div>
                 </div>
               </button>
             </div>
 
-            {/* PayHere 50,000 LKR Limit Notice */}
-            {isPayHereLimitExceeded && (
+            {/* PayHere Status & Limit Notices */}
+            {!IS_PAYMENT_GATEWAY_ENABLED && (
+              <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 text-slate-300 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-semibold text-slate-200 block">
+                    Online Card Payment Temporarily Inactive
+                  </span>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Our PayHere card payment gateway is undergoing bank activation review (5-10 business days). Please complete your order securely using <strong>Cash on Delivery (COD)</strong> or <strong>Direct Bank Transfer</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {IS_PAYMENT_GATEWAY_ENABLED && isPayHereLimitExceeded && (
               <div className="p-3.5 rounded-2xl bg-amber-950/50 border border-amber-500/40 text-amber-300 text-xs flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">

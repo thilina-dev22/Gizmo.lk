@@ -21,7 +21,10 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-// PayHere Config
+// PayHere Config & Gateway Switch
+const IS_PAYMENT_GATEWAY_ENABLED =
+  process.env.ENABLE_CARD_PAYMENT === 'true' ||
+  process.env.VITE_ENABLE_CARD_PAYMENT === 'true';
 const PAYHERE_MERCHANT_ID = process.env.PAYHERE_MERCHANT_ID || '1211145';
 const PAYHERE_MERCHANT_SECRET = process.env.PAYHERE_MERCHANT_SECRET || '4N6L5k8V1234567890abcdef12345678';
 const PAYHERE_MODE = process.env.PAYHERE_MODE || 'sandbox';
@@ -899,6 +902,12 @@ apiRouter.post('/orders', orderLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Missing required order details' });
     }
 
+    if ((paymentMethod === 'PAYHERE' || paymentMethod === 'CARD') && !IS_PAYMENT_GATEWAY_ENABLED) {
+      return res.status(400).json({
+        error: 'Online card payments are temporarily unavailable while gateway activation is in progress. Please checkout using Cash on Delivery (COD) or Bank Transfer.',
+      });
+    }
+
     let subtotalLkr = 0;
     const itemsData: any[] = [];
 
@@ -988,6 +997,12 @@ apiRouter.post('/orders', orderLimiter, async (req, res) => {
 // PayHere Hash & Payload Generation for secure checkout redirect
 apiRouter.post('/payhere/hash', async (req, res) => {
   try {
+    if (!IS_PAYMENT_GATEWAY_ENABLED) {
+      return res.status(400).json({
+        error: 'PayHere gateway is currently disabled pending bank activation review.',
+      });
+    }
+
     const {
       orderId,
       orderNumber,
