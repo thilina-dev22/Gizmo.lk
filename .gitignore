@@ -18,7 +18,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # local env files
-.env
 .env*.local
 
 # vercel
@@ -30,3 +29,4 @@ pnpm-debug.log*
 # OS metadata
 .DS_Store
 Thumbs.db
+config.bat
