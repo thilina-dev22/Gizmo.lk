@@ -7,6 +7,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { QuickViewModal } from "@/components/product/QuickViewModal";
 import { TopLoadingBar } from "@/components/common/TopLoadingBar";
 import { Toaster } from "@/components/common/Toaster";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 // Route-based Code Splitting for performance optimization
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
@@ -82,6 +83,7 @@ export function App() {
       )}
 
       <main className="flex-1">
+        <ErrorBoundary>
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             {/* Storefront Routes */}
@@ -120,6 +122,7 @@ export function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
+        </ErrorBoundary>
       </main>
 
       {!isAdminRoute && <Footer />}
