@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCartStore, Product } from "@/store/useCartStore";
 import { formatLKR, getMaxPurchasableQuantity, getProductOptions, getStockStatus, safeParseImages } from "@/lib/utils";
-import { FALLBACK_PRODUCT_IMAGE } from "@/lib/constants";
+import { FALLBACK_PRODUCT_IMAGE, FLAT_DELIVERY_FEE_LKR, FREE_SHIPPING_THRESHOLD_LKR } from "@/lib/constants";
 import { apiFetch, getErrorMessage, isAbortError, ApiError } from "@/lib/api";
 import { toast } from "@/store/useToastStore";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
@@ -236,11 +236,18 @@ export function ProductDetailPage() {
             "name": "GizmoTek.lk",
             "url": "https://gizmotek.lk",
           },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "LK",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 7,
+            "merchantReturnLink": "https://gizmotek.lk/return-policy",
+          },
           "shippingDetails": {
             "@type": "OfferShippingDetails",
             "shippingRate": {
               "@type": "MonetaryAmount",
-              "value": "450",
+              "value": product.sellingPriceLkr >= FREE_SHIPPING_THRESHOLD_LKR ? "0" : String(FLAT_DELIVERY_FEE_LKR),
               "currency": "LKR",
             },
             "shippingDestination": {

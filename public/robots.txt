@@ -1,11 +1,12 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
-Disallow: /admin/
 Disallow: /admin
-Disallow: /api/admin/
-Disallow: /checkout/success
-Disallow: /checkout/success*
+Disallow: /api/
+Disallow: /checkout
+# Faceted / duplicate listing URLs (the clean category URLs stay crawlable)
+Disallow: /*?*sort=
+Disallow: /*?*search=
 
 # Sitemaps
 Sitemap: https://gizmotek.lk/sitemap.xml

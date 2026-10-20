@@ -209,7 +209,7 @@ export function FAQPage() {
           </a>
 
           <Link
-            to="/contact"
+            to="/contact-us"
             className="flex items-center gap-3 p-3.5 bg-cyan-950/30 border border-cyan-500/30 rounded-xl text-cyan-300 hover:bg-cyan-950/50 transition-colors"
           >
             <Mail className="w-4 h-4 text-cyan-400 shrink-0" />

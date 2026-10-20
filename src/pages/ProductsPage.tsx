@@ -4,7 +4,7 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGridSkeleton } from "@/components/common/Skeleton";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Product } from "@/store/useCartStore";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, CATEGORY_INTROS } from "@/lib/constants";
 import { formatLKR } from "@/lib/utils";
 import { apiFetch, getErrorMessage, isAbortError } from "@/lib/api";
 import { Filter, SlidersHorizontal, Search, RefreshCw, X, PackageCheck } from "lucide-react";
@@ -112,8 +112,10 @@ export function ProductsPage() {
     ? `Buy ${categoryLabel} Online in Sri Lanka | GizmoTek.lk`
     : "All Tech Products & Electronics in Sri Lanka | GizmoTek.lk";
 
+  const categoryIntro = !search && category !== "all" ? CATEGORY_INTROS[category] : undefined;
+
   const pageDescription = category !== "all"
-    ? `Shop top-rated ${categoryLabel} in Sri Lanka. Guaranteed authentic products with Islandwide Cash on Delivery (COD) & 2-4 day delivery at GizmoTek.lk.`
+    ? categoryIntro || `Shop top-rated ${categoryLabel} in Sri Lanka. Guaranteed authentic products with Islandwide Cash on Delivery (COD) & 2-4 day delivery at GizmoTek.lk.`
     : "Explore 100+ trending tech products, wireless earbuds, smartwatches, power banks & PC gear with islandwide delivery across Sri Lanka.";
 
   const categoryQuery = category !== "all" ? `?category=${encodeURIComponent(category)}` : "";
@@ -166,6 +168,7 @@ export function ProductsPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
             {search ? `Results for "${search}"` : category === "all" ? "All Electronics & Gadgets" : categoryLabel}
           </h1>
+          {categoryIntro && <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">{categoryIntro}</p>}
           <p className="text-xs text-slate-400 mt-1" aria-live="polite">
             {loading
               ? "Loading products…"

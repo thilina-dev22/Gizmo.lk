@@ -14,6 +14,7 @@ const ProductsPage = lazy(() => import("./pages/ProductsPage").then((m) => ({ de
 const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage").then((m) => ({ default: m.ProductDetailPage })));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage").then((m) => ({ default: m.CheckoutPage })));
 const OrderSuccessPage = lazy(() => import("./pages/OrderSuccessPage").then((m) => ({ default: m.OrderSuccessPage })));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
 // Policy & Compliance Pages (PayHere Requirements)
 const TermsPage = lazy(() => import("./pages/policies/TermsPage").then((m) => ({ default: m.TermsPage })));
@@ -92,17 +93,19 @@ export function App() {
 
             {/* Policy & Compliance Pages */}
             <Route path="/terms-and-conditions" element={<TermsPage />} />
-            <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy-policy" element={<PrivacyPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/return-policy" element={<ReturnPolicyPage />} />
-            <Route path="/refund-policy" element={<ReturnPolicyPage />} />
             <Route path="/shipping-policy" element={<ShippingPolicyPage />} />
-            <Route path="/delivery-policy" element={<ShippingPolicyPage />} />
             <Route path="/contact-us" element={<ContactPage />} />
-            <Route path="/contact" element={<ContactPage />} />
             <Route path="/faq" element={<FAQPage />} />
-            <Route path="/faqs" element={<FAQPage />} />
+
+            {/* Alias URLs redirect to the single canonical URL (no duplicate content) */}
+            <Route path="/terms" element={<Navigate to="/terms-and-conditions" replace />} />
+            <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
+            <Route path="/refund-policy" element={<Navigate to="/return-policy" replace />} />
+            <Route path="/delivery-policy" element={<Navigate to="/shipping-policy" replace />} />
+            <Route path="/contact" element={<Navigate to="/contact-us" replace />} />
+            <Route path="/faqs" element={<Navigate to="/faq" replace />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -113,8 +116,8 @@ export function App() {
               <Route path="reviews" element={<AdminReviewsPage />} />
             </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Unknown URLs get a proper (noindex) 404 page instead of a soft-404 redirect */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </main>

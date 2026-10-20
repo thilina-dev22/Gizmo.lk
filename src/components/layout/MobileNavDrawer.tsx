@@ -279,7 +279,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                     FAQ &amp; Help
                   </Link>
                   <Link
-                    to="/contact"
+                    to="/contact-us"
                     onClick={onClose}
                     className="p-1.5 text-slate-400 hover:text-cyan-400 col-span-2"
                   >

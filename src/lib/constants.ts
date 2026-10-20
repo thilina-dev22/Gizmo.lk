@@ -40,6 +40,26 @@ export const CATEGORIES = [
   { id: "Outdoor & Gadgets", name: "Outdoor & Gadgets" },
 ] as const;
 
+// Unique intro copy shown on category pages (helps rankings: each category page gets its own text)
+export const CATEGORY_INTROS: Record<string, string> = {
+  "Smartphones":
+    "Shop mini pocket phones, keypad phones and mobile accessories in Sri Lanka. Every phone ships islandwide with Cash on Delivery and a 7-day replacement guarantee.",
+  "Chargers & Cables":
+    "Fast chargers, USB-C and Lightning cables, power banks and power adapters for phones, routers and CCTV. Buy online in Sri Lanka with Cash on Delivery.",
+  "Storage & Pen Drives":
+    "USB pen drives, memory cards and portable storage at honest Sri Lankan prices. Islandwide delivery in 2-4 days, with COD available.",
+  "Audio":
+    "Wireless Bluetooth earbuds, TWS headsets, neckbands and speakers in Sri Lanka. Compare prices and order with islandwide Cash on Delivery.",
+  "Wearables":
+    "Smartwatches and fitness bands with calling, AMOLED displays and long battery life. Order online in Sri Lanka and pay on delivery.",
+  "Computer Accessories":
+    "Keyboards, mice, USB hubs, docks and PC gear for work and gaming. Delivered islandwide across Sri Lanka in 2-4 business days.",
+  "Outdoor & Gadgets":
+    "Smart lights, portable fans, travel gadgets and handy outdoor tech. Order online in Sri Lanka with Cash on Delivery.",
+  "Car Gadgets":
+    "Dashcams, car chargers, phone mounts and FM transmitters for your vehicle. Islandwide delivery with Cash on Delivery in Sri Lanka.",
+};
+
 // Pricing & order rules — keep in sync with api/index.ts, which enforces them server-side.
 export const FLAT_DELIVERY_FEE_LKR = 450;
 export const PAYMENT_GATEWAY_FEE_PERCENT = 0.04; // 4% Processing fee for card & online payment gateway

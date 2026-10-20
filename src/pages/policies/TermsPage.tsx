@@ -160,7 +160,7 @@ export function TermsPage() {
           <span className="text-slate-700">•</span>
           <Link to="/return-policy" className="text-cyan-400 hover:underline">Return Policy</Link>
           <span className="text-slate-700">•</span>
-          <Link to="/contact" className="text-cyan-400 hover:underline">Contact Us</Link>
+          <Link to="/contact-us" className="text-cyan-400 hover:underline">Contact Us</Link>
         </div>
       </div>
     </div>

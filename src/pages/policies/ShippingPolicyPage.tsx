@@ -166,7 +166,7 @@ export function ShippingPolicyPage() {
       <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
         <span className="text-slate-500">Need immediate shipping assistance?</span>
         <div className="flex items-center gap-3">
-          <Link to="/contact" className="text-cyan-400 hover:underline">Contact Delivery Desk</Link>
+          <Link to="/contact-us" className="text-cyan-400 hover:underline">Contact Delivery Desk</Link>
           <span className="text-slate-700">•</span>
           <Link to="/return-policy" className="text-cyan-400 hover:underline">Return Policy</Link>
           <span className="text-slate-700">•</span>

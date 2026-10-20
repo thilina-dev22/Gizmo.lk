@@ -21,6 +21,9 @@
     <meta name="author" content="GizmoTek.lk" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://gizmotek.lk/" />
+    <link rel="alternate" hreflang="en-LK" href="https://gizmotek.lk/" />
+    <link rel="alternate" hreflang="x-default" href="https://gizmotek.lk/" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 
     <!-- Open Graph / Facebook / WhatsApp Preview -->
     <meta property="og:type" content="website" />
@@ -69,10 +72,19 @@
     <link rel="preconnect" href="https://fochant-prod.s3.ap-southeast-1.amazonaws.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Non-render-blocking font stylesheet (faster first paint / LCP) -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      />
+    </noscript>
 
     <!-- Global JSON-LD Schema (Store & WebSite SearchAction) -->
     <script type="application/ld+json">
@@ -84,13 +96,28 @@
             "@id": "https://gizmotek.lk/#store",
             "name": "GizmoTek.lk",
             "url": "https://gizmotek.lk/",
-            "logo": "https://gizmotek.lk/favicon.ico",
+            "logo": "https://gizmotek.lk/images/og-banner.jpg",
+            "image": "https://gizmotek.lk/images/og-banner.jpg",
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "telephone": "+94721410369",
+              "contactType": "customer service",
+              "areaServed": "LK",
+              "availableLanguage": ["English", "Sinhala"]
+            },
+            "hasMerchantReturnPolicy": {
+              "@type": "MerchantReturnPolicy",
+              "applicableCountry": "LK",
+              "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+              "merchantReturnDays": 7,
+              "merchantReturnLink": "https://gizmotek.lk/return-policy"
+            },
             "description": "Leading online tech store in Sri Lanka for wireless earbuds, smartwatches, chargers, computer accessories, and mobile gadgets with islandwide Cash on Delivery.",
             "telephone": "+94721410369",
             "email": "support@gizmotek.lk",
             "currenciesAccepted": "LKR",
             "paymentAccepted": "Cash, Credit Card, Debit Card, Bank Transfer, PayHere",
-            "priceRange": "LKR 450 - 15000",
+            "priceRange": "LKR 500 - 50000",
             "areaServed": {
               "@type": "Country",
               "name": "Sri Lanka"

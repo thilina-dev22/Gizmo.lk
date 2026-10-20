@@ -1,14 +1,20 @@
 {
+  "id": "/",
   "short_name": "GizmoTek",
   "name": "GizmoTek.lk | Online Tech & Electronics Store Sri Lanka",
+  "description": "Buy earbuds, smartwatches, chargers and PC accessories online in Sri Lanka with islandwide Cash on Delivery.",
+  "lang": "en-LK",
+  "categories": ["shopping"],
   "icons": [
     {
       "src": "/favicon.svg",
       "type": "image/svg+xml",
-      "sizes": "any"
+      "sizes": "any",
+      "purpose": "any"
     }
   ],
-  "start_url": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "background_color": "#020617",
   "theme_color": "#020617",
   "display": "standalone",

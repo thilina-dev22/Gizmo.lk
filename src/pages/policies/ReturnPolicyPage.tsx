@@ -171,7 +171,7 @@ export function ReturnPolicyPage() {
       <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
         <span className="text-slate-500">Need help starting a return or replacement?</span>
         <div className="flex items-center gap-3">
-          <Link to="/contact" className="text-cyan-400 hover:underline">Contact Customer Support</Link>
+          <Link to="/contact-us" className="text-cyan-400 hover:underline">Contact Customer Support</Link>
           <span className="text-slate-700">•</span>
           <Link to="/shipping-policy" className="text-cyan-400 hover:underline">Shipping Policy</Link>
           <span className="text-slate-700">•</span>

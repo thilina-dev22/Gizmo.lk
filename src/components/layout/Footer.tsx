@@ -138,7 +138,7 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/contact" className="hover:text-cyan-400 transition-colors">
+              <Link to="/contact-us" className="hover:text-cyan-400 transition-colors">
                 Contact Customer Support
               </Link>
             </li>
@@ -209,7 +209,7 @@ export function Footer() {
             <span className="text-slate-700">•</span>
             <Link to="/shipping-policy" className="hover:text-cyan-400">Shipping</Link>
             <span className="text-slate-700">•</span>
-            <Link to="/contact" className="hover:text-cyan-400">Contact</Link>
+            <Link to="/contact-us" className="hover:text-cyan-400">Contact</Link>
           </div>
           <div className="flex items-center gap-1.5 text-slate-400">
             <span>Developed with ❤️ by</span>
