@@ -23,7 +23,7 @@
       "destination": "/api/share/:slug"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|assets/).*)",
       "destination": "/index.html"
     }
   ],
