@@ -40,9 +40,16 @@ export const CATEGORIES = [
   { id: "Outdoor & Gadgets", name: "Outdoor & Gadgets" },
 ] as const;
 
+// Pricing & order rules — keep in sync with api/index.ts, which enforces them server-side.
 export const FLAT_DELIVERY_FEE_LKR = 450;
 export const PAYMENT_GATEWAY_FEE_PERCENT = 0.04; // 4% Processing fee for card & online payment gateway
 export const FREE_SHIPPING_THRESHOLD_LKR = 15000;
+export const PAYHERE_MAX_TOTAL_LKR = 50000;
+export const MAX_ITEM_QUANTITY = 20;
+export const LOW_STOCK_THRESHOLD = 5;
+
+export const FALLBACK_PRODUCT_IMAGE =
+  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
 
 // Payment Gateway Switch: Toggle card & online payment gateway
 // PayHere account is currently under bank verification review (5-10 business days).

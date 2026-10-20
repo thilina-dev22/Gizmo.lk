@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GizmoLogo } from "@/components/logo/GizmoLogo";
-import { Lock, User, KeyRound, ShieldAlert, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Lock, User, KeyRound, ShieldAlert, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/check-auth")
-      .then((res) => {
-        if (res.ok) {
-          navigate("/admin", { replace: true });
-        }
-      })
+    const controller = new AbortController();
+    apiFetch("/api/admin/check-auth", { signal: controller.signal, silent: true })
+      .then(() => navigate("/admin", { replace: true }))
       .catch(() => {});
+    return () => controller.abort();
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -27,21 +27,13 @@ export function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/login", {
+      await apiFetch("/api/admin/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: { username: username.trim(), password },
       });
-
-      if (res.ok) {
-        navigate("/admin");
-      } else {
-        const data = await res.json();
-        setErrorMsg(data.error || "Invalid username or password");
-      }
+      navigate("/admin", { replace: true });
     } catch (err) {
-      setErrorMsg("Network error. Please try again.");
-    } finally {
+      setErrorMsg(getErrorMessage(err, "Invalid username or password"));
       setLoading(false);
     }
   };
@@ -78,36 +70,49 @@ export function AdminLoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5 text-xs">
-            <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+            <label htmlFor="admin-username" className="font-semibold text-slate-300 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-cyan-400" />
               <span>Admin Username / Email</span>
             </label>
             <div className="relative">
               <input
+                id="admin-username"
                 type="text"
                 required
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. admin"
                 className="w-full bg-slate-950 text-slate-100 pl-4 pr-4 py-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none text-xs"
               />
             </div>
           </div>
 
           <div className="space-y-1.5 text-xs">
-            <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+            <label htmlFor="admin-password" className="font-semibold text-slate-300 flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
               <span>Security Password</span>
             </label>
             <div className="relative">
               <input
-                type="password"
+                id="admin-password"
+                type={showPassword ? "text" : "password"}
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-slate-950 text-slate-100 pl-4 pr-4 py-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none text-xs font-mono"
+                className="w-full bg-slate-950 text-slate-100 pl-4 pr-11 py-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none text-xs font-mono"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
@@ -118,7 +123,7 @@ export function AdminLoginPage() {
           >
             {loading ? (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+                <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Authenticating Credentials...</span>
               </div>
             ) : (
@@ -134,10 +139,10 @@ export function AdminLoginPage() {
         <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 text-center space-y-1">
           <div className="flex items-center justify-center gap-1.5 text-slate-300 font-semibold">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>256-Bit SSL Encrypted Session</span>
+            <span>Encrypted, rate-limited admin session</span>
           </div>
           <p className="text-[10px] text-slate-500">
-            Default test login: Username: <strong className="text-cyan-400">admin</strong> | Password: <strong className="text-cyan-400">gizmotek2026admin</strong>
+            Authorized staff only. Contact the store owner if you've lost your credentials.
           </p>
         </div>
       </div>

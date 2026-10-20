@@ -4,33 +4,26 @@ import { GizmoLogo } from "@/components/logo/GizmoLogo";
 import { LayoutDashboard, Package, ShoppingCart, Download, LogOut, MessageSquare, Store, Loader2 } from "lucide-react";
 import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
 import { SEOHead } from "@/components/common/SEOHead";
+import { apiFetch, isAbortError } from "@/lib/api";
 
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [checkingAuth, setCheckingAuth] = useState(location.pathname !== "/admin/login");
 
-  // Verify admin session on mount
+  // Verify the admin session whenever the admin section changes page
   useEffect(() => {
     if (location.pathname === "/admin/login") return;
 
-    let isMounted = true;
-    fetch("/api/admin/check-auth")
-      .then((res) => {
-        if (!res.ok) {
-          navigate("/admin/login", { replace: true });
-        } else if (isMounted) {
-          setCheckingAuth(false);
-        }
-      })
-      .catch(() => {
-        navigate("/admin/login", { replace: true });
+    const controller = new AbortController();
+    apiFetch("/api/admin/check-auth", { signal: controller.signal, silent: true })
+      .then(() => setCheckingAuth(false))
+      .catch((err) => {
+        if (!isAbortError(err)) navigate("/admin/login", { replace: true });
       });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [location.pathname]);
+    return () => controller.abort();
+  }, [location.pathname, navigate]);
 
   // Hide topbar and sub-nav on admin login page
   if (location.pathname === "/admin/login") {
@@ -55,10 +48,11 @@ export function AdminLayout() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/admin/logout", { method: "POST" });
-      navigate("/admin/login");
+      await apiFetch("/api/admin/logout", { method: "POST" });
     } catch (e) {
       console.error(e);
+    } finally {
+      navigate("/admin/login", { replace: true });
     }
   };
 
@@ -113,7 +107,7 @@ export function AdminLayout() {
 
         {/* Sub-nav tabs */}
         <div className="border-t border-slate-800 bg-slate-950/80">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1 sm:gap-6 text-xs font-semibold overflow-x-auto scrollbar-none py-1">
+          <nav aria-label="Admin sections" className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1 sm:gap-6 text-xs font-semibold overflow-x-auto scrollbar-none py-1">
             <Link
               to="/admin"
               className={`py-2 px-3 sm:py-3 sm:px-0 flex items-center gap-1.5 transition-colors whitespace-nowrap rounded-lg sm:rounded-none ${
@@ -165,7 +159,7 @@ export function AdminLayout() {
               <span>Reviews</span>
               <span className="hidden sm:inline">Moderation</span>
             </Link>
-          </div>
+          </nav>
         </div>
       </header>
 

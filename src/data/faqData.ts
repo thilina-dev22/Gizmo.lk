@@ -20,7 +20,7 @@ export const FAQ_DATA: FAQItem[] = [
     id: "delivery-fee",
     category: "Delivery & Tracking",
     question: "What is the islandwide delivery fee?",
-    answer: "Delivery to any city, town, or village across all 25 districts of Sri Lanka is a flat rate of Rs. 450. Cash on Delivery and Bank Deposit have 0% gateway fees. Online card payments via PayHere include a standard 4% payment gateway fee.",
+    answer: "Delivery to any city, town, or village across all 25 districts of Sri Lanka is a flat rate of Rs. 450, and FREE for orders of Rs. 15,000 or more. Cash on Delivery and Bank Deposit have 0% gateway fees. Online card payments via PayHere include a standard 4% payment gateway fee.",
     badge: "Rs. 450 Any City",
     highlight: true,
   },

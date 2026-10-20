@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
+import { FALLBACK_PRODUCT_IMAGE } from '@/lib/constants';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -9,9 +10,6 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   className?: string;
 }
 
-const DEFAULT_FALLBACK =
-  'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop';
-
 function formatSrc(url: string, fallback: string): string {
   if (!url || typeof url !== 'string' || !url.trim()) return fallback;
   if (url.includes('images.unsplash.com') && !url.includes('auto=format')) {
@@ -21,82 +19,60 @@ function formatSrc(url: string, fallback: string): string {
 }
 
 /**
- * Robust, high-performance responsive image component:
- * - Immediate display with zero stuck loading states (handles browser cache & iOS Safari instantly)
- * - Safe image error fallback
- * - Full touch and responsive mobile support
+ * Responsive image with a shimmer placeholder and fade-in:
+ * - Load/error state is derived from the current src, so swapping images never flashes stale content
+ * - Already-cached images are detected immediately (no stuck placeholders on iOS Safari)
+ * - Broken URLs fall back to a default product image
  */
 export function OptimizedImage({
   src,
   alt,
-  fallbackSrc = DEFAULT_FALLBACK,
+  fallbackSrc = FALLBACK_PRODUCT_IMAGE,
   fill = false,
   priority = false,
   className = '',
   ...props
 }: OptimizedImageProps) {
-  const [imgSrc, setImgSrc] = useState(() => formatSrc(src, fallbackSrc));
-  const [isLoaded, setIsLoaded] = useState(priority);
-  const [hasError, setHasError] = useState(false);
-  const imgRef = useRef<HTMLImageElement | null>(null);
+  const requestedSrc = formatSrc(src, fallbackSrc);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
 
-  // Sync state whenever src changes
-  useEffect(() => {
-    const formatted = formatSrc(src, fallbackSrc);
-    setImgSrc(formatted);
-    setHasError(false);
-
-    // Check if the image is already cached/completed in browser memory
-    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
-      setIsLoaded(true);
-    } else if (priority) {
-      setIsLoaded(true);
-    } else {
-      setIsLoaded(false);
-    }
-  }, [src, fallbackSrc, priority]);
+  const imgSrc = failedSrc === requestedSrc ? fallbackSrc : requestedSrc;
+  const isLoaded = priority || loadedSrc === imgSrc;
 
   const handleError = () => {
-    if (!hasError) {
-      setHasError(true);
-      setImgSrc(fallbackSrc);
-      setIsLoaded(true);
+    if (imgSrc !== fallbackSrc) {
+      setFailedSrc(requestedSrc);
+    } else {
+      setLoadedSrc(imgSrc);
     }
   };
 
-  const handleLoad = () => {
-    setIsLoaded(true);
-  };
-
-  const containerClasses = fill
-    ? `absolute inset-0 w-full h-full object-contain transition-opacity duration-200 ${
-        isLoaded ? 'opacity-100' : 'opacity-90'
-      } ${className}`
-    : `transition-opacity duration-200 ${isLoaded ? 'opacity-100' : 'opacity-90'} ${className}`;
+  const imageClasses = `${fill ? 'absolute inset-0 w-full h-full object-contain' : ''} transition-opacity duration-300 ${
+    isLoaded ? 'opacity-100' : 'opacity-0'
+  } ${className}`;
 
   return (
     <div className={`relative ${fill ? 'w-full h-full overflow-hidden' : 'inline-block'}`}>
-      {!isLoaded && !priority && (
+      {!isLoaded && (
         <div
-          className={`bg-slate-800/80 animate-pulse pointer-events-none ${
-            fill ? 'absolute inset-0 w-full h-full' : 'w-full h-full'
-          }`}
+          aria-hidden="true"
+          className={`skeleton pointer-events-none ${fill ? 'absolute inset-0 w-full h-full' : 'w-full h-full'}`}
         />
       )}
       <img
         ref={(node) => {
-          imgRef.current = node;
-          if (node && node.complete && node.naturalWidth > 0 && !isLoaded) {
-            setIsLoaded(true);
+          if (node && node.complete && node.naturalWidth > 0 && loadedSrc !== imgSrc) {
+            setLoadedSrc(imgSrc);
           }
         }}
-        src={imgSrc || fallbackSrc}
+        src={imgSrc}
         alt={alt || 'GizmoTek Gadget'}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
-        onLoad={handleLoad}
+        onLoad={() => setLoadedSrc(imgSrc)}
         onError={handleError}
-        className={containerClasses}
+        className={imageClasses}
         {...props}
       />
     </div>

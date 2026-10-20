@@ -10,8 +10,10 @@
     "sitemap": "node scripts/generate-sitemap.mjs",
     "feed": "node scripts/generate-feed.mjs",
     "start": "tsx server.ts",
+    "server": "tsx watch server.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "postinstall": "prisma generate",
-    "db:push": "prisma db push --accept-data-loss && node prisma/seed.mjs",
+    "db:push": "prisma db push",
     "db:seed": "node prisma/seed.mjs"
   },
   "prisma": {

@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCartStore, Product } from "@/store/useCartStore";
-import { formatLKR, safeParseImages, safeParseSpecs } from "@/lib/utils";
+import { formatLKR, getMaxPurchasableQuantity, getProductOptions, getStockStatus, safeParseImages } from "@/lib/utils";
+import { FALLBACK_PRODUCT_IMAGE } from "@/lib/constants";
+import { apiFetch, getErrorMessage, isAbortError, ApiError } from "@/lib/api";
+import { toast } from "@/store/useToastStore";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
+import { ProductCard } from "@/components/product/ProductCard";
+import { ProductDetailSkeleton, ProductGridSkeleton, Skeleton } from "@/components/common/Skeleton";
+import { ErrorState } from "@/components/common/ErrorState";
 import {
   ShoppingBag,
   Zap,
@@ -15,7 +21,6 @@ import {
   ExternalLink,
   MessageSquare,
   Send,
-  UserCheck,
   ChevronRight,
   ChevronLeft,
   Check,
@@ -23,18 +28,38 @@ import {
   Copy,
   Mail,
   MessageCircle,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { SEOHead } from "@/components/common/SEOHead";
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
+interface Review {
+  id: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+const SPECIAL_SPEC_KEYS = new Set([
+  "Brand", "brand", "Warranty", "warranty",
+  "Height", "height", "Width", "width", "Length", "length", "Weight", "weight", "Dimensions", "dimensions",
+  "Colors", "colors", "Color", "color",
+  "Variants", "variants", "Voltage", "voltage", "Options", "options", "VariantType",
+]);
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addItem, openCart } = useCartStore();
+  const addItem = useCartStore((state) => state.addItem);
+  const closeCart = useCartStore((state) => state.closeCart);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -43,89 +68,111 @@ export function ProductDetailPage() {
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Review Form & List State
-  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [reviewsList, setReviewsList] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [authorName, setAuthorName] = useState("");
   const [newRating, setNewRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewFeedback, setReviewFeedback] = useState("");
+  const [reviewFeedback, setReviewFeedback] = useState<{ tone: "success" | "error"; message: string } | null>(null);
 
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(true);
+
+  // Load product (and reset per-product UI state when navigating between products)
   useEffect(() => {
-    if (id) {
-      fetchProduct();
-      fetchReviews();
-    }
-  }, [id]);
+    if (!id) return;
+    const controller = new AbortController();
 
-  const fetchProduct = async () => {
     setLoading(true);
-    try {
-      const res = await fetch(`/api/products/${id}`);
-      const data = await res.json();
-      if (data.product) {
-        setProduct(data.product);
-        setActiveImageIndex(0);
+    setLoadError(null);
+    setNotFound(false);
+    setQuantity(1);
+    setActiveImageIndex(0);
+    setReviewFeedback(null);
 
-        // Auto-update browser URL to clean slug if accessed via ID or mismatch
-        if (data.product.slug && id !== data.product.slug) {
-          window.history.replaceState(null, '', `/products/${data.product.slug}`);
+    apiFetch<{ product: Product }>(`/api/products/${encodeURIComponent(id)}`, { signal: controller.signal })
+      .then(({ product: loaded }) => {
+        setProduct(loaded);
+        const options = getProductOptions(loaded.specs);
+        setSelectedColor(options.colors[0] || "");
+        setSelectedVariant(options.variants[0] || "");
+
+        // Show the clean slug URL without triggering a router navigation / refetch
+        if (loaded.slug && id !== loaded.slug) {
+          window.history.replaceState(window.history.state, "", `/products/${loaded.slug}`);
         }
-
-        // Auto-select initial color & variant if available
-        const parsedSpecs = safeParseSpecs(data.product?.specs);
-        const colorsList = (parsedSpecs["Colors"] || parsedSpecs["colors"] || parsedSpecs["Color"] || parsedSpecs["color"] || "")
-          .split(",")
-          .map((s: string) => s.trim())
-          .filter(Boolean);
-        if (colorsList.length > 0) {
-          setSelectedColor(colorsList[0]);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (isAbortError(err)) return;
+        setProduct(null);
+        if (err instanceof ApiError && err.status === 404) {
+          setNotFound(true);
+        } else {
+          setLoadError(getErrorMessage(err, "We couldn't load this product."));
         }
+        setLoading(false);
+      });
 
-        const variantsList = (parsedSpecs["Variants"] || parsedSpecs["variants"] || parsedSpecs["Voltage"] || parsedSpecs["voltage"] || parsedSpecs["Options"] || parsedSpecs["options"] || "")
-          .split(",")
-          .map((s: string) => s.trim())
-          .filter(Boolean);
-        if (variantsList.length > 0) {
-          setSelectedVariant(variantsList[0]);
-        }
+    return () => controller.abort();
+  }, [id, reloadKey]);
 
-        // Fetch reviews with resolved product ID
-        fetchReviews(data.product.id);
-      }
-    } catch (err) {
-      console.error("Fetch product error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const productId = product?.id;
+  const productCategory = product?.category;
 
-  const fetchReviews = async (productIdOrSlug?: string) => {
-    const target = productIdOrSlug || product?.id || id;
-    if (!target) return;
-    try {
-      const res = await fetch(`/api/reviews?productId=${encodeURIComponent(target)}`);
-      const data = await res.json();
-      setReviewsList(data.reviews || []);
-    } catch (err) {
-      console.error("Fetch reviews error:", err);
-      setReviewsList([]);
-    }
-  };
+  // Approved reviews for the resolved product
+  useEffect(() => {
+    if (!productId) return;
+    const controller = new AbortController();
+    setReviewsLoading(true);
+    apiFetch<{ reviews: Review[] }>(`/api/reviews?productId=${encodeURIComponent(productId)}`, {
+      signal: controller.signal,
+      silent: true,
+    })
+      .then((data) => setReviewsList(data.reviews || []))
+      .catch((err) => {
+        if (!isAbortError(err)) setReviewsList([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setReviewsLoading(false);
+      });
+    return () => controller.abort();
+  }, [productId]);
 
-  const handleAddToCart = () => {
-    if (product) {
-      const parsedSpecs = safeParseSpecs(product.specs);
-      const warranty = parsedSpecs["Warranty"] || parsedSpecs["warranty"] || "7-Day Replacement Guarantee";
-      addItem(product, quantity, { selectedColor, selectedVariant, warranty });
-    }
-  };
+  // "You may also like" products from the same category
+  useEffect(() => {
+    if (!productId || !productCategory) return;
+    const controller = new AbortController();
+    setRelatedLoading(true);
+    apiFetch<{ products: Product[] }>(
+      `/api/products?category=${encodeURIComponent(productCategory)}&exclude=${encodeURIComponent(productId)}&sort=bestsellers&limit=8`,
+      { signal: controller.signal, silent: true }
+    )
+      .then((data) => setRelatedProducts(data.products || []))
+      .catch((err) => {
+        if (!isAbortError(err)) setRelatedProducts([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setRelatedLoading(false);
+      });
+    return () => controller.abort();
+  }, [productId, productCategory]);
+
+  const images = useMemo(() => safeParseImages(product?.images), [product?.images]);
+  const options = useMemo(() => getProductOptions(product?.specs), [product?.specs]);
+  const stockStatus = getStockStatus(product?.stock);
+  const maxQuantity = getMaxPurchasableQuantity(product?.stock);
+
+  const handleAddToCart = useCallback(() => {
+    if (!product || !stockStatus.canBuy) return false;
+    addItem(product, quantity, { selectedColor, selectedVariant, warranty: options.warranty });
+    return true;
+  }, [product, stockStatus.canBuy, addItem, quantity, selectedColor, selectedVariant, options.warranty]);
 
   const handleBuyNow = () => {
-    if (product) {
-      const parsedSpecs = safeParseSpecs(product.specs);
-      const warranty = parsedSpecs["Warranty"] || parsedSpecs["warranty"] || "7-Day Replacement Guarantee";
-      addItem(product, quantity, { selectedColor, selectedVariant, warranty });
-      openCart();
+    if (handleAddToCart()) {
+      closeCart();
       navigate("/checkout");
     }
   };
@@ -134,47 +181,131 @@ export function ProductDetailPage() {
     e.preventDefault();
     if (!product) return;
     setSubmittingReview(true);
-    setReviewFeedback("");
+    setReviewFeedback(null);
 
     try {
-      const res = await fetch("/api/reviews", {
+      await apiFetch("/api/reviews", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           productId: product.id,
-          authorName,
+          authorName: authorName.trim(),
           rating: newRating,
-          comment,
-        }),
+          comment: comment.trim(),
+        },
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        setReviewFeedback("Thank you! Your review has been submitted for admin verification.");
-        setAuthorName("");
-        setComment("");
-      } else {
-        setReviewFeedback(data.error || "Failed to submit review");
-      }
+      setReviewFeedback({ tone: "success", message: "Thank you! Your review has been submitted and will appear once approved." });
+      setAuthorName("");
+      setComment("");
+      setNewRating(5);
     } catch (err) {
-      setReviewFeedback("Network error. Please try again.");
+      setReviewFeedback({ tone: "error", message: getErrorMessage(err, "Failed to submit review") });
     } finally {
       setSubmittingReview(false);
     }
   };
 
+  const productPath = product ? `/products/${product.slug || product.id}` : "";
+  const productUrl = `https://gizmotek.lk${productPath}`;
+
+  const productJsonLd = useMemo(() => {
+    if (!product) return undefined;
+    const rating = product.rating || 0;
+    const count = product.reviewCount || 0;
+    return [
+      {
+        "@type": "Product",
+        "@id": `${productUrl}#product`,
+        "name": product.title,
+        "image": images.length > 0 ? images : [FALLBACK_PRODUCT_IMAGE],
+        "description": product.description || `${product.title} available with islandwide delivery across Sri Lanka at GizmoTek.lk`,
+        "sku": product.sku,
+        "brand": {
+          "@type": "Brand",
+          "name": options.brand || "GizmoTek",
+        },
+        "offers": {
+          "@type": "Offer",
+          "url": productUrl,
+          "priceCurrency": "LKR",
+          "price": product.sellingPriceLkr,
+          "priceValidUntil": `${new Date().getFullYear() + 1}-12-31`,
+          "itemCondition": "https://schema.org/NewCondition",
+          "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "seller": {
+            "@type": "Organization",
+            "name": "GizmoTek.lk",
+            "url": "https://gizmotek.lk",
+          },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "450",
+              "currency": "LKR",
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "LK",
+            },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "businessDays": {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+              },
+              "transitTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 2,
+                "maxValue": 4,
+                "unitCode": "DAY",
+              },
+            },
+          },
+        },
+        ...(rating > 0 && count > 0
+          ? {
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": rating.toFixed(1),
+                "reviewCount": count,
+                "bestRating": "5",
+                "worstRating": "1",
+              },
+            }
+          : {}),
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://gizmotek.lk/" },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": product.category || "Products",
+            "item": `https://gizmotek.lk/products?category=${encodeURIComponent(product.category || "")}`,
+          },
+          { "@type": "ListItem", "position": 3, "name": product.title, "item": productUrl },
+        ],
+      },
+    ];
+  }, [product, images, options.brand, productUrl]);
+
   if (loading) {
+    return <ProductDetailSkeleton />;
+  }
+
+  if (loadError) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
-        <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-        <span>Loading product details...</span>
+      <div className="max-w-xl mx-auto px-4 py-16">
+        <ErrorState title="Couldn't load this product" message={loadError} onRetry={() => setReloadKey((key) => key + 1)} />
       </div>
     );
   }
 
-  if (!product) {
+  if (notFound || !product) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-4">
+      <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-4 animate-fade-in">
+        <SEOHead title="Product Not Found | GizmoTek.lk" noIndex={true} />
         <h2 className="text-xl font-bold text-white">Product Not Found</h2>
         <p className="text-xs text-slate-400">The product you are looking for does not exist or has been removed.</p>
         <Link
@@ -187,8 +318,7 @@ export function ProductDetailPage() {
     );
   }
 
-  const images: string[] = safeParseImages(product.images);
-  const currentImage = images[activeImageIndex] || images[0] || FALLBACK_IMAGE;
+  const currentImage = images[activeImageIndex] || images[0] || FALLBACK_PRODUCT_IMAGE;
 
   const handleNextImage = () => {
     if (images.length <= 1) return;
@@ -206,8 +336,7 @@ export function ProductDetailPage() {
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX === null) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX - touchEndX;
+    const diff = touchStartX - e.changedTouches[0].clientX;
     if (diff > 35) {
       handleNextImage();
     } else if (diff < -35) {
@@ -216,158 +345,68 @@ export function ProductDetailPage() {
     setTouchStartX(null);
   };
 
-  const specs: Record<string, string> = safeParseSpecs(product.specs);
+  const { specs, brand, warranty, colors: availableColors, variants: availableVariants, variantTitle } = options;
 
-  // Extract special attributes
-  const brand = specs["Brand"] || specs["brand"] || "";
-  const warranty = specs["Warranty"] || specs["warranty"] || "7-Day Replacement Guarantee";
   const height = specs["Height"] || specs["height"] || "";
   const width = specs["Width"] || specs["width"] || "";
   const length = specs["Length"] || specs["length"] || "";
   const weight = specs["Weight"] || specs["weight"] || "";
-  const hasDimensions = Boolean(height || width || length || weight || specs["Dimensions"] || specs["dimensions"]);
   const dimensionsStr = specs["Dimensions"] || specs["dimensions"] || "";
-
-  const availableColors = (specs["Colors"] || specs["colors"] || specs["Color"] || specs["color"] || "")
-    .split(",")
-    .map((s: string) => s.trim())
-    .filter(Boolean);
-
-  const availableVariants = (specs["Variants"] || specs["variants"] || specs["Voltage"] || specs["voltage"] || specs["Options"] || specs["options"] || "")
-    .split(",")
-    .map((s: string) => s.trim())
-    .filter(Boolean);
-
-  const variantTitle = specs["VariantType"] || (specs["Voltage"] || specs["voltage"] ? "Voltage / Model" : "Options / Variations");
-
-  // Filter remaining specs for general table
-  const specialKeys = new Set([
-    "Brand", "brand", "Warranty", "warranty",
-    "Height", "height", "Width", "width", "Length", "length", "Weight", "weight", "Dimensions", "dimensions",
-    "Colors", "colors", "Color", "color",
-    "Variants", "variants", "Voltage", "voltage", "Options", "options", "VariantType"
-  ]);
-  const generalSpecs = Object.entries(specs).filter(([k]) => !specialKeys.has(k));
+  const hasDimensions = Boolean(height || width || length || weight || dimensionsStr);
+  const generalSpecs = Object.entries(specs).filter(([k]) => !SPECIAL_SPEC_KEYS.has(k));
 
   const whatsappMessage = encodeURIComponent(
-    `Hi GizmoTek.lk! I want to order:\n*Product*: ${product.title}\n*SKU*: ${product.sku}${selectedColor ? `\n*Color*: ${selectedColor}` : ""}${selectedVariant ? `\n*Option*: ${selectedVariant}` : ""}\n*Warranty*: ${warranty}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: https://gizmotek.lk/products/${product.slug || product.id}`
+    `Hi GizmoTek.lk! I want to order:\n*Product*: ${product.title}\n*SKU*: ${product.sku}${selectedColor ? `\n*Color*: ${selectedColor}` : ""}${selectedVariant ? `\n*Option*: ${selectedVariant}` : ""}\n*Warranty*: ${warranty}\n*Price*: Rs. ${product.sellingPriceLkr.toLocaleString()}\n*Qty*: ${quantity}\n*Link*: ${productUrl}`
   );
 
   const displayRating = product.rating || 0;
   const displayCount = product.reviewCount || 0;
 
-  const productJsonLd = [
-    {
-      "@type": "Product",
-      "@id": `https://gizmotek.lk/products/${product.slug || product.id}#product`,
-      "name": product.title,
-      "image": images.length > 0 ? images : [FALLBACK_IMAGE],
-      "description": product.description || `${product.title} available with islandwide delivery across Sri Lanka at GizmoTek.lk`,
-      "sku": product.sku,
-      "brand": {
-        "@type": "Brand",
-        "name": brand || "GizmoTek",
-      },
-      "offers": {
-        "@type": "Offer",
-        "url": `https://gizmotek.lk/products/${product.slug || product.id}`,
-        "priceCurrency": "LKR",
-        "price": product.sellingPriceLkr,
-        "priceValidUntil": "2027-12-31",
-        "itemCondition": "https://schema.org/NewCondition",
-        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-        "seller": {
-          "@type": "Organization",
-          "name": "GizmoTek.lk",
-          "url": "https://gizmotek.lk",
-        },
-        "shippingDetails": {
-          "@type": "OfferShippingDetails",
-          "shippingRate": {
-            "@type": "MonetaryAmount",
-            "value": "450",
-            "currency": "LKR",
-          },
-          "shippingDestination": {
-            "@type": "DefinedRegion",
-            "addressCountry": "LK",
-          },
-          "deliveryTime": {
-            "@type": "ShippingDeliveryTime",
-            "businessDays": {
-              "@type": "OpeningHoursSpecification",
-              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-            },
-            "transitTime": {
-              "@type": "QuantitativeValue",
-              "minValue": 2,
-              "maxValue": 4,
-              "unitCode": "DAY",
-            },
-          },
-        },
-      },
-      ...(displayRating > 0 && displayCount > 0
-        ? {
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": displayRating.toFixed(1),
-              "reviewCount": displayCount,
-              "bestRating": "5",
-              "worstRating": "1",
-            },
-          }
-        : {}),
-    },
-    {
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://gizmotek.lk/",
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": product.category || "Products",
-          "item": `https://gizmotek.lk/products?category=${encodeURIComponent(product.category || "")}`,
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": product.title,
-          "item": `https://gizmotek.lk/products/${product.slug || product.id}`,
-        },
-      ],
-    },
-  ];
+  const handleCopyLink = async () => {
+    const shareUrl = `${window.location.origin}${productPath}`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const input = document.createElement("input");
+        input.value = shareUrl;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+      }
+      setCopiedLink(true);
+      toast.success("Product link copied to clipboard");
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      toast.error("Couldn't copy the link. Please copy it from the address bar.");
+    }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-28 sm:pb-8 space-y-12 animate-fade-in">
       <SEOHead
         title={`${product.title} - Price in Sri Lanka | GizmoTek.lk`}
         description={`Buy ${product.title} online for Rs. ${product.sellingPriceLkr.toLocaleString()} in Sri Lanka. ${product.description ? product.description.slice(0, 140) + '...' : '100% genuine quality with Islandwide Cash on Delivery (COD) & warranty.'}`}
         keywords={`${product.title}, ${product.title} price Sri Lanka, ${product.category} Sri Lanka, buy ${product.title} Colombo, GizmoTek.lk`}
-        canonical={`https://gizmotek.lk/products/${product.slug || product.id}`}
-        ogImage={currentImage || (images.length > 0 ? images[0] : FALLBACK_IMAGE)}
+        canonical={productUrl}
+        ogImage={images[0] || FALLBACK_PRODUCT_IMAGE}
         ogType="product"
         jsonLd={productJsonLd}
       />
 
       {/* Breadcrumbs */}
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <Link to="/" className="hover:text-cyan-400">Home</Link>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <Link to="/products" className="hover:text-cyan-400">Products</Link>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <Link to={`/products?category=${encodeURIComponent(product.category)}`} className="hover:text-cyan-400">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-400 min-w-0">
+        <Link to="/" className="hover:text-cyan-400 shrink-0">Home</Link>
+        <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+        <Link to="/products" className="hover:text-cyan-400 shrink-0">Products</Link>
+        <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+        <Link to={`/products?category=${encodeURIComponent(product.category)}`} className="hover:text-cyan-400 truncate">
           {product.category}
         </Link>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-slate-200 font-semibold truncate max-w-xs">{product.title}</span>
-      </div>
+        <ChevronRight className="w-3.5 h-3.5 shrink-0 hidden sm:block" />
+        <span className="text-slate-200 font-semibold truncate max-w-xs hidden sm:inline">{product.title}</span>
+      </nav>
 
       <div className="space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -384,7 +423,7 @@ export function ProductDetailPage() {
                 src={currentImage}
                 alt={`${product.title} - Image ${activeImageIndex + 1}`}
                 fill
-                priority
+                priority={activeImageIndex === 0}
                 className="group-hover:scale-105 transition-transform duration-300"
               />
 
@@ -440,28 +479,26 @@ export function ProductDetailPage() {
               )}
             </div>
 
-            {/* Thumbnail Selector - Clean padding, no cut-off/capping */}
+            {/* Thumbnail Selector */}
             {images.length > 1 && (
-              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-2 px-1 scrollbar-thin">
+              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto py-2 px-1 no-scrollbar">
                 {images.map((imgUrl, i) => (
                   <button
-                    key={i}
+                    key={`${imgUrl}-${i}`}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveImageIndex(i);
                     }}
+                    aria-label={`Show image ${i + 1}`}
+                    aria-current={activeImageIndex === i}
                     className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer bg-slate-900 ${
                       activeImageIndex === i
                         ? "border-cyan-400 ring-2 ring-cyan-400/50 shadow-lg shadow-cyan-950"
                         : "border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700"
                     }`}
                   >
-                    <OptimizedImage
-                      src={imgUrl}
-                      alt={`${product.title} thumb ${i + 1}`}
-                      fill
-                    />
+                    <OptimizedImage src={imgUrl} alt={`${product.title} thumb ${i + 1}`} fill />
                   </button>
                 ))}
               </div>
@@ -476,7 +513,6 @@ export function ProductDetailPage() {
                   <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest font-mono">
                     SKU: {product.sku}
                   </span>
-                  {/* Per-Product Verified Warranty Badge */}
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>{warranty}</span>
@@ -488,8 +524,8 @@ export function ProductDetailPage() {
               </div>
 
               {/* Social Proof Rating */}
-              <div className="flex items-center gap-2">
-                <div className="flex text-amber-400">
+              <a href="#reviews" className="flex items-center gap-2 w-fit group">
+                <div className="flex text-amber-400" aria-hidden="true">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -502,13 +538,13 @@ export function ProductDetailPage() {
                   ))}
                 </div>
                 <span className="text-xs font-bold text-slate-200">{displayRating.toFixed(1)}</span>
-                <span className="text-slate-500 text-xs">
-                  | {displayCount > 0 ? `${displayCount} Verified Buyer Reviews` : "No reviews yet"}
+                <span className="text-slate-500 text-xs group-hover:text-cyan-400 transition-colors">
+                  | {displayCount > 0 ? `${displayCount} Customer Review${displayCount === 1 ? "" : "s"}` : "No reviews yet"}
                 </span>
-              </div>
+              </a>
 
               {/* Price Box */}
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3">
                 <div>
                   <span className="text-xs text-slate-400 block">Selling Price (LKR)</span>
                   <div className="text-2xl sm:text-3xl font-extrabold text-cyan-400">
@@ -516,18 +552,26 @@ export function ProductDetailPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 inline-block">
-                    In Stock &amp; Ready to Dispatch
+                  <span
+                    className={`text-xs font-bold px-3 py-1 rounded-full border inline-block ${
+                      stockStatus.tone === "out"
+                        ? "text-rose-400 bg-rose-500/10 border-rose-500/20"
+                        : stockStatus.tone === "low"
+                        ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                        : "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                    }`}
+                  >
+                    {stockStatus.tone === "in" ? "In Stock & Ready to Dispatch" : stockStatus.tone === "low" ? `Hurry — ${stockStatus.label}` : "Currently Out of Stock"}
                   </span>
                   <span className="text-[11px] text-slate-400 block mt-1">
-                    Estimated Delivery: 2-4 Days
+                    {stockStatus.canBuy ? "Estimated Delivery: 2-4 Days" : "Contact us on WhatsApp for restock dates"}
                   </span>
                 </div>
               </div>
 
               {/* Description */}
               <div className="text-slate-300 text-xs sm:text-sm leading-relaxed space-y-2">
-                <h4 className="font-bold text-slate-200 text-xs uppercase tracking-wider">Product Overview</h4>
+                <h2 className="font-bold text-slate-200 text-xs uppercase tracking-wider">Product Overview</h2>
                 <p className="whitespace-pre-line">{product.description}</p>
               </div>
 
@@ -538,13 +582,15 @@ export function ProductDetailPage() {
                     <span className="font-bold text-slate-200 uppercase tracking-wider">Select Color:</span>
                     <span className="text-cyan-400 font-semibold">{selectedColor || "None Selected"}</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {availableColors.map((col: string) => {
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Color">
+                    {availableColors.map((col) => {
                       const isSelected = selectedColor === col;
                       return (
                         <button
                           key={col}
                           type="button"
+                          role="radio"
+                          aria-checked={isSelected}
                           onClick={() => setSelectedColor(col)}
                           className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                             isSelected
@@ -568,13 +614,15 @@ export function ProductDetailPage() {
                     <span className="font-bold text-slate-200 uppercase tracking-wider">Select {variantTitle}:</span>
                     <span className="text-cyan-400 font-semibold">{selectedVariant || "None Selected"}</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {availableVariants.map((v: string) => {
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={variantTitle}>
+                    {availableVariants.map((v) => {
                       const isSelected = selectedVariant === v;
                       return (
                         <button
                           key={v}
                           type="button"
+                          role="radio"
+                          aria-checked={isSelected}
                           onClick={() => setSelectedVariant(v)}
                           className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                             isSelected
@@ -594,28 +642,22 @@ export function ProductDetailPage() {
               {/* Product Dimensions & Weight Card */}
               {hasDimensions && (
                 <div className="space-y-2 pt-3 border-t border-slate-800">
-                  <h4 className="font-bold text-slate-200 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <span>Product Dimensions &amp; Weight</span>
-                  </h4>
+                  <h2 className="font-bold text-slate-200 text-xs uppercase tracking-wider">
+                    Product Dimensions &amp; Weight
+                  </h2>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                    {height && (
-                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-                        <span className="text-[10px] text-slate-400 block uppercase">Height</span>
-                        <span className="font-bold text-white text-xs">{height}</span>
-                      </div>
-                    )}
-                    {width && (
-                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-                        <span className="text-[10px] text-slate-400 block uppercase">Width</span>
-                        <span className="font-bold text-white text-xs">{width}</span>
-                      </div>
-                    )}
-                    {length && (
-                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-                        <span className="text-[10px] text-slate-400 block uppercase">Length</span>
-                        <span className="font-bold text-white text-xs">{length}</span>
-                      </div>
-                    )}
+                    {[
+                      ["Height", height],
+                      ["Width", width],
+                      ["Length", length],
+                    ]
+                      .filter(([, value]) => value)
+                      .map(([label, value]) => (
+                        <div key={label} className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                          <span className="text-[10px] text-slate-400 block uppercase">{label}</span>
+                          <span className="font-bold text-white text-xs">{value}</span>
+                        </div>
+                      ))}
                     {weight && (
                       <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
                         <span className="text-[10px] text-slate-400 block uppercase">Weight</span>
@@ -635,55 +677,70 @@ export function ProductDetailPage() {
               {/* General Tech Specs Table */}
               {generalSpecs.length > 0 && (
                 <div className="space-y-2 pt-3 border-t border-slate-800">
-                  <h4 className="font-bold text-slate-200 text-xs uppercase tracking-wider">Technical Specifications</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <h2 className="font-bold text-slate-200 text-xs uppercase tracking-wider">Technical Specifications</h2>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {generalSpecs.map(([key, value]) => (
-                      <div key={key} className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex justify-between">
-                        <span className="text-slate-400">{key}:</span>
-                        <span className="font-semibold text-slate-200">{String(value)}</span>
+                      <div key={key} className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex justify-between gap-3">
+                        <dt className="text-slate-400">{key}:</dt>
+                        <dd className="font-semibold text-slate-200 text-right">{String(value)}</dd>
                       </div>
                     ))}
-                  </div>
+                  </dl>
                 </div>
               )}
             </div>
 
             {/* Quantity & CTA Buttons */}
             <div className="space-y-4 pt-6 border-t border-slate-800">
-              <div className="flex items-center gap-4">
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Quantity:</span>
-                <div className="flex items-center border border-slate-700 rounded-xl bg-slate-900 overflow-hidden">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2.5 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="px-4 font-extrabold text-sm text-slate-100">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="p-2.5 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+              {stockStatus.canBuy && (
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Quantity:</span>
+                  <div className="flex items-center border border-slate-700 rounded-xl bg-slate-900 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={quantity <= 1}
+                      aria-label="Decrease quantity"
+                      className="p-2.5 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="px-4 font-extrabold text-sm text-slate-100 tabular-nums" aria-live="polite">{quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                      disabled={quantity >= maxQuantity}
+                      aria-label="Increase quantity"
+                      className="p-2.5 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {stockStatus.tone === "low" && (
+                    <span className="text-[11px] font-semibold text-amber-400">{stockStatus.label}</span>
+                  )}
                 </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
+                  type="button"
                   onClick={handleAddToCart}
-                  className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-850 text-slate-100 font-bold py-3.5 px-6 rounded-xl border border-slate-700 hover:border-cyan-500/50 transition-all text-xs cursor-pointer"
+                  disabled={!stockStatus.canBuy}
+                  className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-850 text-slate-100 font-bold py-3.5 px-6 rounded-xl border border-slate-700 hover:border-cyan-500/50 transition-all text-xs cursor-pointer active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ShoppingBag className="w-4 h-4 text-cyan-400" />
                   <span>Add to Shopping Cart</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleBuyNow}
-                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-600 hover:from-cyan-300 hover:to-cyan-500 text-slate-950 font-extrabold py-3.5 px-6 rounded-xl shadow-neon transition-all text-xs cursor-pointer"
+                  disabled={!stockStatus.canBuy}
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-600 hover:from-cyan-300 hover:to-cyan-500 text-slate-950 font-extrabold py-3.5 px-6 rounded-xl shadow-neon transition-all text-xs cursor-pointer active:scale-[0.98] disabled:from-slate-700 disabled:via-slate-700 disabled:to-slate-700 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   <Zap className="w-4 h-4" />
-                  <span>Buy Now Quick Checkout</span>
+                  <span>{stockStatus.canBuy ? "Buy Now Quick Checkout" : "Out of Stock"}</span>
                 </button>
               </div>
 
@@ -695,28 +752,20 @@ export function ProductDetailPage() {
                 className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-md transition-all text-xs"
               >
                 <ExternalLink className="w-4 h-4" />
-                <span>Order via WhatsApp Direct (+94 72 141 0369)</span>
+                <span>{stockStatus.canBuy ? "Order via WhatsApp Direct (+94 72 141 0369)" : "Ask about restock on WhatsApp"}</span>
               </a>
 
               {/* Product Share Widget */}
               <div className="pt-3 border-t border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Share2 className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Share This Gadget:</span>
-                  </span>
-                  {copiedLink && (
-                    <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1 animate-pulse">
-                      <Check className="w-3 h-3" />
-                      <span>Link copied to clipboard!</span>
-                    </span>
-                  )}
-                </div>
+                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Share This Gadget:</span>
+                </span>
 
                 <div className="flex flex-wrap items-center gap-2">
                   {/* WhatsApp Share */}
                   <a
-                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${product.title} on GizmoTek Sri Lanka:\nhttps://gizmotek.lk/products/${product.slug || product.id}`)}`}
+                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${product.title} on GizmoTek Sri Lanka:\n${productUrl}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-emerald-950/70 hover:bg-emerald-900 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105"
@@ -729,21 +778,7 @@ export function ProductDetailPage() {
                   {/* Copy Link */}
                   <button
                     type="button"
-                    onClick={() => {
-                      const shareUrl = `${window.location.origin}/products/${product.slug || product.id}`;
-                      if (navigator.clipboard) {
-                        navigator.clipboard.writeText(shareUrl);
-                      } else {
-                        const input = document.createElement("input");
-                        input.value = shareUrl;
-                        document.body.appendChild(input);
-                        input.select();
-                        document.execCommand("copy");
-                        document.body.removeChild(input);
-                      }
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2500);
-                    }}
+                    onClick={handleCopyLink}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                       copiedLink
                         ? "bg-emerald-500 text-slate-950 border-emerald-400 font-bold"
@@ -757,7 +792,7 @@ export function ProductDetailPage() {
 
                   {/* Email Share */}
                   <a
-                    href={`mailto:?subject=${encodeURIComponent(`${product.title} - GizmoTek Sri Lanka`)}&body=${encodeURIComponent(`Hi,\n\nI found this tech product on GizmoTek.lk:\n${product.title}\nPrice: Rs. ${product.sellingPriceLkr.toLocaleString()}\n\nCheck it out here: https://gizmotek.lk/products/${product.slug || product.id}`)}`}
+                    href={`mailto:?subject=${encodeURIComponent(`${product.title} - GizmoTek Sri Lanka`)}&body=${encodeURIComponent(`Hi,\n\nI found this tech product on GizmoTek.lk:\n${product.title}\nPrice: Rs. ${product.sellingPriceLkr.toLocaleString()}\n\nCheck it out here: ${productUrl}`)}`}
                     className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-700 hover:border-slate-600 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
                     title="Share via Email"
                   >
@@ -770,13 +805,13 @@ export function ProductDetailPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (navigator.share) {
-                          navigator.share({
+                        navigator
+                          .share({
                             title: product.title,
                             text: `Check out ${product.title} on GizmoTek Sri Lanka!`,
-                            url: `https://gizmotek.lk/products/${product.slug || product.id}`,
-                          }).catch(() => {});
-                        }
+                            url: productUrl,
+                          })
+                          .catch(() => {});
                       }}
                       className="flex sm:hidden items-center gap-1.5 bg-cyan-950/60 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
                     >
@@ -807,15 +842,15 @@ export function ProductDetailPage() {
         </div>
 
         {/* Customer Reviews & Moderation Form Section */}
-        <div className="pt-10 border-t border-slate-800 space-y-8">
-          <div className="flex items-center justify-between">
+        <section id="reviews" className="pt-10 border-t border-slate-800 space-y-8 scroll-mt-32">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
+              <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-cyan-400" />
-                <span>Verified Customer Reviews</span>
-              </h3>
+                <span>Customer Reviews</span>
+              </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Read verified customer feedback or share your experience.
+                Read customer feedback or share your own experience.
               </p>
             </div>
 
@@ -829,23 +864,34 @@ export function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Approved Reviews List (7 cols) */}
             <div className="lg:col-span-7 space-y-4">
-              {reviewsList.length > 0 ? (
+              {reviewsLoading ? (
+                Array.from({ length: 3 }, (_, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-7 h-7 rounded-full" />
+                      <Skeleton className="h-3 w-28" />
+                    </div>
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                ))
+              ) : reviewsList.length > 0 ? (
                 reviewsList.map((rev) => (
-                  <div key={rev.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-cyan-500/20 text-cyan-400 text-xs font-bold flex items-center justify-center border border-cyan-500/30">
+                  <article key={rev.id} className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 animate-fade-in">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-cyan-500/20 text-cyan-400 text-xs font-bold flex items-center justify-center border border-cyan-500/30 shrink-0">
                           {rev.authorName.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <span className="font-bold text-slate-200 text-xs">{rev.authorName}</span>
-                          <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-                            <UserCheck className="w-3 h-3" /> Verified Buyer
-                          </span>
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-200 text-xs block truncate">{rev.authorName}</span>
+                          <time className="text-[10px] text-slate-500" dateTime={rev.createdAt}>
+                            {new Date(rev.createdAt).toLocaleDateString("en-LK", { year: "numeric", month: "short", day: "numeric" })}
+                          </time>
                         </div>
                       </div>
 
-                      <div className="flex text-amber-400">
+                      <div className="flex text-amber-400 shrink-0" aria-label={`${rev.rating} out of 5 stars`}>
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
@@ -858,14 +904,14 @@ export function ProductDetailPage() {
                     </div>
 
                     <p className="text-xs text-slate-300 leading-relaxed pl-9">{rev.comment}</p>
-                  </div>
+                  </article>
                 ))
               ) : (
                 <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-2">
                   <MessageSquare className="w-8 h-8 text-slate-600 mx-auto" />
-                  <h4 className="text-xs font-bold text-slate-300">No Approved Reviews Yet</h4>
+                  <h3 className="text-xs font-bold text-slate-300">No Reviews Yet</h3>
                   <p className="text-[11px] text-slate-500">
-                    Be the first verified customer to submit a review for this tech product!
+                    Be the first customer to review this tech product!
                   </p>
                 </div>
               )}
@@ -874,23 +920,33 @@ export function ProductDetailPage() {
             {/* Submit Review Form (5 cols) */}
             <div className="lg:col-span-5">
               <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Send className="w-4 h-4 text-cyan-400" />
                   <span>Write a Product Review</span>
-                </h4>
+                </h3>
 
                 {reviewFeedback && (
-                  <div className="p-3 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs">
-                    {reviewFeedback}
+                  <div
+                    role="status"
+                    className={`p-3 rounded-xl border text-xs animate-fade-in ${
+                      reviewFeedback.tone === "success"
+                        ? "bg-emerald-950/50 border-emerald-500/30 text-emerald-300"
+                        : "bg-rose-950/50 border-rose-500/30 text-rose-300"
+                    }`}
+                  >
+                    {reviewFeedback.message}
                   </div>
                 )}
 
                 <form onSubmit={handleReviewSubmit} className="space-y-4 text-xs">
                   <div className="space-y-1">
-                    <label className="font-semibold text-slate-300">Your Full Name *</label>
+                    <label htmlFor="review-name" className="font-semibold text-slate-300">Your Full Name *</label>
                     <input
+                      id="review-name"
                       type="text"
                       required
+                      maxLength={60}
+                      autoComplete="name"
                       placeholder="e.g. Kasun Fernando"
                       value={authorName}
                       onChange={(e) => setAuthorName(e.target.value)}
@@ -899,14 +955,17 @@ export function ProductDetailPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-semibold text-slate-300">Rating (1 to 5 Stars) *</label>
-                    <div className="flex gap-2">
+                    <span className="font-semibold text-slate-300 block">Rating (1 to 5 Stars) *</span>
+                    <div className="flex gap-2" role="radiogroup" aria-label="Rating">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           type="button"
                           key={star}
+                          role="radio"
+                          aria-checked={newRating === star}
+                          aria-label={`${star} star${star > 1 ? "s" : ""}`}
                           onClick={() => setNewRating(star)}
-                          className={`p-2 rounded-xl border transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          className={`p-2 rounded-xl border transition-all flex items-center justify-center gap-1 cursor-pointer hover:scale-110 ${
                             newRating >= star
                               ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
                               : "bg-slate-950 border-slate-800 text-slate-600"
@@ -919,15 +978,18 @@ export function ProductDetailPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-semibold text-slate-300">Your Product Review *</label>
+                    <label htmlFor="review-comment" className="font-semibold text-slate-300">Your Product Review *</label>
                     <textarea
+                      id="review-comment"
                       rows={3}
                       required
+                      maxLength={600}
                       placeholder="Share details about build quality, performance, and battery life..."
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       className="w-full bg-slate-950 text-slate-100 p-3 rounded-xl border border-slate-800 focus:border-cyan-500 outline-none resize-none text-xs"
                     />
+                    <span className="text-[10px] text-slate-500 block text-right">{comment.length}/600</span>
                   </div>
 
                   <button
@@ -935,38 +997,82 @@ export function ProductDetailPage() {
                     disabled={submittingReview}
                     className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-400 to-cyan-600 text-slate-950 font-bold py-3 rounded-xl text-xs transition-all shadow-neon cursor-pointer disabled:opacity-50"
                   >
-                    {submittingReview ? "Submitting Review..." : "Submit Review for Verification"}
+                    {submittingReview ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Submitting Review...</span>
+                      </>
+                    ) : (
+                      "Submit Review"
+                    )}
                   </button>
                   <span className="text-[10px] text-slate-500 text-center block">
-                    * Reviews are subject to admin moderation prior to public display.
+                    * Reviews are moderated before they appear on the store.
                   </span>
                 </form>
               </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* Related Products */}
+        {(relatedLoading || relatedProducts.length > 0) && (
+          <section className="pt-10 border-t border-slate-800 space-y-6">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4" />
+                  <span>More in {product.category}</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1">You May Also Like</h2>
+              </div>
+              <Link
+                to={`/products?category=${encodeURIComponent(product.category)}`}
+                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 shrink-0"
+              >
+                View all &rarr;
+              </Link>
+            </div>
+            {relatedLoading ? (
+              <ProductGridSkeleton count={4} />
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                {relatedProducts.slice(0, 8).map((related) => (
+                  <ProductCard key={related.id} product={related} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Mobile Sticky Bottom Action Bar */}
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl flex items-center justify-between gap-3">
           <div className="flex flex-col min-w-0">
-            <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Total (LKR)</span>
-            <span className="text-sm font-extrabold text-cyan-400 truncate">
-              {formatLKR(product.sellingPriceLkr * quantity)}
+            <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">
+              {stockStatus.canBuy ? `Total (${quantity} × LKR)` : "Availability"}
+            </span>
+            <span className={`text-sm font-extrabold truncate ${stockStatus.canBuy ? "text-cyan-400" : "text-rose-400"}`}>
+              {stockStatus.canBuy ? formatLKR(product.sellingPriceLkr * quantity) : "Out of Stock"}
             </span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={handleAddToCart}
-              className="bg-slate-900 hover:bg-slate-850 text-slate-100 p-3 rounded-xl border border-slate-700 font-bold text-xs min-h-[42px] min-w-[42px] flex items-center justify-center cursor-pointer"
+              disabled={!stockStatus.canBuy}
+              className="bg-slate-900 hover:bg-slate-850 text-slate-100 p-3 rounded-xl border border-slate-700 font-bold text-xs min-h-[42px] min-w-[42px] flex items-center justify-center cursor-pointer disabled:opacity-40"
               title="Add to Cart"
+              aria-label="Add to cart"
             >
               <ShoppingBag className="w-4 h-4 text-cyan-400" />
             </button>
 
             <button
+              type="button"
               onClick={handleBuyNow}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 font-extrabold py-3 px-5 rounded-xl text-xs shadow-neon min-h-[42px] cursor-pointer"
+              disabled={!stockStatus.canBuy}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-400 to-cyan-500 text-slate-950 font-extrabold py-3 px-5 rounded-xl text-xs shadow-neon min-h-[42px] cursor-pointer disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-400 disabled:shadow-none"
             >
               <Zap className="w-4 h-4" />
               <span>Buy Now</span>

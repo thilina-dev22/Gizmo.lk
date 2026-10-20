@@ -38,6 +38,15 @@ export function SEOHead({
 
   const currentCanonical = canonical || `${BASE_URL}${location.pathname}`;
 
+  // Serialise once so the effect only re-runs when the structured data actually changes
+  const jsonLdText = jsonLd
+    ? JSON.stringify(
+        Array.isArray(jsonLd)
+          ? { "@context": "https://schema.org", "@graph": jsonLd }
+          : { "@context": "https://schema.org", ...jsonLd }
+      )
+    : "";
+
   useEffect(() => {
     // 1. Update Document Title
     document.title = formattedTitle;
@@ -98,24 +107,14 @@ export function SEOHead({
     const scriptId = "page-specific-jsonld";
     let jsonLdScript = document.getElementById(scriptId) as HTMLScriptElement;
 
-    if (jsonLd) {
+    if (jsonLdText) {
       if (!jsonLdScript) {
         jsonLdScript = document.createElement("script");
         jsonLdScript.id = scriptId;
         jsonLdScript.type = "application/ld+json";
         document.head.appendChild(jsonLdScript);
       }
-      jsonLdScript.textContent = JSON.stringify(
-        Array.isArray(jsonLd)
-          ? {
-              "@context": "https://schema.org",
-              "@graph": jsonLd,
-            }
-          : {
-              "@context": "https://schema.org",
-              ...jsonLd,
-            }
-      );
+      jsonLdScript.textContent = jsonLdText;
     } else if (jsonLdScript) {
       jsonLdScript.remove();
     }
@@ -125,7 +124,7 @@ export function SEOHead({
       const existingScript = document.getElementById(scriptId);
       if (existingScript) existingScript.remove();
     };
-  }, [formattedTitle, description, keywords, currentCanonical, ogImage, ogType, noIndex, jsonLd]);
+  }, [formattedTitle, description, keywords, currentCanonical, ogImage, ogType, noIndex, jsonLdText]);
 
   return null;
 }

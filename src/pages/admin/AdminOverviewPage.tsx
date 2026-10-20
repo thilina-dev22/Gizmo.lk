@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { formatLKR } from "@/lib/utils";
+import { apiFetch, getErrorMessage, isAbortError } from "@/lib/api";
+import { StatCardSkeleton, Skeleton } from "@/components/common/Skeleton";
+import { ErrorState } from "@/components/common/ErrorState";
 import {
   DollarSign,
   ShoppingBag,
@@ -25,33 +28,36 @@ export function AdminOverviewPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Date Range State
   const [datePreset, setDatePreset] = useState<DateRangePreset>("ALL_TIME");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
+    setLoadError(null);
     try {
-      const [ordersRes, productsRes] = await Promise.all([
-        fetch("/api/orders?status=ALL"),
-        fetch("/api/products"),
+      const [ordersData, productsData] = await Promise.all([
+        apiFetch<{ orders: any[] }>("/api/orders?status=ALL", { signal }),
+        apiFetch<{ products: Product[] }>("/api/admin/products", { signal }),
       ]);
-      const ordersData = await ordersRes.json();
-      const productsData = await productsRes.json();
       setOrders(ordersData.orders || []);
       setProducts(productsData.products || []);
+      setLoading(false);
     } catch (e) {
-      console.error("Admin dashboard error:", e);
-    } finally {
+      if (isAbortError(e)) return;
+      setLoadError(getErrorMessage(e, "Failed to load store analytics."));
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchDashboardData(controller.signal);
+    return () => controller.abort();
+  }, [fetchDashboardData]);
 
   // Filter orders by selected date range
   const filteredOrders = useMemo(() => {
@@ -123,7 +129,10 @@ export function AdminOverviewPage() {
 
   const pendingBankSlipsCount = useMemo(() => {
     return filteredOrders.filter(
-      (o) => o.paymentMethod === "BANK_TRANSFER" && o.paymentStatus === "PENDING" && o.orderStatus !== "CANCELLED"
+      (o) =>
+        o.paymentMethod === "BANK_TRANSFER" &&
+        (o.paymentStatus === "PENDING" || o.paymentStatus === "UNPAID") &&
+        o.orderStatus !== "CANCELLED"
     ).length;
   }, [filteredOrders]);
 
@@ -146,7 +155,7 @@ export function AdminOverviewPage() {
     paidOrders.forEach((o) => {
       (o.items || []).forEach((item: any) => {
         const unitPrice = item.unitPrice || 0;
-        const costPrice = item.product?.costPriceLkr || 0;
+        const costPrice = item.product?.costPriceLkr ?? 0;
         const qty = item.quantity || 1;
         profit += (unitPrice - costPrice) * qty;
       });
@@ -165,11 +174,24 @@ export function AdminOverviewPage() {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
-        <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-        <span>Loading store analytics...</span>
+      <div className="space-y-6" role="status" aria-label="Loading store analytics">
+        <Skeleton className="h-24 w-full rounded-3xl" />
+        <Skeleton className="h-16 w-full rounded-3xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+          {Array.from({ length: 4 }, (_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <Skeleton className="lg:col-span-8 h-80 rounded-3xl" />
+          <Skeleton className="lg:col-span-4 h-80 rounded-3xl" />
+        </div>
       </div>
     );
+  }
+
+  if (loadError) {
+    return <ErrorState title="Couldn't load store analytics" message={loadError} onRetry={() => fetchDashboardData()} />;
   }
 
   return (
@@ -474,7 +496,8 @@ export function AdminOverviewPage() {
 
           <div className="space-y-3">
             {products.slice(0, 5).map((product) => {
-              const profitLkr = product.sellingPriceLkr - product.costPriceLkr;
+              const costPriceLkr = product.costPriceLkr ?? 0;
+              const profitLkr = product.sellingPriceLkr - costPriceLkr;
               return (
                 <div
                   key={product.id}
@@ -483,7 +506,7 @@ export function AdminOverviewPage() {
                   <div className="max-w-[65%]">
                     <h3 className="font-bold text-slate-200 line-clamp-1">{product.title}</h3>
                     <span className="text-[10px] text-slate-400">
-                      Cost: {formatLKR(product.costPriceLkr)} | Stock: {product.stock}
+                      Cost: {formatLKR(costPriceLkr)} | Stock: {product.stock}
                     </span>
                   </div>
                   <div className="text-right">

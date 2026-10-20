@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { getMaxPurchasableQuantity } from "@/lib/utils";
 
 export interface Product {
   id: string;
@@ -8,7 +9,8 @@ export interface Product {
   description: string;
   category: string;
   sellingPriceLkr: number;
-  costPriceLkr: number;
+  /** Only present in admin API responses. */
+  costPriceLkr?: number;
   sku: string;
   stock: number;
   images: string; // JSON string array
@@ -19,6 +21,7 @@ export interface Product {
   isBestSeller: boolean;
   rating?: number;
   reviewCount?: number;
+  createdAt?: string;
 }
 
 export interface CartItem {
@@ -28,6 +31,12 @@ export interface CartItem {
   selectedColor?: string;
   selectedVariant?: string;
   warranty?: string;
+}
+
+export interface CartSyncResult {
+  removedTitles: string[];
+  priceChanged: boolean;
+  quantityAdjusted: boolean;
 }
 
 interface CartStore {
@@ -42,12 +51,17 @@ interface CartStore {
     quantity?: number,
     options?: { selectedColor?: string; selectedVariant?: string; warranty?: string }
   ) => void;
-  removeItem: (itemIdOrProductId: string) => void;
-  updateQuantity: (itemIdOrProductId: string, quantity: number) => void;
+  removeItem: (itemKey: string) => void;
+  updateQuantity: (itemKey: string, quantity: number) => void;
   clearCart: () => void;
+  syncProducts: (freshProducts: Product[]) => CartSyncResult;
   setQuickViewProduct: (product: Product | null) => void;
   getSubtotal: () => number;
   getTotalCount: () => number;
+}
+
+export function getCartItemKey(item: CartItem): string {
+  return item.id || `${item.product.id}-${item.selectedColor || ""}-${item.selectedVariant || ""}`;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -62,67 +76,93 @@ export const useCartStore = create<CartStore>()(
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 
       addItem: (product, quantity = 1, options) => {
+        const maxQuantity = getMaxPurchasableQuantity(product.stock);
+        if (maxQuantity <= 0 || quantity <= 0) return;
+
         set((state) => {
           const color = options?.selectedColor || "";
           const variant = options?.selectedVariant || "";
           const warranty = options?.warranty || "";
           const itemKey = `${product.id}-${color}-${variant}`;
 
-          const existingIndex = state.items.findIndex((item) => {
-            const currentKey = item.id || `${item.product.id}-${item.selectedColor || ""}-${item.selectedVariant || ""}`;
-            return currentKey === itemKey || (item.product.id === product.id && !color && !variant && !item.selectedColor && !item.selectedVariant);
-          });
+          const existingIndex = state.items.findIndex((item) => getCartItemKey(item) === itemKey);
 
           if (existingIndex > -1) {
-            const updated = [...state.items];
-            updated[existingIndex].quantity += quantity;
-            if (color) updated[existingIndex].selectedColor = color;
-            if (variant) updated[existingIndex].selectedVariant = variant;
-            if (warranty) updated[existingIndex].warranty = warranty;
-            return { items: updated, isOpen: true };
-          } else {
-            return {
-              items: [
-                ...state.items,
-                {
-                  id: itemKey,
-                  product,
-                  quantity,
-                  selectedColor: color || undefined,
-                  selectedVariant: variant || undefined,
-                  warranty: warranty || undefined,
-                },
-              ],
-              isOpen: true,
-            };
+            // Replace the item immutably so subscribed components re-render
+            const items = state.items.map((item, index) =>
+              index === existingIndex
+                ? {
+                    ...item,
+                    id: itemKey,
+                    product,
+                    quantity: Math.min(item.quantity + quantity, maxQuantity),
+                    warranty: warranty || item.warranty,
+                  }
+                : item
+            );
+            return { items, isOpen: true };
           }
+
+          return {
+            items: [
+              ...state.items,
+              {
+                id: itemKey,
+                product,
+                quantity: Math.min(quantity, maxQuantity),
+                selectedColor: color || undefined,
+                selectedVariant: variant || undefined,
+                warranty: warranty || undefined,
+              },
+            ],
+            isOpen: true,
+          };
         });
       },
 
-      removeItem: (itemIdOrProductId) => {
+      removeItem: (itemKey) => {
         set((state) => ({
-          items: state.items.filter(
-            (item) => item.id !== itemIdOrProductId && item.product.id !== itemIdOrProductId
-          ),
+          items: state.items.filter((item) => getCartItemKey(item) !== itemKey),
         }));
       },
 
-      updateQuantity: (itemIdOrProductId, quantity) => {
+      updateQuantity: (itemKey, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(itemIdOrProductId);
+          get().removeItem(itemKey);
           return;
         }
         set((state) => ({
           items: state.items.map((item) => {
-            if (item.id === itemIdOrProductId || item.product.id === itemIdOrProductId) {
-              return { ...item, quantity };
-            }
-            return item;
+            if (getCartItemKey(item) !== itemKey) return item;
+            const maxQuantity = getMaxPurchasableQuantity(item.product.stock);
+            return { ...item, quantity: Math.max(1, Math.min(quantity, maxQuantity || 1)) };
           }),
         }));
       },
 
       clearCart: () => set({ items: [] }),
+
+      // Refresh prices & stock from the server and drop products that no longer exist / sold out
+      syncProducts: (freshProducts) => {
+        const freshById = new Map(freshProducts.map((product) => [product.id, product]));
+        const result: CartSyncResult = { removedTitles: [], priceChanged: false, quantityAdjusted: false };
+
+        const items = get().items.flatMap((item) => {
+          const fresh = freshById.get(item.product.id);
+          const maxQuantity = fresh ? getMaxPurchasableQuantity(fresh.stock) : 0;
+          if (!fresh || maxQuantity <= 0) {
+            result.removedTitles.push(item.product.title);
+            return [];
+          }
+          if (fresh.sellingPriceLkr !== item.product.sellingPriceLkr) result.priceChanged = true;
+          const quantity = Math.min(item.quantity, maxQuantity);
+          if (quantity !== item.quantity) result.quantityAdjusted = true;
+          return [{ ...item, product: fresh, quantity }];
+        });
+
+        set({ items });
+        return result;
+      },
 
       setQuickViewProduct: (product) => set({ quickViewProduct: product }),
 

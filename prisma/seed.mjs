@@ -3254,6 +3254,18 @@ function getRandomDateWithinLast60Days() {
 }
 
 async function main() {
+  // Safety guard: this script wipes ALL products, reviews AND customer orders.
+  // Refuse to run against a database that already has orders unless explicitly forced.
+  const existingOrders = await prisma.order.count();
+  if (existingOrders > 0 && process.env.SEED_FORCE !== "true") {
+    console.error(
+      `⛔ Refusing to seed: the database already contains ${existingOrders} customer order(s) that would be permanently deleted.\n` +
+        `   If you really want to wipe everything, re-run with SEED_FORCE=true (e.g. "SEED_FORCE=true npm run db:seed").`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   console.log("🌟 Cleaning all data and seeding GizmoTek.lk with 100% verified products & contextual Sinhala reviews...");
 
   // Delete all existing items, orders, reviews, and products

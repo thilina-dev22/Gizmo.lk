@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiFetch } from "@/lib/api";
 import {
   Bell,
   Banknote,
@@ -38,11 +39,25 @@ export function AdminNotificationBell() {
   const [activeTab, setActiveTab] = useState<"all" | "orders" | "inventory" | "reviews">("all");
   const [loading, setLoading] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    return localStorage.getItem("gizmotek_admin_sound") === "true";
+    try {
+      return localStorage.getItem("gizmotek_admin_sound") === "true";
+    } catch {
+      return false;
+    }
   });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const prevCountRef = useRef<number>(0);
+  const knownIdsRef = useRef<Set<string> | null>(null);
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+
+  const persistReadIds = (ids: Set<string>) => {
+    try {
+      localStorage.setItem("gizmotek_admin_read_notifications", JSON.stringify(Array.from(ids)));
+    } catch {
+      // Storage may be unavailable (private mode) — read state just won't persist
+    }
+  };
 
   // Load read notifications from localStorage
   useEffect(() => {
@@ -56,34 +71,49 @@ export function AdminNotificationBell() {
     }
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/notifications");
-      if (res.ok) {
-        const data = await res.json();
-        const incoming: AdminNotification[] = data.notifications || [];
-        setNotifications(incoming);
+      const data = await apiFetch<{ notifications: AdminNotification[] }>("/api/admin/notifications", { silent: true });
+      const incoming: AdminNotification[] = data.notifications || [];
+      setNotifications(incoming);
 
-        // Check if new notifications arrived to trigger sound
-        if (soundEnabled && incoming.length > prevCountRef.current && prevCountRef.current !== 0) {
-          playNotificationSound();
-        }
-        prevCountRef.current = incoming.length;
+      // Chime only for alerts we haven't seen before (not on the first load)
+      const previousIds = knownIdsRef.current;
+      if (previousIds && soundEnabledRef.current && incoming.some((n) => !previousIds.has(n.id))) {
+        playNotificationSound();
       }
+      knownIdsRef.current = new Set(incoming.map((n) => n.id));
+
+      // Forget read markers for alerts that no longer exist so storage doesn't grow forever
+      setReadIds((current) => {
+        const activeIds = new Set(incoming.map((n) => n.id));
+        const pruned = new Set([...current].filter((id) => activeIds.has(id)));
+        if (pruned.size !== current.size) persistReadIds(pruned);
+        return pruned.size !== current.size ? pruned : current;
+      });
     } catch (err) {
       console.error("Failed to fetch admin notifications:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Initial fetch and auto-poll every 30s
+  // Initial fetch and auto-poll every 30s while the tab is visible
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [soundEnabled]);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") fetchNotifications();
+    }, 30000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchNotifications();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [fetchNotifications]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -118,21 +148,25 @@ export function AdminNotificationBell() {
   const toggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
-    localStorage.setItem("gizmotek_admin_sound", String(next));
+    try {
+      localStorage.setItem("gizmotek_admin_sound", String(next));
+    } catch {
+      // ignore unavailable storage
+    }
     if (next) playNotificationSound();
   };
 
   const markAllAsRead = () => {
     const allIds = new Set(notifications.map((n) => n.id));
     setReadIds(allIds);
-    localStorage.setItem("gizmotek_admin_read_notifications", JSON.stringify(Array.from(allIds)));
+    persistReadIds(allIds);
   };
 
   const handleNotificationClick = (n: AdminNotification) => {
     const updated = new Set(readIds);
     updated.add(n.id);
     setReadIds(updated);
-    localStorage.setItem("gizmotek_admin_read_notifications", JSON.stringify(Array.from(updated)));
+    persistReadIds(updated);
     setIsOpen(false);
     navigate(n.link);
   };
@@ -207,7 +241,7 @@ export function AdminNotificationBell() {
         title="Store Notifications & Action Alerts"
         aria-label="Notifications"
       >
-        <Bell className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${unreadCount > 0 ? "animate-wiggle" : ""}`} />
+        <Bell key={unreadCount} className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${unreadCount > 0 ? "animate-wiggle" : ""}`} />
 
         {/* Counter Badge */}
         {unreadCount > 0 && (
@@ -341,10 +375,11 @@ export function AdminNotificationBell() {
                 filteredNotifications.map((n) => {
                   const isRead = readIds.has(n.id);
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={n.id}
                       onClick={() => handleNotificationClick(n)}
-                      className={`p-3 rounded-xl transition-all cursor-pointer border flex items-start gap-3 group ${
+                      className={`w-full text-left p-3 rounded-xl transition-all cursor-pointer border flex items-start gap-3 group ${
                         isRead
                           ? "bg-slate-950/40 border-slate-800/40 opacity-70 hover:opacity-100 hover:bg-slate-900/60"
                           : "bg-slate-900/90 border-slate-800 hover:border-cyan-500/40 shadow-sm"
@@ -389,7 +424,7 @@ export function AdminNotificationBell() {
                       {!isRead && (
                         <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0 mt-1.5 shadow-neon"></span>
                       )}
-                    </div>
+                    </button>
                   );
                 })
               )}

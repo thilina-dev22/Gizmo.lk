@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Product } from "@/store/useCartStore";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, FALLBACK_PRODUCT_IMAGE, LOW_STOCK_THRESHOLD } from "@/lib/constants";
 import { formatLKR, safeParseImages, safeParseSpecs } from "@/lib/utils";
+import { apiFetch, getErrorMessage, isAbortError } from "@/lib/api";
+import { toast } from "@/store/useToastStore";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
+import { TableRowsSkeleton } from "@/components/common/Skeleton";
+import { ErrorState } from "@/components/common/ErrorState";
 import {
   Plus,
   Edit,
@@ -12,20 +17,26 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Filter,
   Layers,
-  AlertTriangle,
-  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 
+const PRODUCT_CATEGORIES = CATEGORIES.filter((c) => c.id !== "all");
+
 export function AdminProductsPage() {
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState("");
+  useBodyScrollLock(isModalOpen);
+
+  // Search & Filter State (search can be deep-linked from stock notifications)
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [stockFilter, setStockFilter] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,23 +72,40 @@ export function AdminProductsPage() {
 
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    setLoading(true);
+  const fetchProducts = useCallback(async (options: { signal?: AbortSignal; silent?: boolean } = {}) => {
+    if (!options.silent) setLoading(true);
+    setLoadError(null);
     try {
-      const res = await fetch("/api/products");
-      const data = await res.json();
+      const data = await apiFetch<{ products: Product[] }>("/api/admin/products", { signal: options.signal });
       setProducts(data.products || []);
     } catch (e) {
-      console.error("Admin products error:", e);
-      setProducts([]);
+      if (isAbortError(e)) return;
+      setLoadError(getErrorMessage(e, "Failed to load products."));
     } finally {
-      setLoading(false);
+      if (!options.signal?.aborted) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchProducts({ signal: controller.signal });
+    return () => controller.abort();
+  }, [fetchProducts]);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q !== null) setSearchQuery(q);
+  }, [searchParams]);
+
+  // Close the editor with Escape
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !saving) setIsModalOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen, saving]);
 
   // Filtered products calculation
   const filteredProducts = useMemo(() => {
@@ -88,8 +116,8 @@ export function AdminProductsPage() {
       }
 
       // Stock status match
-      if (stockFilter === "IN_STOCK" && product.stock <= 5) return false;
-      if (stockFilter === "LOW_STOCK" && (product.stock <= 0 || product.stock > 5)) return false;
+      if (stockFilter === "IN_STOCK" && product.stock <= LOW_STOCK_THRESHOLD) return false;
+      if (stockFilter === "LOW_STOCK" && (product.stock <= 0 || product.stock > LOW_STOCK_THRESHOLD)) return false;
       if (stockFilter === "OUT_OF_STOCK" && product.stock > 0) return false;
 
       // Search query match
@@ -119,12 +147,13 @@ export function AdminProductsPage() {
   }, [filteredProducts, currentPage, itemsPerPage]);
 
   const handleOpenModal = (product?: Product) => {
+    setSaveError(null);
     if (product) {
       setEditingProduct(product);
       setTitle(product.title);
       setCategory(product.category);
       setSellingPriceLkr(String(product.sellingPriceLkr));
-      setCostPriceLkr(String(product.costPriceLkr));
+      setCostPriceLkr(String(product.costPriceLkr ?? 0));
       setSku(product.sku);
       setStock(String(product.stock));
       const imgs = safeParseImages(product.images);
@@ -180,7 +209,13 @@ export function AdminProductsPage() {
       setCategory("Audio");
       setSellingPriceLkr("");
       setCostPriceLkr("");
-      setSku(`GZ-${Math.floor(1000 + Math.random() * 9000)}`);
+      // Suggest a SKU that isn't already used (the server also rejects duplicates)
+      const existingSkus = new Set(products.map((p) => p.sku));
+      let suggestedSku = "";
+      do {
+        suggestedSku = `GZ-${Math.floor(1000 + Math.random() * 9000)}`;
+      } while (existingSkus.has(suggestedSku));
+      setSku(suggestedSku);
       setStock("10");
       setImageUrl("");
       setAdditionalImages("");
@@ -208,6 +243,17 @@ export function AdminProductsPage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError(null);
+
+    if (!(Number(sellingPriceLkr) > 0)) {
+      setSaveError("Selling price must be greater than zero.");
+      return;
+    }
+    if (Number(stock) < 0 || Number(costPriceLkr || 0) < 0) {
+      setSaveError("Stock and cost price cannot be negative.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -253,12 +299,14 @@ export function AdminProductsPage() {
       }
 
       const payload = {
-        title,
+        // Sending the id makes the API update this exact product (even if the SKU changed)
+        id: editingProduct?.id,
+        title: title.trim(),
         category,
         sellingPriceLkr: Number(sellingPriceLkr),
         costPriceLkr: Number(costPriceLkr || 0),
-        sku,
-        stock: Number(stock),
+        sku: sku.trim(),
+        stock: Math.floor(Number(stock || 0)),
         images: allImages,
         description,
         specs: JSON.stringify(specsObj),
@@ -270,18 +318,12 @@ export function AdminProductsPage() {
         reviewCount: Number(reviewCount || 0),
       };
 
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setIsModalOpen(false);
-        fetchProducts();
-      }
+      await apiFetch("/api/products", { method: "POST", body: payload });
+      toast.success(editingProduct ? `Saved changes to "${payload.title}"` : `Added "${payload.title}" to the catalog`);
+      setIsModalOpen(false);
+      fetchProducts({ silent: true });
     } catch (err) {
-      console.error(err);
+      setSaveError(getErrorMessage(err, "Failed to save product."));
     } finally {
       setSaving(false);
     }
@@ -343,9 +385,9 @@ export function AdminProductsPage() {
                 className="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs outline-none focus:border-cyan-500 cursor-pointer"
               >
                 <option value="ALL">All Categories ({products.length})</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name} ({products.filter((p) => p.category === cat.name).length})
+                {PRODUCT_CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} ({products.filter((p) => p.category === cat.id).length})
                   </option>
                 ))}
               </select>
@@ -373,13 +415,13 @@ export function AdminProductsPage() {
             { id: "ALL", label: "All Inventory", count: products.length },
             {
               id: "IN_STOCK",
-              label: "In Stock (>5)",
-              count: products.filter((p) => p.stock > 5).length,
+              label: `In Stock (>${LOW_STOCK_THRESHOLD})`,
+              count: products.filter((p) => p.stock > LOW_STOCK_THRESHOLD).length,
             },
             {
               id: "LOW_STOCK",
-              label: "Low Stock (<=5)",
-              count: products.filter((p) => p.stock > 0 && p.stock <= 5).length,
+              label: `Low Stock (<=${LOW_STOCK_THRESHOLD})`,
+              count: products.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length,
             },
             {
               id: "OUT_OF_STOCK",
@@ -409,8 +451,12 @@ export function AdminProductsPage() {
         </div>
       </div>
 
+      {loadError && (
+        <ErrorState title="Couldn't load products" message={loadError} onRetry={() => fetchProducts()} />
+      )}
+
       {/* Product Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+      <div className={`bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl ${loadError ? "hidden" : ""}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-950">
@@ -427,11 +473,7 @@ export function AdminProductsPage() {
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500">
-                    Loading inventory...
-                  </td>
-                </tr>
+                <TableRowsSkeleton rows={8} columns={8} />
               ) : paginatedProducts.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-500">
@@ -443,23 +485,17 @@ export function AdminProductsPage() {
               ) : (
                 paginatedProducts.map((product) => {
                   const imgs = safeParseImages(product.images);
-                  const profitLkr = product.sellingPriceLkr - product.costPriceLkr;
+                  const costPriceLkr = product.costPriceLkr ?? 0;
+                  const profitLkr = product.sellingPriceLkr - costPriceLkr;
                   const isOutOfStock = product.stock <= 0;
-                  const isLowStock = product.stock > 0 && product.stock <= 5;
+                  const isLowStock = product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
                   return (
                     <tr key={product.id} className="hover:bg-slate-850 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
-                            <OptimizedImage
-                              src={
-                                imgs[0] ||
-                                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop"
-                              }
-                              alt={product.title}
-                              fill
-                            />
+                            <OptimizedImage src={imgs[0] || FALLBACK_PRODUCT_IMAGE} alt={product.title} fill />
                           </div>
                           <div>
                             <h4 className="font-bold text-slate-200 line-clamp-1 max-w-[200px]">{product.title}</h4>
@@ -471,9 +507,12 @@ export function AdminProductsPage() {
                         <div className="font-mono text-xs font-semibold text-slate-200">{product.sku}</div>
                         <span className="text-[10px] text-slate-400">{product.category}</span>
                       </td>
-                      <td className="p-4 text-slate-400 font-mono">{formatLKR(product.costPriceLkr)}</td>
+                      <td className="p-4 text-slate-400 font-mono">{formatLKR(costPriceLkr)}</td>
                       <td className="p-4 font-bold text-cyan-400 font-mono">{formatLKR(product.sellingPriceLkr)}</td>
-                      <td className="p-4 font-bold text-emerald-400 font-mono">+{formatLKR(profitLkr)}</td>
+                      <td className={`p-4 font-bold font-mono ${profitLkr >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {profitLkr >= 0 ? "+" : ""}
+                        {formatLKR(profitLkr)}
+                      </td>
                       <td className="p-4">
                         <span
                           className={`px-2 py-0.5 rounded border text-[11px] font-bold ${
@@ -590,16 +629,34 @@ export function AdminProductsPage() {
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingProduct ? "Edit product" : "Add new product"}
+        >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl p-6 space-y-5 max-h-[90vh] overflow-y-auto animate-fade-in-up">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="font-bold text-slate-100 text-base">
                 {editingProduct ? "Edit Product" : "Add New Inventory Product"}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                disabled={saving}
+                aria-label="Close"
+                className="p-1 text-slate-400 hover:text-white cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {saveError && (
+              <div role="alert" className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-start gap-2 animate-fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{saveError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
               <div className="space-y-1">
@@ -621,7 +678,11 @@ export function AdminProductsPage() {
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-slate-950 text-slate-100 p-2.5 rounded-xl border border-slate-800 outline-none cursor-pointer"
                   >
-                    {CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
+                    {/* Keep legacy categories selectable so editing never silently re-categorises a product */}
+                    {!PRODUCT_CATEGORIES.some((cat) => cat.id === category) && category && (
+                      <option value={category}>{category} (current)</option>
+                    )}
+                    {PRODUCT_CATEGORIES.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
                       </option>
@@ -967,8 +1028,9 @@ export function AdminProductsPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
                 >
+                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {saving ? "Saving..." : "Save Product"}
                 </button>
               </div>

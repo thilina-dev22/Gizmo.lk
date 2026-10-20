@@ -1,34 +1,53 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { HeroBanner } from "@/components/home/HeroBanner";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ProductGridSkeleton } from "@/components/common/Skeleton";
+import { ErrorState } from "@/components/common/ErrorState";
 import { Product } from "@/store/useCartStore";
+import { apiFetch, getErrorMessage, isAbortError } from "@/lib/api";
 import { Sparkles, ArrowRight, Truck, Banknote, Building2, HelpCircle, CheckCircle2, ChevronDown } from "lucide-react";
 import { FAQ_DATA } from "@/data/faqData";
 import { SEOHead } from "@/components/common/SEOHead";
 
+const HOME_PRODUCT_COUNT = 12;
+
 export function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<string | null>("delivery-time");
 
-  useEffect(() => {
-    fetchFeaturedProducts();
-  }, []);
-
-  const fetchFeaturedProducts = async () => {
+  const fetchFeaturedProducts = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/products?sort=newest");
-      const data = await res.json();
-      setFeaturedProducts(data.products ? data.products.slice(0, 12) : []);
+      // Admin-featured products first, topped up with the newest arrivals
+      const [featured, newest] = await Promise.all([
+        apiFetch<{ products: Product[] }>(`/api/products?featured=true&limit=${HOME_PRODUCT_COUNT}`, { signal }),
+        apiFetch<{ products: Product[] }>(`/api/products?sort=newest&limit=${HOME_PRODUCT_COUNT}`, { signal }),
+      ]);
+      const seen = new Set<string>();
+      const merged = [...(featured.products || []), ...(newest.products || [])].filter((product) => {
+        if (seen.has(product.id)) return false;
+        seen.add(product.id);
+        return true;
+      });
+      setFeaturedProducts(merged.slice(0, HOME_PRODUCT_COUNT));
+      setLoading(false);
     } catch (err) {
-      console.error("Home fetch products error:", err);
-    } finally {
+      if (isAbortError(err)) return;
+      setError(getErrorMessage(err, "We couldn't load products right now."));
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchFeaturedProducts(controller.signal);
+    return () => controller.abort();
+  }, [fetchFeaturedProducts]);
 
   const homeFaqJsonLd = {
     "@type": "FAQPage",
@@ -53,7 +72,7 @@ export function HomePage() {
       />
 
       {/* Hero Banner */}
-      <HeroBanner featuredProduct={featuredProducts.length > 0 ? featuredProducts[0] : null} />
+      <HeroBanner featuredProduct={featuredProducts.length > 0 ? featuredProducts[0] : null} loading={loading} />
 
       {/* Category Grid */}
       <CategoryGrid />
@@ -80,18 +99,9 @@ export function HomePage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="h-72 sm:h-80 bg-slate-900/60 rounded-2xl border border-slate-800 animate-pulse p-3 sm:p-4 space-y-3 sm:space-y-4"
-              >
-                <div className="h-36 sm:h-44 bg-slate-800 rounded-xl"></div>
-                <div className="h-3.5 bg-slate-800 rounded w-3/4"></div>
-                <div className="h-3.5 bg-slate-800 rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
+          <ProductGridSkeleton count={8} />
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => fetchFeaturedProducts()} />
         ) : featuredProducts.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {featuredProducts.map((product) => (
@@ -188,7 +198,9 @@ export function HomePage() {
                 className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors hover:border-slate-700"
               >
                 <button
+                  type="button"
                   onClick={() => setOpenFaq(isOpen ? null : faq.id)}
+                  aria-expanded={isOpen}
                   className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
@@ -207,7 +219,7 @@ export function HomePage() {
                 </button>
 
                 {isOpen && (
-                  <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800/80">
+                  <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800/80 animate-slide-down">
                     <div className="whitespace-pre-line bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 mt-2">
                       {faq.answer}
                     </div>

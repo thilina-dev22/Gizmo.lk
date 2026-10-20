@@ -22,9 +22,17 @@ function escapeXml(unsafe) {
 async function generateGoogleMerchantFeed() {
   console.log('🛍️ Generating Google Merchant Center RSS 2.0 XML Product Feed for GizmoTek.lk...');
 
-  const products = await prisma.product.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  let products;
+  try {
+    products = await prisma.product.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (err) {
+    // Never fail the deployment (or wipe the last good feed) because the DB was briefly unreachable
+    console.warn('⚠️  Could not fetch products for the merchant feed — keeping the existing feed files:', err.message);
+    await prisma.$disconnect().catch(() => {});
+    return;
+  }
 
   console.log(`Found ${products.length} products to export into Google Merchant feed.`);
 
@@ -76,6 +84,9 @@ async function generateGoogleMerchantFeed() {
       }
     }
 
+    // Matches checkout: flat Rs. 450, free from Rs. 15,000 (see FREE_SHIPPING_THRESHOLD_LKR)
+    const shippingPrice = product.sellingPriceLkr >= 15000 ? 0 : 450;
+
     xml += `      <g:condition>new</g:condition>
       <g:availability>${product.stock > 0 ? 'in_stock' : 'out_of_stock'}</g:availability>
       <g:price>${product.sellingPriceLkr.toFixed(2)} LKR</g:price>
@@ -85,7 +96,7 @@ async function generateGoogleMerchantFeed() {
       <g:shipping>
         <g:country>LK</g:country>
         <g:service>Islandwide Courier Delivery</g:service>
-        <g:price>450.00 LKR</g:price>
+        <g:price>${shippingPrice.toFixed(2)} LKR</g:price>
       </g:shipping>
     </item>
 `;
@@ -113,6 +124,6 @@ async function generateGoogleMerchantFeed() {
 }
 
 generateGoogleMerchantFeed().catch((err) => {
+  // Feed generation is best-effort; the live feed is also served dynamically by /api/feed.xml
   console.error('Failed to generate Google Merchant feed:', err);
-  process.exit(1);
 });

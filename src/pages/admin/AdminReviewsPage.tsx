@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Star,
   CheckCircle,
@@ -12,11 +12,17 @@ import {
   X,
 } from "lucide-react";
 import { OptimizedImage } from "@/components/common/OptimizedImage";
+import { TableRowsSkeleton, Skeleton } from "@/components/common/Skeleton";
+import { ErrorState } from "@/components/common/ErrorState";
 import { safeParseImages } from "@/lib/utils";
+import { FALLBACK_PRODUCT_IMAGE } from "@/lib/constants";
+import { apiFetch, getErrorMessage, isAbortError } from "@/lib/api";
+import { toast } from "@/store/useToastStore";
 
 export function AdminReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [actioningId, setActioningId] = useState<string | null>(null);
 
   // Filters & Pagination
@@ -25,38 +31,44 @@ export function AdminReviewsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  useEffect(() => {
-    fetchReviews();
-  }, []);
-
-  const fetchReviews = async () => {
-    setLoading(true);
+  const fetchReviews = useCallback(async (options: { signal?: AbortSignal; silent?: boolean } = {}) => {
+    if (!options.silent) setLoading(true);
+    setLoadError(null);
     try {
-      const res = await fetch("/api/admin/reviews");
-      const data = await res.json();
+      const data = await apiFetch<{ reviews: any[] }>("/api/admin/reviews", { signal: options.signal });
       setReviews(data.reviews || []);
     } catch (e) {
-      console.error("Admin reviews error:", e);
-      setReviews([]);
+      if (isAbortError(e)) return;
+      setLoadError(getErrorMessage(e, "Failed to load reviews."));
     } finally {
-      setLoading(false);
+      if (!options.signal?.aborted) setLoading(false);
     }
-  };
+  }, []);
 
-  const handleAction = async (reviewId: string, action: "approve" | "decline") => {
-    setActioningId(reviewId);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchReviews({ signal: controller.signal });
+    return () => controller.abort();
+  }, [fetchReviews]);
+
+  const handleAction = async (review: any, action: "approve" | "decline") => {
+    if (
+      action === "decline" &&
+      !window.confirm(`Permanently delete the review by "${review.authorName}"? This cannot be undone.`)
+    ) {
+      return;
+    }
+
+    setActioningId(review.id);
     try {
-      const res = await fetch("/api/admin/reviews", {
+      await apiFetch("/api/admin/reviews", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewId, action }),
+        body: { reviewId: review.id, action },
       });
-
-      if (res.ok) {
-        fetchReviews();
-      }
+      toast.success(action === "approve" ? `Review by ${review.authorName} is now public` : "Review deleted");
+      await fetchReviews({ silent: true });
     } catch (err) {
-      console.error(err);
+      toast.error(`Couldn't ${action} review: ${getErrorMessage(err)}`);
     } finally {
       setActioningId(null);
     }
@@ -109,10 +121,12 @@ export function AdminReviewsPage() {
         </div>
 
         <button
-          onClick={fetchReviews}
-          className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold px-3.5 py-2 rounded-xl text-xs border border-slate-800 transition-colors cursor-pointer"
+          type="button"
+          onClick={() => fetchReviews()}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold px-3.5 py-2 rounded-xl text-xs border border-slate-800 transition-colors cursor-pointer disabled:opacity-50"
         >
-          <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+          <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loading ? "animate-spin" : ""}`} />
           <span>Refresh Queue</span>
         </button>
       </div>
@@ -202,12 +216,23 @@ export function AdminReviewsPage() {
         </div>
       </div>
 
+      {loadError && <ErrorState title="Couldn't load reviews" message={loadError} onRetry={() => fetchReviews()} />}
+
       {/* Reviews Table (Desktop) & Cards (Mobile) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+      <div className={`bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl ${loadError ? "hidden" : ""}`}>
         {/* Mobile View (< sm) */}
         <div className="sm:hidden divide-y divide-slate-800">
           {loading ? (
-            <div className="p-6 text-center text-slate-500 text-xs">Loading moderation queue...</div>
+            Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="p-4 space-y-3" aria-hidden="true">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="w-8 h-8 rounded-lg" />
+                  <Skeleton className="h-3 w-40" />
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-8 w-full rounded-xl" />
+              </div>
+            ))
           ) : paginatedReviews.length === 0 ? (
             <div className="p-6 text-center text-slate-500 text-xs">
               {searchQuery
@@ -223,10 +248,7 @@ export function AdminReviewsPage() {
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
                         <OptimizedImage
-                          src={
-                            imgs[0] ||
-                            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop"
-                          }
+                          src={imgs[0] || FALLBACK_PRODUCT_IMAGE}
                           alt={rev.product?.title || "Product"}
                           fill
                         />
@@ -270,7 +292,7 @@ export function AdminReviewsPage() {
                   <div className="flex items-center gap-2 pt-1">
                     {!rev.isApproved && (
                       <button
-                        onClick={() => handleAction(rev.id, "approve")}
+                        onClick={() => handleAction(rev,"approve")}
                         disabled={actioningId === rev.id}
                         className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 shadow-md transition-colors cursor-pointer"
                       >
@@ -279,7 +301,7 @@ export function AdminReviewsPage() {
                       </button>
                     )}
                     <button
-                      onClick={() => handleAction(rev.id, "decline")}
+                      onClick={() => handleAction(rev,"decline")}
                       disabled={actioningId === rev.id}
                       className="flex-1 py-2 bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-500/30 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
                     >
@@ -308,11 +330,7 @@ export function AdminReviewsPage() {
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
-                    Loading moderation queue...
-                  </td>
-                </tr>
+                <TableRowsSkeleton rows={6} columns={6} />
               ) : paginatedReviews.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-500">
@@ -330,10 +348,7 @@ export function AdminReviewsPage() {
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
                             <OptimizedImage
-                              src={
-                                imgs[0] ||
-                                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop"
-                              }
+                              src={imgs[0] || FALLBACK_PRODUCT_IMAGE}
                               alt={rev.product?.title || "Product"}
                               fill
                             />
@@ -386,7 +401,7 @@ export function AdminReviewsPage() {
                         <div className="flex items-center justify-end gap-2">
                           {!rev.isApproved && (
                             <button
-                              onClick={() => handleAction(rev.id, "approve")}
+                              onClick={() => handleAction(rev,"approve")}
                               disabled={actioningId === rev.id}
                               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-md transition-colors cursor-pointer"
                             >
@@ -396,7 +411,7 @@ export function AdminReviewsPage() {
                           )}
 
                           <button
-                            onClick={() => handleAction(rev.id, "decline")}
+                            onClick={() => handleAction(rev,"decline")}
                             disabled={actioningId === rev.id}
                             className="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-500/30 font-bold rounded-lg text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
                           >

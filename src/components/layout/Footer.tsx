@@ -91,7 +91,7 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/products?category=Smartwatches" className="hover:text-cyan-400 transition-colors">
+              <Link to="/products?category=Wearables" className="hover:text-cyan-400 transition-colors">
                 Smartwatches & Fitness
               </Link>
             </li>
@@ -101,8 +101,8 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/products?category=Car%20Gadgets" className="hover:text-cyan-400 transition-colors">
-                Car Dashcams & Mounts
+              <Link to={`/products?category=${encodeURIComponent("Chargers & Cables")}`} className="hover:text-cyan-400 transition-colors">
+                Chargers, Cables & Power Banks
               </Link>
             </li>
           </ul>

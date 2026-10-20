@@ -5,6 +5,8 @@ import { Footer } from "@/components/layout/Footer";
 import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { QuickViewModal } from "@/components/product/QuickViewModal";
+import { TopLoadingBar } from "@/components/common/TopLoadingBar";
+import { Toaster } from "@/components/common/Toaster";
 
 // Route-based Code Splitting for performance optimization
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
@@ -38,14 +40,19 @@ function ScrollToTop() {
   return null;
 }
 
-// Suspense loading spinner
+// Suspense loading indicator shown while a route's code chunk downloads
 function RouteLoadingFallback() {
   return (
-    <div className="flex-1 min-h-[50vh] flex items-center justify-center p-12 text-slate-400 text-xs">
-      <div className="flex items-center gap-2">
-        <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-        <span>Loading GizmoTek...</span>
+    <div
+      role="status"
+      className="flex-1 min-h-[50vh] flex flex-col items-center justify-center gap-4 p-12 animate-fade-in"
+    >
+      <div className="relative w-12 h-12">
+        <div className="absolute inset-0 rounded-full border-2 border-slate-800" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-400 border-r-cyan-400/40 animate-spin" />
+        <div className="absolute inset-3 rounded-full bg-cyan-500/20 animate-pulse" />
       </div>
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Loading GizmoTek…</span>
     </div>
   );
 }
@@ -58,6 +65,8 @@ export function App() {
   return (
     <div className="bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950 min-h-screen flex flex-col">
       <ScrollToTop />
+      <TopLoadingBar />
+      <Toaster />
 
       {!isAdminRoute && (
         <>

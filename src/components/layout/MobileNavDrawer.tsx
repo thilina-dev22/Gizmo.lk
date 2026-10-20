@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, Smartphone, Headphones, Watch, Laptop, Car, ShieldCheck, Phone, ChevronRight } from "lucide-react";
+import {
+  X,
+  Search,
+  Smartphone,
+  Headphones,
+  Watch,
+  Laptop,
+  Car,
+  ShieldCheck,
+  Phone,
+  ChevronRight,
+  Cable,
+  HardDrive,
+  Compass,
+  LayoutGrid,
+  Loader2,
+} from "lucide-react";
 import { GizmoLogo } from "../logo/GizmoLogo";
-import { CATEGORIES } from "@/lib/constants";
-import { Product } from "@/store/useCartStore";
+import { CATEGORIES, FALLBACK_PRODUCT_IMAGE } from "@/lib/constants";
 import { formatLKR, safeParseImages } from "@/lib/utils";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useProductSearch } from "@/hooks/useProductSearch";
 import { OptimizedImage } from "../common/OptimizedImage";
 
 interface MobileNavDrawerProps {
@@ -13,73 +30,43 @@ interface MobileNavDrawerProps {
   onClose: () => void;
 }
 
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  all: <LayoutGrid className="w-4 h-4 text-cyan-400" />,
+  Smartphones: <Smartphone className="w-4 h-4 text-cyan-400" />,
+  "Chargers & Cables": <Cable className="w-4 h-4 text-cyan-400" />,
+  "Storage & Pen Drives": <HardDrive className="w-4 h-4 text-cyan-400" />,
+  Audio: <Headphones className="w-4 h-4 text-cyan-400" />,
+  Wearables: <Watch className="w-4 h-4 text-cyan-400" />,
+  "Computer Accessories": <Laptop className="w-4 h-4 text-cyan-400" />,
+  "Car Gadgets": <Car className="w-4 h-4 text-cyan-400" />,
+  "Outdoor & Gadgets": <Compass className="w-4 h-4 text-cyan-400" />,
+};
+
 export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const isCatalogPage = location.pathname === "/products";
-  const rawCategory = searchParams.get("category");
-  const categoryParam = rawCategory ? decodeURIComponent(rawCategory) : null;
+  const categoryParam = searchParams.get("category");
 
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const { results: searchResults, isSearching } = useProductSearch(search, 4);
 
-  const categoryIcons: Record<string, React.ReactNode> = {
-    Smartphones: <Smartphone className="w-4 h-4 text-cyan-400" />,
-    Audio: <Headphones className="w-4 h-4 text-cyan-400" />,
-    Smartwatches: <Watch className="w-4 h-4 text-cyan-400" />,
-    "Computer Accessories": <Laptop className="w-4 h-4 text-cyan-400" />,
-    "Car Gadgets": <Car className="w-4 h-4 text-cyan-400" />,
-  };
+  useBodyScrollLock(isOpen);
 
-  // Lock body scroll when drawer is open & handle Escape key
+  // Handle Escape key
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
+    if (!isOpen) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     }
-
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Live debounced search for mobile drawer
   useEffect(() => {
-    if (!search.trim()) {
-      setSearchResults([]);
-      setShowSearchDropdown(false);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const res = await fetch(`/api/products?search=${encodeURIComponent(search)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSearchResults(data.products || []);
-          setShowSearchDropdown(true);
-        }
-      } catch (err) {
-        console.error("Mobile drawer search error:", err);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
+    setShowSearchDropdown(Boolean(search.trim()));
   }, [search]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -132,13 +119,20 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                   onChange={(e) => setSearch(e.target.value)}
                   onFocus={() => search.trim() && setShowSearchDropdown(true)}
                   placeholder="Search 100+ tech gadgets..."
+                  aria-label="Search products"
+                  autoComplete="off"
                   className="w-full bg-slate-900 text-slate-100 text-xs pl-9 pr-8 py-2.5 rounded-xl border border-slate-700 focus:border-cyan-500 outline-none"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                {isSearching && search.trim() ? (
+                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                )}
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
+                    aria-label="Clear search"
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -148,17 +142,16 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
 
               {/* Live Search Autocomplete Dropdown inside Drawer */}
               {showSearchDropdown && search.trim() && (
-                <div className="mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto divide-y divide-slate-800 z-50">
-                  {isSearching ? (
+                <div className="mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto divide-y divide-slate-800 z-50 animate-slide-down">
+                  {isSearching && searchResults.length === 0 ? (
                     <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                      <div className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                      <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
                       Searching inventory...
                     </div>
                   ) : searchResults.length > 0 ? (
-                    <div>
+                    <div className={isSearching ? "opacity-60 transition-opacity" : "transition-opacity"}>
                       {searchResults.slice(0, 4).map((product) => {
-                        const imgs = safeParseImages(product.images);
-                        const thumbUrl = imgs[0] || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
+                        const thumbUrl = safeParseImages(product.images)[0] || FALLBACK_PRODUCT_IMAGE;
                         return (
                           <Link
                             key={product.id}
@@ -220,7 +213,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        {categoryIcons[cat.id] || <Smartphone className="w-4 h-4 text-cyan-400" />}
+                        {CATEGORY_ICONS[cat.id] || <Smartphone className="w-4 h-4 text-cyan-400" />}
                         <span>{cat.name}</span>
                       </div>
                       {isActive ? (

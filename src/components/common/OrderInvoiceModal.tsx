@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { formatLKR, safeParseSpecs } from "@/lib/utils";
+import { formatLKR, getOrderFeeBreakdown, safeParseSpecs } from "@/lib/utils";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { Printer, Download, X, ArrowLeft, ShieldCheck, Truck } from "lucide-react";
 
 interface OrderInvoiceModalProps {
@@ -9,11 +10,10 @@ interface OrderInvoiceModalProps {
 }
 
 export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalProps) {
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
-
-    // Lock body scroll
-    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -22,10 +22,7 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen || !order) return null;
@@ -145,12 +142,16 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
       : "DIRECT BANK TRANSFER (Deposit Slip)";
 
   const isPaid = order.paymentStatus === "PAID";
+  const fees = getOrderFeeBreakdown(order);
 
   return (
     <div
       id="invoice-modal-root"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Invoice for order ${order.orderNumber || ""}`}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-fade-in"
     >
       <div
         id="invoice-modal-card"
@@ -352,31 +353,34 @@ export function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoiceModalP
               <div className="w-full sm:w-64 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal:</span>
-                  <span className="font-semibold">{formatLKR(order.subtotalLkr || order.totalLkr)}</span>
+                  <span className="font-semibold">{formatLKR(fees.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Islandwide Delivery Fee:</span>
-                  <span>{formatLKR(450)}</span>
+                  <span>{fees.delivery === 0 ? "FREE" : formatLKR(fees.delivery)}</span>
                 </div>
-                {order.paymentMethod === "PAYHERE" && (
+                {fees.gateway > 0 && (
                   <div className="flex justify-between text-cyan-700 font-medium">
                     <span>Payment Gateway Fee (4%):</span>
-                    <span>
-                      {formatLKR(
-                        Math.max(
-                          0,
-                          Number(order.totalLkr) - Number(order.subtotalLkr || 0) - 450
-                        ) || Math.round(Number(order.subtotalLkr || 0) * 0.04)
-                      )}
-                    </span>
+                    <span>{formatLKR(fees.gateway)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2 border-t-2 border-slate-900 text-sm font-black text-slate-900">
                   <span>Grand Total:</span>
-                  <span className="text-cyan-700 font-mono">{formatLKR(order.totalLkr)}</span>
+                  <span className="text-cyan-700 font-mono">{formatLKR(fees.total)}</span>
                 </div>
               </div>
             </div>
+
+            {/* Order Notes & Selected Options */}
+            {order.notes && (
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-700 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Order Notes
+                </span>
+                <p className="whitespace-pre-line">{order.notes}</p>
+              </div>
+            )}
 
             {/* Footer Note */}
             <div className="pt-4 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-1">

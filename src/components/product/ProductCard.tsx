@@ -1,35 +1,48 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, ShoppingBag, Star, Zap, Check } from "lucide-react";
 import { Product, useCartStore } from "@/store/useCartStore";
-import { formatLKR, safeParseImages } from "@/lib/utils";
+import { formatLKR, getDefaultCartOptions, getStockStatus, safeParseImages } from "@/lib/utils";
+import { FALLBACK_PRODUCT_IMAGE } from "@/lib/constants";
 import { OptimizedImage } from "../common/OptimizedImage";
 
 interface ProductCardProps {
   product: Product;
 }
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop";
+const STOCK_BADGE_STYLES = {
+  in: "text-emerald-400",
+  low: "text-amber-400",
+  out: "text-rose-400",
+} as const;
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem, setQuickViewProduct } = useCartStore();
+  const addItem = useCartStore((state) => state.addItem);
+  const setQuickViewProduct = useCartStore((state) => state.setQuickViewProduct);
   const [added, setAdded] = useState(false);
+  const resetTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
 
   const images = safeParseImages(product.images);
-  const initialImage = images[0] || FALLBACK_IMAGE;
+  const initialImage = images[0] || FALLBACK_PRODUCT_IMAGE;
+  const stockStatus = getStockStatus(product.stock);
+  const productUrl = `/products/${product.slug || product.id}`;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem(product);
+    if (!stockStatus.canBuy) return;
+    addItem(product, 1, getDefaultCartOptions(product.specs));
     setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+    clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => setAdded(false), 1800);
   };
 
   return (
-    <div className="group relative bg-slate-900/90 rounded-2xl border border-slate-800/90 hover:border-cyan-500/50 transition-all duration-300 flex flex-col overflow-hidden shadow-xl hover:shadow-cyan-950/40">
+    <div className="group relative bg-slate-900/90 rounded-2xl border border-slate-800/90 hover:border-cyan-500/50 transition-all duration-300 flex flex-col overflow-hidden shadow-xl hover:shadow-cyan-950/40 hover:-translate-y-0.5 animate-fade-in-up">
       {/* Top Badges */}
-      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between gap-2 pointer-events-none">
         {product.isBestSeller ? (
           <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-md uppercase tracking-wider">
             Best Seller
@@ -39,32 +52,37 @@ export function ProductCard({ product }: ProductCardProps) {
             <Zap className="w-3 h-3" /> Hot Deal
           </span>
         ) : (
-          <span className="bg-slate-950/80 text-slate-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-800">
+          <span className="bg-slate-950/80 text-slate-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-800 truncate">
             {product.category}
           </span>
         )}
 
-        <span className="bg-slate-950/80 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-800">
-          In Stock
+        <span
+          className={`bg-slate-950/80 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-800 whitespace-nowrap ${
+            STOCK_BADGE_STYLES[stockStatus.tone]
+          }`}
+        >
+          {stockStatus.label}
         </span>
       </div>
 
       {/* Product Image Box */}
       <div className="relative h-40 sm:h-52 w-full bg-slate-950 overflow-hidden">
-        <Link to={`/products/${product.slug || product.id}`} className="block w-full h-full">
+        <Link to={productUrl} className="block w-full h-full" aria-label={product.title} tabIndex={-1}>
           <OptimizedImage
             src={initialImage}
             alt={product.title}
             fill
-            className="group-hover:scale-105 transition-transform duration-500"
+            className={`group-hover:scale-105 transition-transform duration-500 ${stockStatus.canBuy ? "" : "grayscale-[60%]"}`}
           />
         </Link>
 
-        {/* Overlay Quick View Button */}
-        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4 pointer-events-none group-hover:pointer-events-auto">
+        {/* Overlay Quick View Button (hover devices) */}
+        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity hidden sm:flex items-center justify-center gap-2 p-4 pointer-events-none group-hover:pointer-events-auto">
           <button
+            type="button"
             onClick={() => setQuickViewProduct(product)}
-            className="bg-slate-900/90 hover:bg-slate-900 text-slate-200 hover:text-cyan-400 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 backdrop-blur-md transition-all shadow-lg cursor-pointer"
+            className="pointer-events-auto bg-slate-900/90 hover:bg-slate-900 text-slate-200 hover:text-cyan-400 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 backdrop-blur-md transition-all shadow-lg cursor-pointer translate-y-1 group-hover:translate-y-0"
           >
             <Eye className="w-4 h-4" />
             <span>Quick View</span>
@@ -75,10 +93,10 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Content */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5 sm:space-y-3">
         <div>
-          <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-0.5 sm:mb-1">
+          <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-0.5 sm:mb-1 truncate">
             {product.category}
           </span>
-          <Link to={`/products/${product.slug || product.id}`}>
+          <Link to={productUrl}>
             <h3 className="text-xs font-bold text-slate-100 group-hover:text-cyan-400 transition-colors line-clamp-2 leading-snug">
               {product.title}
             </h3>
@@ -86,7 +104,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Rating Stars */}
-        <div className="flex items-center gap-1 text-amber-400 text-[11px] sm:text-xs">
+        <div className="flex items-center gap-1 text-amber-400 text-[11px] sm:text-xs" aria-label={`Rated ${(product.rating || 0).toFixed(1)} out of 5`}>
           <div className="flex">
             {[...Array(5)].map((_, i) => (
               <Star
@@ -101,6 +119,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
           <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium ml-0.5">
             {(product.rating || 0).toFixed(1)}
+            {product.reviewCount ? ` (${product.reviewCount})` : ""}
           </span>
         </div>
 
@@ -114,15 +133,22 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <button
+            type="button"
             onClick={handleAddToCart}
-            className={`font-bold p-2 sm:p-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-1 text-xs shrink-0 min-w-[34px] min-h-[34px] cursor-pointer ${
-              added
-                ? "bg-emerald-500 text-slate-950"
-                : "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950"
+            disabled={!stockStatus.canBuy}
+            className={`font-bold p-2 sm:p-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-1 text-xs shrink-0 min-w-[34px] min-h-[34px] active:scale-95 ${
+              !stockStatus.canBuy
+                ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                : added
+                ? "bg-emerald-500 text-slate-950 cursor-pointer"
+                : "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 cursor-pointer"
             }`}
-            title="Add to Cart"
+            title={stockStatus.canBuy ? "Add to Cart" : "Out of stock"}
+            aria-label={stockStatus.canBuy ? `Add ${product.title} to cart` : `${product.title} is out of stock`}
           >
-            {added ? (
+            {!stockStatus.canBuy ? (
+              <span className="px-1 text-[10px] sm:text-xs">Sold Out</span>
+            ) : added ? (
               <>
                 <Check className="w-4 h-4" />
                 <span className="hidden sm:inline">Added!</span>

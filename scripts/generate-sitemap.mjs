@@ -11,7 +11,7 @@ const BASE_URL = 'https://gizmotek.lk';
 
 function escapeXml(unsafe) {
   if (!unsafe) return '';
-  return unsafe
+  return String(unsafe)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -57,6 +57,13 @@ async function generateSitemap() {
     });
     console.log(`Found ${products.length} products to index in sitemap.`);
   } catch (err) {
+    // Keep the last good sitemap instead of replacing it with one that has no product URLs
+    const existingSitemap = path.resolve(process.cwd(), 'public', 'sitemap.xml');
+    if (fs.existsSync(existingSitemap)) {
+      console.warn('⚠️  Could not fetch products for sitemap — keeping the existing public/sitemap.xml:', err.message);
+      await prisma.$disconnect().catch(() => {});
+      return;
+    }
     console.warn('Could not fetch products from DB for sitemap:', err.message);
   }
 
@@ -82,7 +89,7 @@ async function generateSitemap() {
   for (const cat of CATEGORIES) {
     const encodedCat = encodeURIComponent(cat);
     xml += `  <url>
-    <loc>${BASE_URL}/products?category=${encodedCat}</loc>
+    <loc>${escapeXml(`${BASE_URL}/products?category=${encodedCat}`)}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
@@ -106,7 +113,7 @@ async function generateSitemap() {
     } catch {}
 
     xml += `  <url>
-    <loc>${productUrl}</loc>
+    <loc>${escapeXml(productUrl)}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>`;
